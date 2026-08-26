@@ -1,17 +1,43 @@
 {
   "name": "@scrawlix/en",
   "version": "0.0.0",
+  "description": "English profanity rules, coverage helpers, and regression corpora for Scrawlix.",
   "type": "module",
   "sideEffects": false,
+  "files": ["dist"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./corpus": "./src/corpus.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./corpus": {
+      "types": "./dist/corpus.d.ts",
+      "import": "./dist/corpus.js",
+      "default": "./dist/corpus.js"
+    }
   },
-  "types": "./src/index.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/teamleaderleo/scrawlix.git",
+    "directory": "packages/en"
+  },
+  "homepage": "https://github.com/teamleaderleo/scrawlix#readme",
+  "bugs": {
+    "url": "https://github.com/teamleaderleo/scrawlix/issues"
+  },
+  "keywords": ["censor", "profanity", "english", "text", "scrawlix"],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@scrawlix/core": "workspace:*"
   },
   "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "prepack": "pnpm build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   }
