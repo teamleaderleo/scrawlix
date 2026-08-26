@@ -3,6 +3,19 @@
   --scrawlix-fuzzy-ink: color-mix(in srgb, currentColor 58%, transparent);
 }
 
+[data-scrawlix-a11y] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 [data-scrawlix-root]:focus-visible {
   outline: 1px solid currentColor;
   outline-offset: 0.2em;
