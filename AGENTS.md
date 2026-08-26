@@ -32,9 +32,10 @@ pnpm install
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm smoke:packages
 ```
 
-The demo build is part of the workspace build and acts as an integration check across core, language packs, and React.
+The demo build is part of the workspace build and acts as an integration check across core, language packs, and React. The package smoke test installs packed tarballs into a consumer outside the workspace dependency graph.
 
 ## Invariants
 
@@ -62,7 +63,9 @@ When a larger match contains the meaningful censored core, use a named capture g
 
 ### Treat accessibility as source truth
 
-Visual fragments are decorative. React currently exposes the full source once through `aria-label` and hides rendered fragments from assistive tech. Preserve a single accessible reading of the source and avoid duplicate speech.
+Visual censorship is decorative. When text is transformed, React keeps exactly one visually-hidden source copy in the accessibility tree (`data-scrawlix-a11y`) and marks the complete rendered visual tree `aria-hidden="true"`. Preserve that single accessible reading of the source across every appearance and reveal mode.
+
+Passive reveal modes (`hover`, `never`) stay outside the tab order. Keyboard-driven reveal modes must retain an operable focus path and regression coverage.
 
 ### Add corpus cases for learned linguistic behavior
 
@@ -85,7 +88,7 @@ When a bug or rule change teaches a durable positive or false-positive example, 
 3. Prefer CSS/data-attribute presentation over rebuilding source strings.
 4. Add the appearance to the demo specimen sheet.
 5. Preserve reveal modes and reduced-motion behavior.
-6. Add rendered/visual regression coverage when issue #11 lands that layer.
+6. Extend rendered regressions for any new DOM contract or interaction.
 
 ## Adding a coverage behavior
 
@@ -95,4 +98,4 @@ Ask whether the behavior is language-neutral. Generic positional coverage may li
 
 Scrawlix is pre-release, so breaking changes are still possible. Use that freedom to remove surprising defaults and awkward names early. Once packages are published, favor additive changes and explicit deprecation paths.
 
-Before the first public release, issue #13 requires packed-package smoke tests so external consumers receive compiled JavaScript, declarations, CSS exports, and valid package metadata rather than workspace-only source imports.
+Packed-package smoke tests are a release gate: external consumers must receive compiled JavaScript, declarations, CSS exports, and valid package metadata rather than workspace-only source imports.
