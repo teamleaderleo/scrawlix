@@ -21,10 +21,11 @@ A change in one layer should rarely require logic in another.
 - `packages/rehype` — HAST/rehype transformer for syntax-tree prose
 - `packages/dom` — arbitrary-page text-node transformation, restoration, and mutation observation
 - `apps/demo` — public interactive proof sheet and integration consumer
+- `apps/extension` — Manifest V3 application: browser state, popup UI, and injected presentation
 - `fixtures/consumer` — external packed-package smoke consumer
 - `docs` — design and extension guidance
 
-Planned application work is tracked in GitHub issues for the browser extension and Scrapbook adoption.
+Scrapbook adoption remains tracked separately as a real-consumer integration.
 
 ## Commands
 
@@ -38,7 +39,7 @@ pnpm build
 pnpm smoke:packages
 ```
 
-The demo build is part of the workspace build and acts as an integration check across core, language packs, and React. The package smoke test installs packed tarballs into a consumer outside the workspace dependency graph.
+The demo and extension builds are part of the workspace build. The package smoke test installs packed tarballs into a consumer outside the workspace dependency graph.
 
 ## Invariants
 
@@ -90,6 +91,18 @@ Restoration is controller-owned. A controller records exact source strings for r
 
 Presentation remains above the DOM adapter. Keep black bars, blur, grawlix masks, site preferences, and extension UI out of `@scrawlix/dom`.
 
+### Keep browser-extension state in the application
+
+`apps/extension` owns `chrome.storage`, hostname overrides, popup UI, manifest permissions, and injected presentation. Do not move those concerns into reusable packages.
+
+Small global preferences belong in `storage.sync`; custom terms currently live in `storage.local`. Host overrides are sparse tri-state policy: absence means inherit, explicit values are `on` or `off`.
+
+A storage change restarts the page session through `DomObservation.restore()` before a new controller starts. Preserve that atomic restore/reconfigure sequence.
+
+Extension reveal interaction must avoid stealing native page controls. Generated roots inside links, buttons, inputs, or similar controls stay outside the extension's own focus/click-toggle path.
+
+Broad HTTP/HTTPS host access is a deliberate development choice for persistent automatic per-site behavior. Treat permission minimization as a store-release requirement and document any permission change alongside its UX tradeoff.
+
 ### Add corpus cases for learned linguistic behavior
 
 When a bug or rule change teaches a durable positive or false-positive example, add it to the relevant pack corpus. Prefer data cases over one-off matcher test code.
@@ -112,6 +125,7 @@ When a bug or rule change teaches a durable positive or false-positive example, 
 4. Add the appearance to the demo specimen sheet.
 5. Preserve reveal modes and reduced-motion behavior.
 6. Extend rendered regressions for any new DOM contract or interaction.
+7. If the extension should expose the same appearance, update its local presentation union/CSS and test its mask semantics separately.
 
 ## Adding a coverage behavior
 
