@@ -15,7 +15,7 @@ Scrawlix began as a censor/reveal primitive in [Scrapbook](https://github.com/te
 
 ## Quick start
 
-Scrawlix does not choose a language for you. Pick a rule pack explicitly:
+Scrawlix asks callers to pick a rule pack explicitly:
 
 ```ts
 import { createScrawlix } from '@scrawlix/core';
@@ -50,6 +50,34 @@ import '@scrawlix/react/styles.css';
 Current appearances: `scrawl`, `bar`, `blur`, `asterisk`, and `grawlix`.
 
 Current reveal modes: `hover`, `focus`, `click`, and `never`.
+
+## Markdown / rehype
+
+`@scrawlix/rehype` walks HAST text nodes and marks covered ranges while leaving the source text intact:
+
+```tsx
+import { englishProfanityRules } from '@scrawlix/en';
+import { rehypeScrawlix } from '@scrawlix/rehype';
+import ReactMarkdown from 'react-markdown';
+
+<ReactMarkdown
+  rehypePlugins={[
+    [
+      rehypeScrawlix,
+      {
+        rules: englishProfanityRules,
+        coverage: 'middle',
+      },
+    ],
+  ]}
+>
+  {markdown}
+</ReactMarkdown>;
+```
+
+Covered fragments become spans carrying `data-scrawlix-cover` and `data-scrawlix-rules`. The adapter keeps appearance policy out of the syntax-tree pass, so a site can style those spans with its own editorial language.
+
+`code`, `pre`, `script`, `style`, and `textarea` subtrees are skipped by default. Applications can add excluded tags, place `data-scrawlix-ignore` on a subtree, or provide a `shouldSkip` predicate. The transformer also skips its own output, so repeated processing stays idempotent.
 
 ## Custom words and phrases
 
@@ -103,7 +131,7 @@ The repository includes `vercel.json` at the root. Importing the Git repository 
 - build: `pnpm build`
 - output: `apps/demo/dist`
 
-No server runtime is required; the demo builds to static assets.
+The demo builds to static assets.
 
 ## Contributing
 
@@ -113,6 +141,7 @@ Run the whole workspace with:
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm smoke:packages
 ```
 
 `AGENTS.md` is the maintainer/agent map: package responsibilities, invariants, commands, and extension rules. Corpus regressions should be data-first: when a matcher bug teaches us a durable example, add that example to the relevant language corpus.
@@ -129,6 +158,7 @@ pnpm build
 - [Corpus-driven regressions](https://github.com/teamleaderleo/scrawlix/issues/11)
 - [Language packs](https://github.com/teamleaderleo/scrawlix/issues/12)
 - [Human and agent adoption ergonomics](https://github.com/teamleaderleo/scrawlix/issues/13)
+- [First public release readiness](https://github.com/teamleaderleo/scrawlix/issues/18)
 
 ## Status
 
