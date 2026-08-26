@@ -9,6 +9,7 @@ const fixture = `<!doctype html>
   <body>
     <main>
       <p id="initial">well, fuck this</p>
+      <p id="custom-copy">Mothbit stays visible until it joins the custom list.</p>
       <p><code id="code">fuck</code></p>
       <div id="editable" contenteditable="true">fuck</div>
       <button id="native-button" type="button">fuck</button>
