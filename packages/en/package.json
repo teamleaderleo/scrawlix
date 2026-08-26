@@ -1,0 +1,18 @@
+{
+  "name": "@scrawlix/en",
+  "version": "0.0.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./corpus": "./src/corpus.ts"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@scrawlix/core": "workspace:*"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}
