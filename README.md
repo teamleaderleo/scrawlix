@@ -79,6 +79,32 @@ Covered fragments become spans carrying `data-scrawlix-cover` and `data-scrawlix
 
 `code`, `pre`, `script`, `style`, and `textarea` subtrees are skipped by default. Applications can add excluded tags, place `data-scrawlix-ignore` on a subtree, or provide a `shouldSkip` predicate. The transformer also skips its own output, so repeated processing stays idempotent.
 
+## Arbitrary webpages / DOM
+
+`@scrawlix/dom` applies the same rules to an existing DOM and can observe future page mutations:
+
+```ts
+import { createDomScrawlix } from '@scrawlix/dom';
+import { englishProfanityRules } from '@scrawlix/en';
+
+const censor = createDomScrawlix({
+  rules: englishProfanityRules,
+  coverage: 'middle',
+});
+
+const observation = censor.observe(document.body);
+```
+
+Only text nodes with actual covered ranges are wrapped. Generated roots use `data-scrawlix-dom-root`; covered fragments use the same `data-scrawlix-cover` and `data-scrawlix-rules` attributes as the rehype adapter.
+
+Dynamic observation queues only nodes reported by `MutationObserver`. Turning a site off can be one lifecycle call:
+
+```ts
+observation.restore();
+```
+
+That disconnects observation, clears pending work, and restores the controller-owned source strings. Form/editable/code-like regions, non-HTML namespaces, and generated output are skipped by default. See `docs/dom.md` for exclusion and lifecycle details.
+
 ## Custom words and phrases
 
 Profanity is only one rule pack. Callers can censor names, spoilers, codenames, or arbitrary phrases:

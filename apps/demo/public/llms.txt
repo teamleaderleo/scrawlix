@@ -9,6 +9,7 @@ Packages:
 - @scrawlix/en — English profanity rules, English vowel coverage, regression corpus
 - @scrawlix/react — React renderer and visual/reveal presets
 - @scrawlix/rehype — HAST/rehype transformer for Markdown-rendered prose
+- @scrawlix/dom — arbitrary-page DOM transformation, restoration, and mutation observation
 
 Canonical React usage:
 
@@ -50,7 +51,25 @@ const plugin = [
 ];
 ```
 
+Canonical arbitrary-page usage:
+
+```ts
+import { createDomScrawlix } from '@scrawlix/dom';
+import { englishProfanityRules } from '@scrawlix/en';
+
+const controller = createDomScrawlix({
+  rules: englishProfanityRules,
+  coverage: 'middle',
+});
+
+const observation = controller.observe(document.body);
+// Later, when disabling censorship:
+observation.restore();
+```
+
 The rehype adapter emits spans with `data-scrawlix-cover` and `data-scrawlix-rules`, preserves the original text as text content, and skips code/pre/script/style/textarea by default.
+
+The DOM adapter transforms only matching text nodes, marks controller output with `data-scrawlix-dom-root`, skips editable/form/code/non-HTML regions by default, observes only mutation roots delivered by MutationObserver, and can restore exact controller-owned source strings.
 
 Core is deliberately language-neutral. Select language/rule packs explicitly. Custom names, spoilers, and phrases can be supplied with `censorRuleFromWords()`.
 
@@ -61,4 +80,5 @@ React reveal modes: hover, focus, click, never.
 
 Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md
 Language packs: https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md
+DOM lifecycle: https://github.com/teamleaderleo/scrawlix/blob/main/docs/dom.md
 Release readiness: https://github.com/teamleaderleo/scrawlix/issues/18

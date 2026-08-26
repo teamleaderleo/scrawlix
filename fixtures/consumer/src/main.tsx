@@ -1,4 +1,5 @@
 import { createScrawlix } from '@scrawlix/core';
+import { createDomScrawlix } from '@scrawlix/dom';
 import { englishProfanityRules } from '@scrawlix/en';
 import { transformHast } from '@scrawlix/rehype';
 import { CensoredText } from '@scrawlix/react';
@@ -46,6 +47,20 @@ if (
   )
 ) {
   throw new Error('Scrawlix rehype package smoke assertion failed.');
+}
+
+const domHost = document.createElement('div');
+domHost.textContent = 'well, fuck';
+const domResult = createDomScrawlix({
+  rules: englishProfanityRules,
+  coverage: 'middle',
+}).apply(domHost);
+
+if (
+  domResult.transformedTextNodes !== 1 ||
+  !domHost.querySelector('[data-scrawlix-cover]')
+) {
+  throw new Error('Scrawlix DOM package smoke assertion failed.');
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
