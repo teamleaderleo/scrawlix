@@ -7,9 +7,11 @@
     "dev": "pnpm --filter scrawlix-demo dev",
     "smoke:packages": "node scripts/smoke-packages.mjs",
     "test": "pnpm build:packages && pnpm -r --if-present test",
+    "test:browser": "playwright test -c playwright.config.ts",
     "typecheck": "pnpm -r --if-present typecheck"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "typescript": "^5.2.2",
     "vitest": "^3.2.4"
   }
