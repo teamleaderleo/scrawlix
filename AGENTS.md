@@ -19,11 +19,12 @@ A change in one layer should rarely require logic in another.
 - `packages/en` — English profanity rules, English-specific coverage helpers, English regression corpus
 - `packages/react` — React renderer and appearance/reveal behavior
 - `packages/rehype` — HAST/rehype transformer for syntax-tree prose
+- `packages/dom` — arbitrary-page text-node transformation, restoration, and mutation observation
 - `apps/demo` — public interactive proof sheet and integration consumer
 - `fixtures/consumer` — external packed-package smoke consumer
 - `docs` — design and extension guidance
 
-Planned adapters are tracked in GitHub issues for arbitrary DOM, the browser extension, and Scrapbook adoption.
+Planned application work is tracked in GitHub issues for the browser extension and Scrapbook adoption.
 
 ## Commands
 
@@ -76,6 +77,18 @@ Passive reveal modes (`hover`, `never`) stay outside the tab order. Keyboard-dri
 Keep code/pre/script/style/textarea exclusions safe by default. Preserve inline elements and link boundaries. Never match across separate text nodes or markup seams unless a future API explicitly introduces a higher-level tokenization pass with corpus evidence.
 
 The rehype transform must stay idempotent: existing `data-scrawlix-cover` output is an excluded subtree.
+
+### Keep arbitrary-page DOM work local and reversible
+
+`@scrawlix/dom` collects eligible text nodes with `TreeWalker`, transforms only nodes with covered ranges, and marks generated roots with `data-scrawlix-dom-root`. Applying the same controller again must leave generated output alone.
+
+Mutation observation must process nodes delivered by `MutationObserver`. Never replace this with a complete document rescan after each mutation.
+
+Keep editable/form/code-like regions and non-HTML namespaces safe by default. Treat `contenteditable="false"` as an explicit island inside an editable ancestor.
+
+Restoration is controller-owned. A controller records exact source strings for roots it creates and must leave author-owned lookalike attributes alone. When observation is active, use the observation handle's atomic `restore()` lifecycle so disconnect happens before source nodes return.
+
+Presentation remains above the DOM adapter. Keep black bars, blur, grawlix masks, site preferences, and extension UI out of `@scrawlix/dom`.
 
 ### Add corpus cases for learned linguistic behavior
 
