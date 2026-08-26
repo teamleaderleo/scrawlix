@@ -1,0 +1,12 @@
+{
+  "name": "scrawlix-workspace",
+  "private": true,
+  "scripts": {
+    "test": "pnpm --filter @scrawlix/core test",
+    "typecheck": "pnpm --filter @scrawlix/core typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "vitest": "^3.2.4"
+  }
+}
