@@ -172,7 +172,7 @@ test('built extension restores, persists, overrides sites, and recompiles custom
     await reopened.locator('#custom-words').press('Tab');
     await expect(reopened.locator('#save-status')).toHaveText('saved');
     await expect(custom.locator('[data-scrawlix-dom-root]')).toHaveCount(1);
-    await expect(custom.locator('[data-scrawlix-cover]')).toHaveText('thb');
+    await expect(custom.locator('[data-scrawlix-cover]')).toHaveText('othb');
 
     // Explicit site off wins over global/custom state and restores exact source again.
     await reopened.evaluate(async () => {
