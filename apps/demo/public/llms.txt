@@ -11,6 +11,10 @@ Packages:
 - @scrawlix/rehype — HAST/rehype transformer for Markdown-rendered prose
 - @scrawlix/dom — arbitrary-page DOM transformation, restoration, and mutation observation
 
+Applications:
+- apps/demo — interactive proof-sheet demo
+- apps/extension — Manifest V3 browser extension built on @scrawlix/dom
+
 Canonical React usage:
 
 ```tsx
@@ -67,6 +71,8 @@ const observation = controller.observe(document.body);
 observation.restore();
 ```
 
+The browser extension keeps browser state outside reusable packages. Global treatment settings + sparse hostname overrides use chrome.storage.sync; custom terms use chrome.storage.local. Storage changes restore the old DOM session before a newly configured observation begins. Build it with `pnpm build`, then load `apps/extension/dist` as an unpacked Chromium extension.
+
 The rehype adapter emits spans with `data-scrawlix-cover` and `data-scrawlix-rules`, preserves the original text as text content, and skips code/pre/script/style/textarea by default.
 
 The DOM adapter transforms only matching text nodes, marks controller output with `data-scrawlix-dom-root`, skips editable/form/code/non-HTML regions by default, observes only mutation roots delivered by MutationObserver, and can restore exact controller-owned source strings.
@@ -81,4 +87,5 @@ React reveal modes: hover, focus, click, never.
 Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md
 Language packs: https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md
 DOM lifecycle: https://github.com/teamleaderleo/scrawlix/blob/main/docs/dom.md
+Extension notes: https://github.com/teamleaderleo/scrawlix/blob/main/apps/extension/README.md
 Release readiness: https://github.com/teamleaderleo/scrawlix/issues/18
