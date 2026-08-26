@@ -1,0 +1,24 @@
+{
+  "name": "@scrawlix/react",
+  "version": "0.0.0",
+  "type": "module",
+  "sideEffects": ["./src/styles.css"],
+  "exports": {
+    ".": "./src/index.tsx",
+    "./styles.css": "./src/styles.css"
+  },
+  "types": "./src/index.tsx",
+  "dependencies": {
+    "@scrawlix/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "react": "^19.2.1"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}
