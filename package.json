@@ -8,6 +8,8 @@
     "smoke:packages": "node scripts/smoke-packages.mjs",
     "test": "pnpm build:packages && pnpm -r --if-present test",
     "test:browser": "playwright test -c playwright.config.ts",
+    "test:browser:demo": "playwright test -c playwright.config.ts -g \"demo controls\"",
+    "test:browser:extension": "playwright test -c playwright.config.ts -g \"built extension\"",
     "typecheck": "pnpm -r --if-present typecheck"
   },
   "devDependencies": {
