@@ -2,8 +2,10 @@
   "name": "scrawlix-workspace",
   "private": true,
   "scripts": {
-    "test": "pnpm --filter @scrawlix/core test",
-    "typecheck": "pnpm --filter @scrawlix/core typecheck"
+    "build": "pnpm --filter scrawlix-demo build",
+    "dev": "pnpm --filter scrawlix-demo dev",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck"
   },
   "devDependencies": {
     "typescript": "^5.2.2",
