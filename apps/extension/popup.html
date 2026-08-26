@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scrawlix</title>
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="masthead">
+        <div>
+          <p class="wordmark">scrawlix<span aria-hidden="true">*</span></p>
+          <p class="tagline">programmable censorship</p>
+        </div>
+        <label class="switch-row compact">
+          <span>global</span>
+          <input id="enabled" type="checkbox" />
+        </label>
+      </header>
+
+      <section class="site-card" aria-labelledby="site-heading">
+        <div>
+          <p class="eyebrow">this site</p>
+          <h1 id="site-heading">Loading…</h1>
+          <p id="effective-status" class="status-line"></p>
+        </div>
+        <label>
+          <span class="sr-only">Site mode</span>
+          <select id="site-mode">
+            <option value="inherit">follow global</option>
+            <option value="on">always on</option>
+            <option value="off">always off</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="settings-grid" aria-label="Censor treatment">
+        <label>
+          <span>appearance</span>
+          <select id="appearance">
+            <option value="scrawl">scrawl</option>
+            <option value="bar">bar</option>
+            <option value="blur">blur</option>
+            <option value="asterisk">asterisk</option>
+            <option value="grawlix">grawlix</option>
+          </select>
+        </label>
+
+        <label>
+          <span>coverage</span>
+          <select id="coverage">
+            <option value="middle">middle</option>
+            <option value="vowel">vowel</option>
+            <option value="inner">inner</option>
+            <option value="tail">tail</option>
+            <option value="full">full</option>
+          </select>
+        </label>
+
+        <label>
+          <span>reveal</span>
+          <select id="reveal">
+            <option value="hover">hover</option>
+            <option value="focus">focus</option>
+            <option value="click">click</option>
+            <option value="never">never</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="custom-words" aria-labelledby="custom-heading">
+        <div class="section-label">
+          <div>
+            <p class="eyebrow">your list</p>
+            <h2 id="custom-heading">Custom words & phrases</h2>
+          </div>
+          <span id="save-status" aria-live="polite"></span>
+        </div>
+        <textarea
+          id="custom-words"
+          rows="5"
+          placeholder="Project Velvet&#10;Mothbit&#10;spoiler phrase"
+          spellcheck="false"
+        ></textarea>
+        <p class="hint">One per line. Saved locally in this browser.</p>
+      </section>
+
+      <footer>
+        <span>Scrawlix dev build</span>
+        <a href="https://github.com/teamleaderleo/scrawlix" target="_blank" rel="noreferrer">source ↗</a>
+      </footer>
+    </main>
+
+    <script type="module" src="/src/popup.ts"></script>
+  </body>
+</html>
