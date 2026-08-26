@@ -56,6 +56,8 @@ export type DomObservation = {
   /** Process mutation roots already delivered by MutationObserver. */
   flush(): DomApplyResult;
   disconnect(): void;
+  /** Disconnect observation, clear pending work, then restore owned text in one call. */
+  restore(): number;
 };
 
 export type DomScrawlixController = {
@@ -291,6 +293,12 @@ export function createDomScrawlix(
       );
     };
 
+    const stop = () => {
+      scheduled = false;
+      pending.clear();
+      observer.disconnect();
+    };
+
     const schedule = () => {
       if (scheduled) return;
       scheduled = true;
@@ -325,10 +333,10 @@ export function createDomScrawlix(
     return {
       initialResult,
       flush,
-      disconnect() {
-        scheduled = false;
-        pending.clear();
-        observer.disconnect();
+      disconnect: stop,
+      restore() {
+        stop();
+        return restore(root);
       },
     };
   }
