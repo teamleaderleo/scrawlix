@@ -11,7 +11,7 @@ Scrawlix separates the interesting parts of censorship so they can be mixed deli
 
 That means the same word can become `████`, `f███`, `f██k`, `f█ck`, `f**k`, a blur, an inked-over scrawl, or a grawlix — while callers keep control of the underlying source text.
 
-Scrawlix began as a censor/reveal primitive in [Scrapbook](https://github.com/teamleaderleo/scrapbook). The standalone project turns that experiment into a small language-neutral engine with rule packs and adapters for React, Markdown, the DOM, and eventually a browser extension.
+Scrawlix began as a censor/reveal primitive in [Scrapbook](https://github.com/teamleaderleo/scrapbook). The standalone project turns that experiment into a small language-neutral engine with rule packs and adapters for React, Markdown, arbitrary DOMs, and a browser extension built from the same pieces.
 
 ## Quick start
 
@@ -104,6 +104,30 @@ observation.restore();
 ```
 
 That disconnects observation, clears pending work, and restores the controller-owned source strings. Form/editable/code-like regions, non-HTML namespaces, and generated output are skipped by default. See `docs/dom.md` for exclusion and lifecycle details.
+
+## Browser extension
+
+The unpacked Manifest V3 extension lives in `apps/extension`. It is a thin application around `@scrawlix/dom` and `@scrawlix/en`: page matching/restoration stays in the packages, while browser storage, per-host preferences, injected presentation, and popup UI stay in the extension.
+
+```sh
+pnpm install
+pnpm build
+```
+
+Then load `apps/extension/dist` as an unpacked extension in a Chromium browser.
+
+The popup currently supports:
+
+- a global on/off switch
+- per-host **follow global / always on / always off** behavior
+- all five appearances
+- all generic coverage modes plus English vowel coverage
+- hover / focus / click / never reveal
+- local custom words and phrases
+
+Small preferences and sparse hostname overrides use `chrome.storage.sync`; custom terms use `chrome.storage.local`. A settings change restores the current page's source text before starting the newly configured observation session.
+
+The development manifest runs automatically on HTTP/HTTPS pages so per-site behavior survives navigation. That broad host access is intentionally called out as a store-release review item; see `apps/extension/README.md` for the permission, privacy, build, and lifecycle notes.
 
 ## Custom words and phrases
 
