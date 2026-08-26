@@ -1,9 +1,7 @@
 import { chromium, expect, test } from '@playwright/test';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
-const extensionPath = fileURLToPath(
-  new URL('../../apps/extension/dist', import.meta.url)
-);
+const extensionPath = resolve(process.cwd(), 'apps/extension/dist');
 
 test('demo controls drive real rendered coverage and reveal state', async ({ page }) => {
   await page.goto('http://127.0.0.1:4173');
