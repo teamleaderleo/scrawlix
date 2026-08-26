@@ -16,7 +16,7 @@ export type ScrawlixReveal = 'hover' | 'focus' | 'click' | 'never';
 
 export type CensoredTextProps = {
   text: string;
-  rules?: readonly CensorRule[];
+  rules: readonly CensorRule[];
   coverage?: CoverageSelector;
   appearance?: ScrawlixAppearance;
   reveal?: ScrawlixReveal;
