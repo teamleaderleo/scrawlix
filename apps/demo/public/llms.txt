@@ -8,6 +8,7 @@ Packages:
 - @scrawlix/core — language-neutral matching and segmentation
 - @scrawlix/en — English profanity rules, English vowel coverage, regression corpus
 - @scrawlix/react — React renderer and visual/reveal presets
+- @scrawlix/rehype — HAST/rehype transformer for Markdown-rendered prose
 
 Canonical React usage:
 
@@ -37,7 +38,21 @@ const engine = createScrawlix({
 });
 ```
 
-Core is deliberately language-neutral. Select language/rule packs explicitly; do not assume automatic language detection. Custom names, spoilers, and phrases can be supplied with `censorRuleFromWords()`.
+Canonical rehype usage:
+
+```ts
+import { englishProfanityRules } from '@scrawlix/en';
+import { rehypeScrawlix } from '@scrawlix/rehype';
+
+const plugin = [
+  rehypeScrawlix,
+  { rules: englishProfanityRules, coverage: 'middle' },
+];
+```
+
+The rehype adapter emits spans with `data-scrawlix-cover` and `data-scrawlix-rules`, preserves the original text as text content, and skips code/pre/script/style/textarea by default.
+
+Core is deliberately language-neutral. Select language/rule packs explicitly. Custom names, spoilers, and phrases can be supplied with `censorRuleFromWords()`.
 
 Generic coverage presets: full, tail, middle, inner.
 English-specific helper: englishVowelCoverage.
@@ -46,3 +61,4 @@ React reveal modes: hover, focus, click, never.
 
 Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md
 Language packs: https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md
+Release readiness: https://github.com/teamleaderleo/scrawlix/issues/18
