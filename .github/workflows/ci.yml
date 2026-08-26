@@ -19,4 +19,10 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium >/dev/null
+      - name: Browser smoke — demo
+        run: pnpm test:browser:demo
+      - name: Browser smoke — extension
+        run: pnpm test:browser:extension
       - run: pnpm smoke:packages
