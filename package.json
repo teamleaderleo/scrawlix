@@ -2,7 +2,7 @@
   "name": "scrawlix-workspace",
   "private": true,
   "scripts": {
-    "build": "pnpm build:packages && pnpm --filter scrawlix-demo build",
+    "build": "pnpm build:packages && pnpm --filter scrawlix-demo build && pnpm --filter scrawlix-extension build",
     "build:packages": "pnpm --filter @scrawlix/core build && pnpm --filter @scrawlix/en build && pnpm --filter @scrawlix/react build && pnpm --filter @scrawlix/rehype build && pnpm --filter @scrawlix/dom build",
     "dev": "pnpm --filter scrawlix-demo dev",
     "smoke:packages": "node scripts/smoke-packages.mjs",
