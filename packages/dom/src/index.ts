@@ -249,7 +249,9 @@ export function createDomScrawlix(
 
     if ('querySelectorAll' in root) {
       const queryable = root as Node & ParentNode;
-      roots.push(...queryable.querySelectorAll('[data-scrawlix-dom-root]'));
+      roots.push(
+        ...Array.from(queryable.querySelectorAll('[data-scrawlix-dom-root]'))
+      );
     }
 
     return roots;
@@ -314,7 +316,7 @@ export function createDomScrawlix(
           continue;
         }
 
-        for (const added of record.addedNodes) {
+        for (const added of Array.from(record.addedNodes)) {
           pending.add(added);
         }
       }
