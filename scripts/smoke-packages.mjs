@@ -60,6 +60,7 @@ try {
   const coreTarball = packPackage('packages/core');
   const englishTarball = packPackage('packages/en');
   const reactTarball = packPackage('packages/react');
+  const rehypeTarball = packPackage('packages/rehype');
 
   cpSync(resolve(root, 'fixtures/consumer'), consumerDirectory, {
     recursive: true,
@@ -74,6 +75,7 @@ try {
     '@scrawlix/core': asFileDependency(coreTarball),
     '@scrawlix/en': asFileDependency(englishTarball),
     '@scrawlix/react': asFileDependency(reactTarball),
+    '@scrawlix/rehype': asFileDependency(rehypeTarball),
   };
   packageJson.pnpm = {
     overrides: {

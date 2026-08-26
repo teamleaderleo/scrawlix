@@ -18,10 +18,12 @@ A change in one layer should rarely require logic in another.
 - `packages/core` — language-neutral matching, segmentation, generic coverage, custom-word helpers
 - `packages/en` — English profanity rules, English-specific coverage helpers, English regression corpus
 - `packages/react` — React renderer and appearance/reveal behavior
+- `packages/rehype` — HAST/rehype transformer for syntax-tree prose
 - `apps/demo` — public interactive proof sheet and integration consumer
+- `fixtures/consumer` — external packed-package smoke consumer
 - `docs` — design and extension guidance
 
-Planned adapters are tracked in GitHub issues for rehype/Markdown, arbitrary DOM, browser extension, and Scrapbook adoption.
+Planned adapters are tracked in GitHub issues for arbitrary DOM, the browser extension, and Scrapbook adoption.
 
 ## Commands
 
@@ -67,6 +69,14 @@ Visual censorship is decorative. When text is transformed, React keeps exactly o
 
 Passive reveal modes (`hover`, `never`) stay outside the tab order. Keyboard-driven reveal modes must retain an operable focus path and regression coverage.
 
+### Keep syntax-tree adapters semantic
+
+`@scrawlix/rehype` operates on HAST text nodes and emits covered spans with stable data attributes. It preserves the original text as text content and leaves appearance/reveal policy to consumers.
+
+Keep code/pre/script/style/textarea exclusions safe by default. Preserve inline elements and link boundaries. Never match across separate text nodes or markup seams unless a future API explicitly introduces a higher-level tokenization pass with corpus evidence.
+
+The rehype transform must stay idempotent: existing `data-scrawlix-cover` output is an excluded subtree.
+
 ### Add corpus cases for learned linguistic behavior
 
 When a bug or rule change teaches a durable positive or false-positive example, add it to the relevant pack corpus. Prefer data cases over one-off matcher test code.
@@ -98,4 +108,4 @@ Ask whether the behavior is language-neutral. Generic positional coverage may li
 
 Scrawlix is pre-release, so breaking changes are still possible. Use that freedom to remove surprising defaults and awkward names early. Once packages are published, favor additive changes and explicit deprecation paths.
 
-Packed-package smoke tests are a release gate: external consumers must receive compiled JavaScript, declarations, CSS exports, and valid package metadata rather than workspace-only source imports.
+Packed-package smoke tests are a release gate: external consumers must receive compiled JavaScript, declarations, CSS exports, and valid package metadata rather than workspace-only source imports. Every new public package belongs in `scripts/smoke-packages.mjs` and `fixtures/consumer`.
