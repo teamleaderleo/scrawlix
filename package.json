@@ -2,9 +2,11 @@
   "name": "scrawlix-workspace",
   "private": true,
   "scripts": {
-    "build": "pnpm --filter scrawlix-demo build",
+    "build": "pnpm build:packages && pnpm --filter scrawlix-demo build",
+    "build:packages": "pnpm --filter @scrawlix/core build && pnpm --filter @scrawlix/en build && pnpm --filter @scrawlix/react build",
     "dev": "pnpm --filter scrawlix-demo dev",
-    "test": "pnpm -r --if-present test",
+    "smoke:packages": "node scripts/smoke-packages.mjs",
+    "test": "pnpm build:packages && pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck"
   },
   "devDependencies": {

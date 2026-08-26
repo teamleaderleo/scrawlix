@@ -1,13 +1,33 @@
 {
   "name": "@scrawlix/react",
   "version": "0.0.0",
+  "description": "React rendering, appearances, and reveal behavior for Scrawlix.",
   "type": "module",
-  "sideEffects": ["./src/styles.css"],
+  "sideEffects": ["./dist/styles.css"],
+  "files": ["dist"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.tsx",
-    "./styles.css": "./src/styles.css"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css"
   },
-  "types": "./src/index.tsx",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/teamleaderleo/scrawlix.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/teamleaderleo/scrawlix#readme",
+  "bugs": {
+    "url": "https://github.com/teamleaderleo/scrawlix/issues"
+  },
+  "keywords": ["react", "censor", "redaction", "profanity", "scrawlix"],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@scrawlix/core": "workspace:*"
   },
@@ -19,6 +39,8 @@
     "react": "^19.2.1"
   },
   "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && node ../../scripts/copy-file.mjs src/styles.css dist/styles.css",
+    "prepack": "pnpm build",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   }
 }

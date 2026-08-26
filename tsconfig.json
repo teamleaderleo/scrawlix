@@ -8,6 +8,13 @@
     "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@scrawlix/core": ["packages/core/src/index.ts"],
+      "@scrawlix/en": ["packages/en/src/index.ts"],
+      "@scrawlix/en/corpus": ["packages/en/src/corpus.ts"],
+      "@scrawlix/react": ["packages/react/src/index.tsx"]
+    }
   }
 }
