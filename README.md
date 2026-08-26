@@ -11,31 +11,36 @@ Scrawlix separates the interesting parts of censorship so they can be mixed deli
 
 That means the same word can become `████`, `f███`, `f██k`, `f█ck`, `f**k`, a blur, an inked-over scrawl, or a grawlix — while callers keep control of the underlying source text.
 
-Scrawlix began as a censor/reveal primitive in [Scrapbook](https://github.com/teamleaderleo/scrapbook). The standalone project turns that experiment into a small framework-independent engine with adapters for React, Markdown, the DOM, and eventually a browser extension.
+Scrawlix began as a censor/reveal primitive in [Scrapbook](https://github.com/teamleaderleo/scrapbook). The standalone project turns that experiment into a small language-neutral engine with rule packs and adapters for React, Markdown, the DOM, and eventually a browser extension.
 
-## Core
+## Quick start
+
+Scrawlix does not choose a language for you. Pick a rule pack explicitly:
 
 ```ts
-import { createScrawlix, profanityRules } from '@scrawlix/core';
+import { createScrawlix } from '@scrawlix/core';
+import { englishProfanityRules } from '@scrawlix/en';
 
 const scrawlix = createScrawlix({
-  rules: profanityRules,
+  rules: englishProfanityRules,
   coverage: 'middle',
 });
 
 scrawlix.segment('what the fuck');
 ```
 
-The core understands semantic targets inside larger matches, so `fuck`, `fucking`, and `motherfucker` can all apply coverage specifically to the `fuck` portion.
+The English pack understands semantic targets inside larger matches, so `fuck`, `fucking`, and `motherfucker` can all apply coverage specifically to the `fuck` portion.
 
 ## React
 
 ```tsx
+import { englishProfanityRules } from '@scrawlix/en';
 import { CensoredText } from '@scrawlix/react';
 import '@scrawlix/react/styles.css';
 
 <CensoredText
   text="what the fuck"
+  rules={englishProfanityRules}
   coverage="middle"
   appearance="scrawl"
   reveal="hover"
@@ -45,6 +50,39 @@ import '@scrawlix/react/styles.css';
 Current appearances: `scrawl`, `bar`, `blur`, `asterisk`, and `grawlix`.
 
 Current reveal modes: `hover`, `focus`, `click`, and `never`.
+
+## Custom words and phrases
+
+Profanity is only one rule pack. Callers can censor names, spoilers, codenames, or arbitrary phrases:
+
+```ts
+import { censorRuleFromWords, createScrawlix } from '@scrawlix/core';
+
+const privateTerms = censorRuleFromWords('private', [
+  'Project Velvet',
+  'Mothbit',
+]);
+
+const censor = createScrawlix({
+  rules: [privateTerms],
+  coverage: 'full',
+});
+```
+
+`censorRuleFromWords` uses Unicode-aware word boundaries by default. Packs for scripts where matches can sit directly beside other letters can opt into `boundary: 'substring'`.
+
+## Language packs
+
+`@scrawlix/core` owns matching mechanics and generic coverage (`full`, `tail`, `middle`, `inner`). Linguistic assumptions live in packages such as `@scrawlix/en`.
+
+The English package currently exports:
+
+- `englishProfanityRules`
+- `englishStrongProfanityPack`
+- `englishVowelCoverage`
+- a small regression corpus at `@scrawlix/en/corpus`
+
+Future language packs can carry their own rules, locale metadata, coverage helpers, and regression corpora. Consumers can combine packs with `rulesFromPacks(...)`. See `docs/language-packs.md`.
 
 ## Demo
 
@@ -67,6 +105,18 @@ The repository includes `vercel.json` at the root. Importing the Git repository 
 
 No server runtime is required; the demo builds to static assets.
 
+## Contributing
+
+Run the whole workspace with:
+
+```sh
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+`AGENTS.md` is the maintainer/agent map: package responsibilities, invariants, commands, and extension rules. Corpus regressions should be data-first: when a matcher bug teaches us a durable example, add that example to the relevant language corpus.
+
 ## Roadmap
 
 - [Core engine: matching, semantic targets, and coverage](https://github.com/teamleaderleo/scrawlix/issues/1)
@@ -76,6 +126,9 @@ No server runtime is required; the demo builds to static assets.
 - [Browser extension](https://github.com/teamleaderleo/scrawlix/issues/5)
 - [Scrapbook adoption](https://github.com/teamleaderleo/scrawlix/issues/6)
 - [Interactive demo and deployment](https://github.com/teamleaderleo/scrawlix/issues/8)
+- [Corpus-driven regressions](https://github.com/teamleaderleo/scrawlix/issues/11)
+- [Language packs](https://github.com/teamleaderleo/scrawlix/issues/12)
+- [Human and agent adoption ergonomics](https://github.com/teamleaderleo/scrawlix/issues/13)
 
 ## Status
 

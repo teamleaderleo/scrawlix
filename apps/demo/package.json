@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@scrawlix/core": "workspace:*",
+    "@scrawlix/en": "workspace:*",
     "@scrawlix/react": "workspace:*",
     "react": "^19.2.1",
     "react-dom": "^19.2.1"

@@ -1,4 +1,8 @@
-import { type CoveragePreset } from '@scrawlix/core';
+import { type CoveragePreset, type CoverageSelector } from '@scrawlix/core';
+import {
+  englishProfanityRules,
+  englishVowelCoverage,
+} from '@scrawlix/en';
 import {
   CensoredText,
   type ScrawlixAppearance,
@@ -14,7 +18,9 @@ const appearances: readonly ScrawlixAppearance[] = [
   'grawlix',
 ];
 
-const coverages: readonly CoveragePreset[] = [
+type CoverageChoice = CoveragePreset | 'vowel';
+
+const coverages: readonly CoverageChoice[] = [
   'middle',
   'vowel',
   'inner',
@@ -33,6 +39,10 @@ const specimens = [
   'motherfucker',
   'Well, shit. That actually works.',
 ] as const;
+
+function selectorForCoverage(coverage: CoverageChoice): CoverageSelector {
+  return coverage === 'vowel' ? englishVowelCoverage : coverage;
+}
 
 function SegmentControl<T extends string>({
   label,
@@ -66,14 +76,19 @@ function SegmentControl<T extends string>({
 
 export function App() {
   const [appearance, setAppearance] = useState<ScrawlixAppearance>('scrawl');
-  const [coverage, setCoverage] = useState<CoveragePreset>('middle');
+  const [coverage, setCoverage] = useState<CoverageChoice>('middle');
   const [reveal, setReveal] = useState<ScrawlixReveal>('hover');
   const [text, setText] = useState(defaultText);
+  const coverageSelector = selectorForCoverage(coverage);
 
-  const code = useMemo(
-    () => `<CensoredText\n  text={copy}\n  coverage="${coverage}"\n  appearance="${appearance}"\n  reveal="${reveal}"\n/>`,
-    [appearance, coverage, reveal]
-  );
+  const code = useMemo(() => {
+    const coverageLine =
+      coverage === 'vowel'
+        ? '  coverage={englishVowelCoverage}'
+        : `  coverage="${coverage}"`;
+
+    return `import { englishProfanityRules${coverage === 'vowel' ? ', englishVowelCoverage' : ''} } from '@scrawlix/en';\nimport { CensoredText } from '@scrawlix/react';\n\n<CensoredText\n  text={copy}\n  rules={englishProfanityRules}\n${coverageLine}\n  appearance="${appearance}"\n  reveal="${reveal}"\n/>`;
+  }, [appearance, coverage, reveal]);
 
   return (
     <main>
@@ -111,8 +126,9 @@ export function App() {
           <div className="proof-output">
             <CensoredText
               appearance={appearance}
-              coverage={coverage}
+              coverage={coverageSelector}
               reveal={reveal}
+              rules={englishProfanityRules}
               text={text}
             />
           </div>
@@ -180,8 +196,9 @@ export function App() {
                   <p key={sample}>
                     <CensoredText
                       appearance={style}
-                      coverage={coverage}
+                      coverage={coverageSelector}
                       reveal="hover"
+                      rules={englishProfanityRules}
                       text={sample}
                     />
                   </p>
@@ -215,18 +232,19 @@ export function App() {
           </div>
         </div>
         <p className="semantic-note">
-          The matcher can target <code>fuck</code> inside an inflected or compound match,
-          so coverage operates on the semantic term instead of swallowing the whole token.
+          The English pack targets <code>fuck</code> inside an inflected or compound
+          match, so coverage operates on the semantic term instead of swallowing the
+          whole token.
         </p>
       </section>
 
       <section className="code-section" aria-labelledby="code-title">
         <div>
           <p className="eyebrow">04 / use it</p>
-          <h2 id="code-title">The component stays small.</h2>
+          <h2 id="code-title">Pick the language. Pick the damage.</h2>
           <p>
-            Matching lives in <code>@scrawlix/core</code>. React only renders the ranges it
-            receives.
+            Matching rules live in explicit language or custom packs. The core stays
+            neutral; React only renders the ranges it receives.
           </p>
         </div>
         <pre>
