@@ -68,7 +68,6 @@ export function CensoredText({
 
   return (
     <span
-      aria-label={text}
       className={className}
       data-scrawlix-root
       data-reveal={reveal}
@@ -77,40 +76,38 @@ export function CensoredText({
       onClick={reveal === 'click' ? () => setRevealed(value => !value) : undefined}
       onKeyDown={onKeyDown}
     >
-      {segments.map((segment, index) => {
-        if (!segment.covered) {
+      <span data-scrawlix-a11y>{text}</span>
+      <span aria-hidden="true" data-scrawlix-visual>
+        {segments.map((segment, index) => {
+          if (!segment.covered) {
+            return <span key={`${index}-${segment.text}`}>{segment.text}</span>;
+          }
+
+          const symbolAppearance =
+            appearance === 'asterisk' || appearance === 'grawlix';
+
           return (
-            <span aria-hidden="true" key={`${index}-${segment.text}`}>
-              {segment.text}
+            <span
+              data-scrawlix-cover
+              data-appearance={appearance}
+              data-rules={segment.ruleIds.join(',')}
+              key={`${index}-${segment.text}`}
+              title={title}
+            >
+              {symbolAppearance ? (
+                <>
+                  <span data-scrawlix-mask>
+                    {symbolsFor(segment.text, appearance)}
+                  </span>
+                  <span data-scrawlix-source>{segment.text}</span>
+                </>
+              ) : (
+                segment.text
+              )}
             </span>
           );
-        }
-
-        const symbolAppearance =
-          appearance === 'asterisk' || appearance === 'grawlix';
-
-        return (
-          <span
-            aria-hidden="true"
-            data-scrawlix-cover
-            data-appearance={appearance}
-            data-rules={segment.ruleIds.join(',')}
-            key={`${index}-${segment.text}`}
-            title={title}
-          >
-            {symbolAppearance ? (
-              <>
-                <span data-scrawlix-mask>
-                  {symbolsFor(segment.text, appearance)}
-                </span>
-                <span data-scrawlix-source>{segment.text}</span>
-              </>
-            ) : (
-              segment.text
-            )}
-          </span>
-        );
-      })}
+        })}
+      </span>
     </span>
   );
 }
