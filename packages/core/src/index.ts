@@ -1,4 +1,4 @@
-export type CoveragePreset = 'full' | 'tail' | 'middle' | 'inner' | 'vowel';
+export type CoveragePreset = 'full' | 'tail' | 'middle' | 'inner';
 
 export type RelativeRange = {
   start: number;
@@ -29,6 +29,14 @@ export type CensorRule = {
   target?: CensorTarget;
   coverage?: CoverageSelector;
 };
+
+export type CensorRulePack = {
+  id: string;
+  locale?: string | readonly string[];
+  rules: readonly CensorRule[];
+};
+
+export type WordBoundaryMode = 'word' | 'substring';
 
 export type ScrawlixMatch = {
   ruleId: string;
@@ -158,17 +166,6 @@ function coverageForPreset(
 
     case 'middle':
       return middleCoverage(value);
-
-    case 'vowel': {
-      const vowels = graphemes.filter(range => {
-        const grapheme = value
-          .slice(range.start, range.end)
-          .normalize('NFD')
-          .replace(/\p{M}/gu, '');
-        return /[aeiou]/iu.test(grapheme);
-      });
-      return vowels.length > 0 ? vowels : middleCoverage(value);
-    }
   }
 }
 
@@ -349,7 +346,12 @@ export function censorRuleFromWords(
   {
     caseSensitive = false,
     coverage,
-  }: { caseSensitive?: boolean; coverage?: CoverageSelector } = {}
+    boundary = 'word',
+  }: {
+    caseSensitive?: boolean;
+    coverage?: CoverageSelector;
+    boundary?: WordBoundaryMode;
+  } = {}
 ): CensorRule {
   const alternatives = [...new Set(words.map(word => word.trim()).filter(Boolean))]
     .sort((left, right) => right.length - left.length)
@@ -359,53 +361,27 @@ export function censorRuleFromWords(
     throw new Error('A censor rule needs at least one non-empty word.');
   }
 
+  const source = `(?:${alternatives.join('|')})`;
+  const boundedSource =
+    boundary === 'word'
+      ? `(?<![\\p{L}\\p{N}_])${source}(?![\\p{L}\\p{N}_])`
+      : source;
+
   return {
     id,
     coverage,
-    pattern: new RegExp(
-      `(?<![\\p{L}\\p{N}_])(?:${alternatives.join('|')})(?![\\p{L}\\p{N}_])`,
-      caseSensitive ? 'gu' : 'giu'
-    ),
+    pattern: new RegExp(boundedSource, caseSensitive ? 'gu' : 'giu'),
   };
 }
 
-export const STRONG_PROFANITY_RULES: readonly CensorRule[] = [
-  {
-    id: 'fuck',
-    pattern:
-      /(?<![\p{L}\p{N}_])(?:mother)?(?<core>fuck)(?:ing|ed|er|ers|s)?(?![\p{L}\p{N}_])/giu,
-    target: { group: 'core' },
-  },
-  {
-    id: 'shit',
-    pattern:
-      /(?<![\p{L}\p{N}_])(?:bull)?(?<core>shit)(?:ting|ted|ter|ters|s|ty)?(?![\p{L}\p{N}_])/giu,
-    target: { group: 'core' },
-  },
-  {
-    id: 'bitch',
-    pattern:
-      /(?<![\p{L}\p{N}_])(?<core>bitch)(?:es|ing|ed|y)?(?![\p{L}\p{N}_])/giu,
-    target: { group: 'core' },
-  },
-  {
-    id: 'asshole',
-    pattern:
-      /(?<![\p{L}\p{N}_])(?<core>asshole)s?(?![\p{L}\p{N}_])/giu,
-    target: { group: 'core' },
-  },
-  {
-    id: 'cunt',
-    pattern:
-      /(?<![\p{L}\p{N}_])(?<core>cunt)s?(?![\p{L}\p{N}_])/giu,
-    target: { group: 'core' },
-  },
-] as const;
-
-export const profanityRules = STRONG_PROFANITY_RULES;
+export function rulesFromPacks(
+  ...packs: readonly CensorRulePack[]
+): CensorRule[] {
+  return packs.flatMap(pack => pack.rules);
+}
 
 export function createScrawlix({
-  rules = STRONG_PROFANITY_RULES,
+  rules = [],
   coverage = 'middle',
 }: ScrawlixOptions = {}): ScrawlixEngine {
   const compiledRules: CompiledRule[] = rules.map(rule => ({
