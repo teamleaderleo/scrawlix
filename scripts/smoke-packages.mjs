@@ -88,6 +88,7 @@ try {
   writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 
   run(['install', '--no-frozen-lockfile'], consumerDirectory);
+  run(['exec', 'node', 'runtime.mjs'], consumerDirectory);
   run(['typecheck'], consumerDirectory);
   run(['build'], consumerDirectory);
 
