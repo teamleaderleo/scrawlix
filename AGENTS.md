@@ -107,6 +107,8 @@ The first store-facing coverage contract is top-document-only. Dynamic registrat
 
 HTTP/HTTPS host access is optional and user-granted. Keep dynamic content-script registration aligned with Chrome's currently granted origin patterns, and keep browser access separate from Scrawlix site policy in both code and UI. Before removing a host grant, restore every matching open Scrawlix page while the permission still permits reliable messaging; after removal, reconcile any affected tabs still covered by an overlapping remaining grant. If Chrome refuses removal, restore the page sessions that were temporarily stopped. Any permission expansion is a browser-product and store-review change that must include its UX and privacy rationale.
 
+Store upload packaging must be reproducible and explicit. Keep the development/source manifest version independent from release numbering; the store packager must refuse the `0.0.0` placeholder and inject a caller-supplied release version only into the archive. `manifest.json` belongs at ZIP root, source maps stay out, archive entry order/timestamps/metadata stay deterministic, and CI must prove two packages from the same build have the same SHA-256. Final icons/screenshots/listing assets are a separate visual release gate under #127; never satisfy that gate with silent placeholder branding.
+
 ### Add corpus cases for learned linguistic behavior
 
 When a bug or rule change teaches a durable positive or false-positive example, add it to the relevant pack corpus. Prefer data cases over one-off matcher test code.

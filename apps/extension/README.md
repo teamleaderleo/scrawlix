@@ -27,6 +27,27 @@ To try it locally in Chromium:
 3. choose **Load unpacked**
 4. select `apps/extension/dist`
 
+## Store package
+
+After the extension has been built, create an upload archive with an explicit release version:
+
+```sh
+pnpm --filter scrawlix-extension package:store -- --version 0.1.0
+```
+
+The source/development manifest stays at `0.0.0`. The store packager refuses that placeholder and injects the requested version only into the archived `manifest.json`, so local development and release numbering stay separate.
+
+The default outputs are:
+
+- `apps/extension/release/scrawlix-extension-<version>.zip`
+- `apps/extension/release/scrawlix-extension-<version>.sha256`
+
+Pass `--output <path>` to choose another ZIP destination. Generated release output is gitignored.
+
+The packager is dependency-free and deterministic: archive paths are sorted, ZIP timestamps are fixed, entries use stable stored-method ZIP metadata, source maps are excluded, `manifest.json` stays at archive root, and CRC/file-count/version checks run before the file is written. CI packages the same `0.0.1` candidate twice and compares SHA-256 digests so reproducibility is a tested release property.
+
+Final store icons/screenshots/listing artwork remain a separate visual release gate under #127. The archive machinery can be proven without shipping placeholder branding.
+
 ## Preferences
 
 Compact general preferences live in `chrome.storage.sync`:
