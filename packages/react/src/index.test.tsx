@@ -27,6 +27,14 @@ function render(element: ReactElement) {
   return container;
 }
 
+function rerender(element: ReactElement) {
+  const mounted = mountedRoots.at(-1)!;
+  act(() => {
+    mounted.root.render(element);
+  });
+  return mounted.container;
+}
+
 afterEach(() => {
   while (mountedRoots.length > 0) {
     const mounted = mountedRoots.pop()!;
@@ -114,6 +122,56 @@ describe('CensoredText', () => {
 
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(root.dataset.revealed).toBe('false');
+  });
+
+  it('conceals different censored text after a click-revealed value changes', () => {
+    const changingRules = [
+      { id: 'strong', pattern: /(?:fuck|shit)/giu },
+    ] as const;
+    const container = render(
+      <CensoredText reveal="click" rules={changingRules} text="fuck" />
+    );
+    let root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+
+    act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(root.dataset.revealed).toBe('true');
+
+    rerender(
+      <CensoredText reveal="click" rules={changingRules} text="shit" />
+    );
+    root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    expect(root.dataset.revealed).toBe('false');
+  });
+
+  it('does not revive reveal state across a safe-text transition', () => {
+    const container = render(
+      <CensoredText reveal="click" rules={rules} text="fuck" />
+    );
+    let root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+
+    act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(root.dataset.revealed).toBe('true');
+
+    rerender(<CensoredText reveal="click" rules={rules} text="safe" />);
+    expect(container.querySelector('[data-scrawlix-root]')).toBeNull();
+
+    rerender(<CensoredText reveal="click" rules={rules} text="fuck" />);
+    root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    expect(root.dataset.revealed).toBe('false');
+  });
+
+  it('preserves reveal state across an equivalent rerender', () => {
+    const container = render(
+      <CensoredText reveal="click" rules={rules} text="fuck" />
+    );
+    let root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+
+    act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(root.dataset.revealed).toBe('true');
+
+    rerender(<CensoredText reveal="click" rules={rules} text="fuck" />);
+    root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    expect(root.dataset.revealed).toBe('true');
   });
 
   it.each(['Enter', ' '])('toggles click reveal with %j', key => {
