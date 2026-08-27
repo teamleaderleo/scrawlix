@@ -9,7 +9,7 @@ export type ExtensionAppearance =
   | 'grawlix';
 
 export type ExtensionCoverage = 'full' | 'tail' | 'middle' | 'inner' | 'vowel';
-export type ExtensionReveal = 'hover' | 'focus' | 'click' | 'never';
+export type ExtensionReveal = 'hover' | 'click' | 'never';
 export type SiteMode = 'inherit' | 'on' | 'off';
 export type SiteOverrides = Record<string, Exclude<SiteMode, 'inherit'>>;
 
@@ -59,10 +59,19 @@ const COVERAGES = new Set<ExtensionCoverage>([
   'inner',
   'vowel',
 ]);
-const REVEALS = new Set<ExtensionReveal>(['hover', 'focus', 'click', 'never']);
+const REVEALS = new Set<ExtensionReveal>(['hover', 'click', 'never']);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeReveal(value: unknown): ExtensionReveal {
+  // Older extension builds exposed per-fragment focus reveal. Migrate that
+  // preference to click reveal while preserving the browser's native tab order.
+  if (value === 'focus') return 'click';
+  return REVEALS.has(value as ExtensionReveal)
+    ? (value as ExtensionReveal)
+    : DEFAULT_SETTINGS.reveal;
 }
 
 export function normalizeSiteOverrides(value: unknown): SiteOverrides {
@@ -92,9 +101,7 @@ export function normalizeSettings(value: unknown): SyncSettings {
     coverage: COVERAGES.has(value.coverage as ExtensionCoverage)
       ? (value.coverage as ExtensionCoverage)
       : DEFAULT_SETTINGS.coverage,
-    reveal: REVEALS.has(value.reveal as ExtensionReveal)
-      ? (value.reveal as ExtensionReveal)
-      : DEFAULT_SETTINGS.reveal,
+    reveal: normalizeReveal(value.reveal),
     siteOverrides: normalizeSiteOverrides(value.siteOverrides),
   };
 }

@@ -243,6 +243,12 @@ h2 {
   cursor: pointer;
 }
 
+.preview-stage [data-scrawlix-dom-root]:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 0.15em;
+  border-radius: 0.12em;
+}
+
 select,
 input[type='search'],
 textarea {

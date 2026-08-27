@@ -79,8 +79,6 @@ function previewInstruction(reveal: ExtensionReveal) {
   switch (reveal) {
     case 'hover':
       return 'Hover the specimen to reveal it.';
-    case 'focus':
-      return 'Tab to the specimen to reveal it.';
     case 'click':
       return 'Click or press Enter on the specimen to toggle reveal.';
     case 'never':
@@ -106,9 +104,9 @@ function renderPreview() {
   root.dataset.scrawlixRevealed = 'false';
   root.setAttribute('aria-hidden', 'true');
 
-  if (settings.reveal === 'focus' || settings.reveal === 'click') {
-    root.tabIndex = 0;
-  }
+  // The preview is one intentional control in the extension UI, so click reveal
+  // keeps an ordinary keyboard path here even though arbitrary-page fragments do not.
+  if (settings.reveal === 'click') root.tabIndex = 0;
 
   for (const segment of engine.segment(PREVIEW_TERM)) {
     if (!segment.covered) {

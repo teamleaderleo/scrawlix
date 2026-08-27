@@ -44,6 +44,8 @@ Local browser-profile state lives in `chrome.storage.local`:
 
 Older builds stored hostname overrides inside the synced settings object. The extension service worker migrates that legacy map to local storage and rewrites the synced item without hostnames.
 
+Older extension builds also exposed a per-fragment **focus** reveal mode. The browser product now preserves the host page's native tab order, so stored `focus` preferences normalize to `click` when loaded.
+
 The popup exposes a tri-state site mode:
 
 - **default** — no hostname entry is stored
@@ -124,7 +126,9 @@ The DOM adapter watches mutation roots instead of rescanning the complete docume
 
 Asterisk/grawlix masks are presentation metadata on generated cover spans. The source substring remains the actual DOM text underneath.
 
-Hover is the default reveal mode. Focus/click reveal makes a generated wrapper keyboard-focusable only when the wrapper is outside links, buttons, inputs, and other native interactive controls. Scrawlix avoids stealing those controls' interaction semantics.
+The browser extension exposes three persistent reveal choices: **hover**, **click**, and **hidden**. Hover remains passive. Click toggles ordinary Scrawlix text for pointer users while ignoring generated roots nested inside links, buttons, and similar native controls. Generated censor roots never receive `tabindex`, so a profanity-heavy page cannot add hundreds of synthetic stops to keyboard navigation. Keyboard users can reveal the current page through the single extension command instead.
+
+The reusable React renderer can continue to support focus reveal for applications that own their rendered controls; that behavior is separate from arbitrary-page extension interaction.
 
 ## Permissions and privacy
 
@@ -153,4 +157,4 @@ See [`docs/extension-privacy.md`](../../docs/extension-privacy.md) for the curre
 - broad HTTP/HTTPS patterns remain optional instead of required host permissions
 - every directly referenced popup/background/options asset exists in `dist`
 
-Unit tests cover preference normalization/reconciliation, browser-access helpers including restore-before-revoke behavior, local-vs-sync storage, and selection normalization. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration, real content script, temporary page reveal, and Options custom-term round trip without weakening the shipping manifest.
+Unit tests cover preference normalization/reconciliation, browser-access helpers including restore-before-revoke behavior, local-vs-sync storage, selection normalization, and legacy reveal migration. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration, real content script, temporary page reveal, native-tab-order click behavior, and Options custom-term round trip without weakening the shipping manifest.

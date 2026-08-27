@@ -65,12 +65,9 @@ function decorateGeneratedRoot(root: HTMLElement, settings: SyncSettings) {
     root.dataset.scrawlixRevealed = 'false';
   }
 
-  const interactiveReveal = settings.reveal === 'focus' || settings.reveal === 'click';
-  if (interactiveReveal && canOwnInteraction(root)) {
-    root.tabIndex = 0;
-  } else {
-    root.removeAttribute('tabindex');
-  }
+  // Arbitrary-page censor fragments never enter the tab order. Keyboard reveal is
+  // provided once at page level through the extension command instead.
+  root.removeAttribute('tabindex');
 
   for (const cover of Array.from(
     root.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')
@@ -178,23 +175,13 @@ function clickRootFromEvent(event: Event) {
   const root = target.closest<HTMLElement>(
     '[data-scrawlix-dom-root][data-scrawlix-reveal="click"]'
   );
-  if (!root || root.tabIndex !== 0) return null;
+  if (!root || !canOwnInteraction(root)) return null;
   return root;
 }
 
 document.addEventListener('click', event => {
   const root = clickRootFromEvent(event);
   if (!root) return;
-  root.dataset.scrawlixRevealed =
-    root.dataset.scrawlixRevealed === 'true' ? 'false' : 'true';
-});
-
-document.addEventListener('keydown', event => {
-  if (event.key !== 'Enter' && event.key !== ' ') return;
-  const root = clickRootFromEvent(event);
-  if (!root) return;
-
-  event.preventDefault();
   root.dataset.scrawlixRevealed =
     root.dataset.scrawlixRevealed === 'true' ? 'false' : 'true';
 });

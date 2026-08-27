@@ -59,6 +59,15 @@ describe('extension settings', () => {
     });
   });
 
+  it('migrates the retired focus reveal preference to click', () => {
+    expect(
+      normalizeSettings({
+        ...DEFAULT_SETTINGS,
+        reveal: 'focus',
+      }).reveal
+    ).toBe('click');
+  });
+
   it('lets explicit site modes override the default site policy', () => {
     const disabled = { ...DEFAULT_SETTINGS, enabled: false };
     const forcedOn = setSiteMode(disabled, 'example.com', 'on');
