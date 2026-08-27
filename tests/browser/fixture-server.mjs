@@ -9,6 +9,7 @@ const fixture = `<!doctype html>
   <body>
     <main>
       <p id="initial">well, fuck this</p>
+      <p id="private">Mothbit remains private</p>
       <p><code id="code">fuck</code></p>
       <div id="editable" contenteditable="true">fuck</div>
       <button id="native-button" type="button">fuck</button>
