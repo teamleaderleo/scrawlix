@@ -10,7 +10,7 @@ import {
 const semanticRule: CensorRule = {
   id: 'semantic-test',
   pattern:
-    /(?<![\p{L}\p{N}_])(?:mother)?(?<core>fuck)(?:ing|ed|er|ers|s)?(?![\p{L}\p{N}_])/giu,
+    /(?<![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])(?:mother)?(?<core>fuck)(?:ing|ed|er|ers|s)?(?![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])/giu,
   target: { group: 'core' },
 };
 
@@ -55,6 +55,19 @@ describe('Scrawlix core', () => {
     ]);
   });
 
+  it('fails loudly when a configured semantic target group is unavailable', () => {
+    const brokenRule: CensorRule = {
+      id: 'broken-target',
+      pattern: /(?<other>bad)/u,
+      target: { group: 'core' },
+    };
+    const scrawlix = createScrawlix({ rules: [brokenRule] });
+
+    expect(() => scrawlix.find('bad')).toThrow(
+      'Censor rule "broken-target" declares target group "core"'
+    );
+  });
+
   it.each([
     ['full', '[fuck]'],
     ['tail', 'f[uck]'],
@@ -94,6 +107,16 @@ describe('Scrawlix core', () => {
 
     expect(marked(scrawlix.segment('caféteria café CAFÉ.'))).toBe(
       'caféteria [café] [CAFÉ].'
+    );
+  });
+
+  it('keeps marks, connector punctuation, and join controls inside word context', () => {
+    const bad = censorRuleFromWords('bad', ['bad']);
+    const scrawlix = createScrawlix({ rules: [bad], coverage: 'full' });
+    const input = 'bad\u0301 bad\u200Dword bad‿word bad';
+
+    expect(marked(scrawlix.segment(input))).toBe(
+      'bad\u0301 bad\u200Dword bad‿word [bad]'
     );
   });
 
@@ -180,7 +203,7 @@ describe('Scrawlix core', () => {
     expect(marked(scrawlix.segment('fuck'))).toBe('f[uc]k');
   });
 
-  it('combines explicit rule packs', () => {
+  it('combines explicit rule packs and preserves their provenance', () => {
     const privatePack = {
       id: 'private',
       rules: [censorRuleFromWords('private', ['Velvet'])],
@@ -197,6 +220,38 @@ describe('Scrawlix core', () => {
     expect(marked(scrawlix.segment('Velvet and Rosebud'))).toBe(
       '[Velvet] and [Rosebud]'
     );
+    expect(
+      scrawlix.find('Velvet and Rosebud').map(match => ({
+        packId: match.packId,
+        ruleId: match.ruleId,
+        text: match.text,
+      }))
+    ).toEqual([
+      { packId: 'private', ruleId: 'private', text: 'Velvet' },
+      { packId: 'spoiler', ruleId: 'spoiler', text: 'Rosebud' },
+    ]);
+  });
+
+  it('distinguishes duplicate rule ids from different packs in find results', () => {
+    const firstPack = {
+      id: 'alpha',
+      rules: [censorRuleFromWords('shared', ['Velvet'])],
+    };
+    const secondPack = {
+      id: 'beta',
+      rules: [censorRuleFromWords('shared', ['Velvet'])],
+    };
+    const scrawlix = createScrawlix({
+      rules: rulesFromPacks(firstPack, secondPack),
+      coverage: 'full',
+    });
+
+    expect(
+      scrawlix.find('Velvet').map(match => [match.packId, match.ruleId])
+    ).toEqual([
+      ['alpha', 'shared'],
+      ['beta', 'shared'],
+    ]);
   });
 
   it('preserves core segmentation invariants across deterministic fuzz cases', () => {
