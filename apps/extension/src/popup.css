@@ -68,7 +68,7 @@ footer {
 footer,
 .switch-row span,
 .settings-grid label > span,
-#save-status {
+.save-status {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -78,6 +78,19 @@ footer,
   text-transform: uppercase;
   letter-spacing: 0.11em;
   opacity: 0.62;
+}
+
+.save-status {
+  display: inline-block;
+  min-height: 1em;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+}
+
+#settings-status {
+  margin-top: 4px;
 }
 
 .switch-row {
@@ -168,8 +181,8 @@ textarea:focus {
 
 .settings-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 8px;
   padding: 14px 0;
 }
 
@@ -200,11 +213,7 @@ textarea:focus {
 
 #save-status {
   min-width: 60px;
-  font-size: 8px;
   text-align: right;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.6;
 }
 
 textarea {

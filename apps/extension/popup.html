@@ -11,10 +11,11 @@
         <div>
           <p class="wordmark">scrawlix<span aria-hidden="true">*</span></p>
           <p class="tagline">programmable censorship</p>
+          <span id="settings-status" class="save-status" aria-live="polite"></span>
         </div>
         <label class="switch-row compact">
-          <span>global</span>
-          <input id="enabled" type="checkbox" />
+          <span>active</span>
+          <input id="active" type="checkbox" />
         </label>
       </header>
 
@@ -27,7 +28,7 @@
         <label>
           <span class="sr-only">Site mode</span>
           <select id="site-mode">
-            <option value="inherit">follow global</option>
+            <option value="inherit">default</option>
             <option value="on">always on</option>
             <option value="off">always off</option>
           </select>
@@ -36,7 +37,15 @@
 
       <section class="settings-grid" aria-label="Censor treatment">
         <label>
-          <span>appearance</span>
+          <span>default sites</span>
+          <select id="default-enabled">
+            <option value="on">on</option>
+            <option value="off">off</option>
+          </select>
+        </label>
+
+        <label>
+          <span>censor style</span>
           <select id="appearance">
             <option value="scrawl">scrawl</option>
             <option value="bar">bar</option>
@@ -47,13 +56,13 @@
         </label>
 
         <label>
-          <span>coverage</span>
+          <span>how much to hide</span>
           <select id="coverage">
             <option value="middle">middle</option>
-            <option value="vowel">vowel</option>
-            <option value="inner">inner</option>
-            <option value="tail">tail</option>
-            <option value="full">full</option>
+            <option value="vowel">vowels</option>
+            <option value="inner">inner letters</option>
+            <option value="tail">after first letter</option>
+            <option value="full">whole word</option>
           </select>
         </label>
 
@@ -63,7 +72,7 @@
             <option value="hover">hover</option>
             <option value="focus">focus</option>
             <option value="click">click</option>
-            <option value="never">never</option>
+            <option value="never">hidden</option>
           </select>
         </label>
       </section>
@@ -74,7 +83,7 @@
             <p class="eyebrow">your list</p>
             <h2 id="custom-heading">Custom words & phrases</h2>
           </div>
-          <span id="save-status" aria-live="polite"></span>
+          <span id="save-status" class="save-status" aria-live="polite"></span>
         </div>
         <textarea
           id="custom-words"

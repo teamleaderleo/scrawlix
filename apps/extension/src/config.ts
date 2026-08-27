@@ -13,6 +13,9 @@ export type ExtensionReveal = 'hover' | 'focus' | 'click' | 'never';
 export type SiteMode = 'inherit' | 'on' | 'off';
 
 export type SyncSettings = {
+  /** True master pause. When paused, no site override can enable Scrawlix. */
+  paused: boolean;
+  /** Default site policy used when a hostname has no explicit override. */
   enabled: boolean;
   appearance: ExtensionAppearance;
   coverage: ExtensionCoverage;
@@ -20,10 +23,18 @@ export type SyncSettings = {
   siteOverrides: Record<string, Exclude<SiteMode, 'inherit'>>;
 };
 
+export type ExtensionStateSnapshot = {
+  settings: SyncSettings;
+  customWords: readonly string[];
+};
+
+export type SessionAction = 'none' | 'start' | 'stop' | 'restart' | 'decorate';
+
 export const SYNC_SETTINGS_KEY = 'scrawlixSettings';
 export const CUSTOM_WORDS_KEY = 'scrawlixCustomWords';
 
 export const DEFAULT_SETTINGS: SyncSettings = {
+  paused: false,
   enabled: true,
   appearance: 'scrawl',
   coverage: 'middle',
@@ -66,6 +77,7 @@ export function normalizeSettings(value: unknown): SyncSettings {
   }
 
   return {
+    paused: typeof value.paused === 'boolean' ? value.paused : DEFAULT_SETTINGS.paused,
     enabled: typeof value.enabled === 'boolean' ? value.enabled : DEFAULT_SETTINGS.enabled,
     appearance: APPEARANCES.has(value.appearance as ExtensionAppearance)
       ? (value.appearance as ExtensionAppearance)
@@ -104,6 +116,8 @@ export function siteModeFor(settings: SyncSettings, hostname: string): SiteMode 
 }
 
 export function effectiveEnabled(settings: SyncSettings, hostname: string) {
+  if (settings.paused) return false;
+
   const mode = siteModeFor(settings, hostname);
   if (mode === 'on') return true;
   if (mode === 'off') return false;
@@ -125,6 +139,38 @@ export function setSiteMode(
   }
 
   return { ...settings, siteOverrides };
+}
+
+function sameWords(left: readonly string[], right: readonly string[]) {
+  return left.length === right.length && left.every((word, index) => word === right[index]);
+}
+
+export function sessionActionFor(
+  previous: ExtensionStateSnapshot | null,
+  next: ExtensionStateSnapshot,
+  hostname: string,
+  hasSession: boolean
+): SessionAction {
+  const nextEnabled = effectiveEnabled(next.settings, hostname);
+  if (!nextEnabled) return hasSession ? 'stop' : 'none';
+  if (!hasSession) return 'start';
+  if (!previous) return 'restart';
+
+  if (
+    previous.settings.coverage !== next.settings.coverage ||
+    !sameWords(previous.customWords, next.customWords)
+  ) {
+    return 'restart';
+  }
+
+  if (
+    previous.settings.appearance !== next.settings.appearance ||
+    previous.settings.reveal !== next.settings.reveal
+  ) {
+    return 'decorate';
+  }
+
+  return 'none';
 }
 
 export function coverageSelector(coverage: ExtensionCoverage): CoverageSelector {

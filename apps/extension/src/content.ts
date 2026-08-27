@@ -5,8 +5,9 @@ import {
   CUSTOM_WORDS_KEY,
   SYNC_SETTINGS_KEY,
   coverageSelector,
-  effectiveEnabled,
   maskFor,
+  sessionActionFor,
+  type ExtensionStateSnapshot,
   type SyncSettings,
 } from './config';
 import { loadExtensionState } from './storage';
@@ -16,7 +17,7 @@ const INTERACTIVE_ANCESTOR =
 
 let observation: DomObservation | null = null;
 let presentationObserver: MutationObserver | null = null;
-let activeSettings: SyncSettings | null = null;
+let activeState: ExtensionStateSnapshot | null = null;
 let restartGeneration = 0;
 
 function customRule(customWords: readonly string[]): CensorRule[] {
@@ -29,9 +30,13 @@ function canOwnInteraction(root: HTMLElement) {
 }
 
 function decorateGeneratedRoot(root: HTMLElement, settings: SyncSettings) {
+  const previousReveal = root.dataset.scrawlixReveal;
+
   root.dataset.scrawlixAppearance = settings.appearance;
   root.dataset.scrawlixReveal = settings.reveal;
-  root.dataset.scrawlixRevealed = 'false';
+  if (previousReveal !== settings.reveal || root.dataset.scrawlixRevealed === undefined) {
+    root.dataset.scrawlixRevealed = 'false';
+  }
 
   const interactiveReveal = settings.reveal === 'focus' || settings.reveal === 'click';
   if (interactiveReveal && canOwnInteraction(root)) {
@@ -63,8 +68,11 @@ function decorateSubtree(node: Node, settings: SyncSettings) {
   }
 }
 
-function startPresentationObserver(settings: SyncSettings) {
+function startPresentationObserver() {
   const observer = new MutationObserver(records => {
+    const settings = activeState?.settings;
+    if (!settings) return;
+
     for (const record of records) {
       for (const added of Array.from(record.addedNodes)) {
         decorateSubtree(added, settings);
@@ -81,28 +89,52 @@ function stopCurrentSession() {
   presentationObserver = null;
   observation?.restore();
   observation = null;
-  activeSettings = null;
 }
 
-async function restart() {
-  const generation = ++restartGeneration;
-  const state = await loadExtensionState();
-  if (generation !== restartGeneration) return;
-
-  stopCurrentSession();
-
-  const hostname = location.hostname.toLowerCase();
-  if (!document.body || !effectiveEnabled(state.settings, hostname)) return;
-
+function startSession(state: ExtensionStateSnapshot) {
   const controller = createDomScrawlix({
     rules: [...englishProfanityRules, ...customRule(state.customWords)],
     coverage: coverageSelector(state.settings.coverage),
   });
 
-  activeSettings = state.settings;
   observation = controller.observe(document.body);
   decorateSubtree(document.body, state.settings);
-  startPresentationObserver(state.settings);
+  startPresentationObserver();
+}
+
+async function reconcile() {
+  const generation = ++restartGeneration;
+  const state = await loadExtensionState();
+  if (generation !== restartGeneration) return;
+
+  const previous = activeState;
+  const hostname = location.hostname.toLowerCase();
+  const action = sessionActionFor(previous, state, hostname, observation !== null);
+  activeState = state;
+
+  if (!document.body) return;
+
+  switch (action) {
+    case 'stop':
+      stopCurrentSession();
+      return;
+
+    case 'start':
+      startSession(state);
+      return;
+
+    case 'restart':
+      stopCurrentSession();
+      startSession(state);
+      return;
+
+    case 'decorate':
+      decorateSubtree(document.body, state.settings);
+      return;
+
+    case 'none':
+      return;
+  }
 }
 
 function clickRootFromEvent(event: Event) {
@@ -138,14 +170,12 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   const relevantLocal =
     areaName === 'local' && Object.prototype.hasOwnProperty.call(changes, CUSTOM_WORDS_KEY);
 
-  if (relevantSync || relevantLocal) void restart();
+  if (relevantSync || relevantLocal) void reconcile();
 });
 
 function startWhenReady() {
-  if (document.body) void restart();
-  else window.addEventListener('DOMContentLoaded', () => void restart(), { once: true });
+  if (document.body) void reconcile();
+  else window.addEventListener('DOMContentLoaded', () => void reconcile(), { once: true });
 }
 
 startWhenReady();
-
-void activeSettings;

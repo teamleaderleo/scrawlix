@@ -12,6 +12,7 @@ import {
 } from './config';
 import {
   loadExtensionState,
+  loadSettings,
   saveCustomWords,
   saveSettings,
 } from './storage';
@@ -22,7 +23,8 @@ function required<T extends HTMLElement>(id: string): T {
   return element as T;
 }
 
-const enabledInput = required<HTMLInputElement>('enabled');
+const activeInput = required<HTMLInputElement>('active');
+const defaultEnabledSelect = required<HTMLSelectElement>('default-enabled');
 const siteModeSelect = required<HTMLSelectElement>('site-mode');
 const appearanceSelect = required<HTMLSelectElement>('appearance');
 const coverageSelect = required<HTMLSelectElement>('coverage');
@@ -30,11 +32,13 @@ const revealSelect = required<HTMLSelectElement>('reveal');
 const customWordsInput = required<HTMLTextAreaElement>('custom-words');
 const siteHeading = required<HTMLHeadingElement>('site-heading');
 const effectiveStatus = required<HTMLParagraphElement>('effective-status');
+const settingsStatus = required<HTMLSpanElement>('settings-status');
 const saveStatus = required<HTMLSpanElement>('save-status');
 
 let settings: SyncSettings;
 let hostname: string | null = null;
 let wordSaveTimer: number | null = null;
+let settingsSaveQueue = Promise.resolve();
 
 async function currentHostname() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -54,6 +58,7 @@ function renderEffectiveStatus() {
   if (!hostname) {
     siteHeading.textContent = 'This page is unavailable';
     effectiveStatus.textContent = 'Scrawlix runs on ordinary HTTP and HTTPS pages.';
+    effectiveStatus.dataset.enabled = 'false';
     siteModeSelect.disabled = true;
     return;
   }
@@ -62,12 +67,17 @@ function renderEffectiveStatus() {
   siteModeSelect.disabled = false;
   siteModeSelect.value = siteModeFor(settings, hostname);
   const enabledHere = effectiveEnabled(settings, hostname);
-  effectiveStatus.textContent = enabledHere ? 'censoring is on here' : 'censoring is off here';
+  if (settings.paused) {
+    effectiveStatus.textContent = 'paused everywhere';
+  } else {
+    effectiveStatus.textContent = enabledHere ? 'censoring is on here' : 'censoring is off here';
+  }
   effectiveStatus.dataset.enabled = enabledHere ? 'true' : 'false';
 }
 
 function renderSettings() {
-  enabledInput.checked = settings.enabled;
+  activeInput.checked = !settings.paused;
+  defaultEnabledSelect.value = settings.enabled ? 'on' : 'off';
   appearanceSelect.value = settings.appearance;
   coverageSelect.value = settings.coverage;
   revealSelect.value = settings.reveal;
@@ -77,7 +87,26 @@ function renderSettings() {
 async function persistSettings(next: SyncSettings) {
   settings = next;
   renderSettings();
-  await saveSettings(settings);
+  settingsStatus.textContent = 'saving…';
+
+  const queued = settingsSaveQueue
+    .catch(() => undefined)
+    .then(async () => {
+      try {
+        await saveSettings(next);
+        if (settings === next) settingsStatus.textContent = 'saved';
+      } catch {
+        if (settings === next) {
+          settings = await loadSettings();
+          renderSettings();
+          settingsStatus.textContent = 'save failed';
+        }
+        throw new Error('Failed to save Scrawlix settings.');
+      }
+    });
+
+  settingsSaveQueue = queued.catch(() => undefined);
+  await queued.catch(() => undefined);
 }
 
 function wordsFromTextarea() {
@@ -105,8 +134,12 @@ function scheduleWordSave() {
   wordSaveTimer = window.setTimeout(() => void persistWords(), 250);
 }
 
-enabledInput.addEventListener('change', () => {
-  void persistSettings({ ...settings, enabled: enabledInput.checked });
+activeInput.addEventListener('change', () => {
+  void persistSettings({ ...settings, paused: !activeInput.checked });
+});
+
+defaultEnabledSelect.addEventListener('change', () => {
+  void persistSettings({ ...settings, enabled: defaultEnabledSelect.value === 'on' });
 });
 
 siteModeSelect.addEventListener('change', () => {
