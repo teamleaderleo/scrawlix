@@ -1,8 +1,14 @@
 import assert from 'node:assert/strict';
 import { createScrawlix } from '@scrawlix/core';
 import { createDomScrawlix } from '@scrawlix/dom';
-import { englishStrongProfanityRules } from '@scrawlix/en';
-import { englishProfanityCorpus } from '@scrawlix/en/corpus';
+import {
+  englishObfuscatedStrongProfanityRules,
+  englishStrongProfanityRules,
+} from '@scrawlix/en';
+import {
+  englishObfuscatedProfanityCorpus,
+  englishProfanityCorpus,
+} from '@scrawlix/en/corpus';
 import { transformHast } from '@scrawlix/rehype';
 import { CensoredText } from '@scrawlix/react';
 
@@ -14,7 +20,21 @@ const engine = createScrawlix({
 const matches = engine.find('well, fuck');
 assert.equal(matches.length, 1);
 assert.equal(matches[0]?.targetText.toLowerCase(), 'fuck');
+assert.equal(matches[0]?.profile, 'canonical');
 assert.ok(englishProfanityCorpus.some(testCase => testCase.id === 'fuck-base'));
+
+const obfuscatedEngine = createScrawlix({
+  rules: englishObfuscatedStrongProfanityRules,
+});
+const obfuscatedMatches = obfuscatedEngine.find('sh1t');
+assert.equal(obfuscatedMatches.length, 1);
+assert.equal(obfuscatedMatches[0]?.text, 'sh1t');
+assert.equal(obfuscatedMatches[0]?.profile, 'obfuscated');
+assert.ok(
+  englishObfuscatedProfanityCorpus.some(
+    testCase => testCase.id === 'obfuscated-shit-digit'
+  )
+);
 
 const tree = {
   type: 'root',

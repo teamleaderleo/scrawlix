@@ -1,4 +1,6 @@
 import cleanCorpus from './corpus-data/clean.json' with { type: 'json' };
+import obfuscatedCleanCorpus from './corpus-data/obfuscated-clean.json' with { type: 'json' };
+import obfuscatedCorpus from './corpus-data/obfuscated.json' with { type: 'json' };
 import profanityCorpus from './corpus-data/profanity.json' with { type: 'json' };
 
 export type EnglishCorpusMatch = {
@@ -30,3 +32,11 @@ export const englishProfanityCorpus: readonly EnglishCorpusCase[] =
 
 /** Cases that contain suspicious substrings or boundaries but should stay clean. */
 export const englishCleanCorpus: readonly EnglishCorpusCase[] = cleanCorpus;
+
+/** Positive cases for the opt-in bounded English obfuscated base-form pack. */
+export const englishObfuscatedProfanityCorpus: readonly EnglishCorpusCase[] =
+  obfuscatedCorpus;
+
+/** False-positive and over-budget cases for the opt-in obfuscated pack. */
+export const englishObfuscatedCleanCorpus: readonly EnglishCorpusCase[] =
+  obfuscatedCleanCorpus;

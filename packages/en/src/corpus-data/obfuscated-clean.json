@@ -1,0 +1,73 @@
+[
+  {
+    "id": "obfuscated-clean-canonical-fuck",
+    "text": "fuck",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "canonical-form"],
+    "note": "Canonical forms belong to the canonical pack and are filtered from the obfuscated helper.",
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-canonical-shit",
+    "text": "shit",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "canonical-form"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-two-substitutions",
+    "text": "sh17",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-mixed-budget",
+    "text": "sh1-t",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-two-dollar-substitutions",
+    "text": "a$$hole",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-two-separators",
+    "text": "f--uck",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-shirt",
+    "text": "sh1rt",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "ordinary-word"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-shift",
+    "text": "sh1ft",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "ordinary-word"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-c-unit",
+    "text": "c-unit",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "ordinary-word", "punctuation"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-assorted",
+    "text": "a$$orted",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "ordinary-word"],
+    "matches": []
+  }
+]

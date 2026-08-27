@@ -1,0 +1,173 @@
+[
+  {
+    "id": "obfuscated-fuck-star",
+    "text": "f*ck",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution"],
+    "note": "Reviewed one-character vowel masking for the exact base form.",
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "f*ck",
+        "start": 0,
+        "end": 4,
+        "targetText": "f*ck",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-fuck-paren",
+    "text": "fu(k",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "fu(k",
+        "start": 0,
+        "end": 4,
+        "targetText": "fu(k",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-shit-digit",
+    "text": "sh1t",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "sh1t",
+        "start": 0,
+        "end": 4,
+        "targetText": "sh1t",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-shit-dollar",
+    "text": "$hit",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "$hit",
+        "start": 0,
+        "end": 4,
+        "targetText": "$hit",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-shit-hyphen",
+    "text": "sh-it",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "punctuation-insertion"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "sh-it",
+        "start": 0,
+        "end": 5,
+        "targetText": "sh-it",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-shit-zero-width",
+    "text": "sh\u200bit",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "unicode", "zero-width-insertion"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "sh\u200bit",
+        "start": 0,
+        "end": 5,
+        "targetText": "sh\u200bit",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-bitch-bang",
+    "text": "b!tch",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution"],
+    "matches": [
+      {
+        "ruleId": "bitch-obfuscated",
+        "text": "b!tch",
+        "start": 0,
+        "end": 5,
+        "targetText": "b!tch",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-asshole-zero",
+    "text": "assh0le",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution"],
+    "matches": [
+      {
+        "ruleId": "asshole-obfuscated",
+        "text": "assh0le",
+        "start": 0,
+        "end": 7,
+        "targetText": "assh0le",
+        "targetStart": 0,
+        "targetEnd": 7
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-asshole-hyphen",
+    "text": "ass-hole",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "punctuation-insertion"],
+    "matches": [
+      {
+        "ruleId": "asshole-obfuscated",
+        "text": "ass-hole",
+        "start": 0,
+        "end": 8,
+        "targetText": "ass-hole",
+        "targetStart": 0,
+        "targetEnd": 8
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-cunt-star",
+    "text": "c*nt",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution"],
+    "matches": [
+      {
+        "ruleId": "cunt-obfuscated",
+        "text": "c*nt",
+        "start": 0,
+        "end": 4,
+        "targetText": "c*nt",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  }
+]
