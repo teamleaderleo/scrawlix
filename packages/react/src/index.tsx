@@ -27,14 +27,26 @@ export type CensoredTextProps = {
 };
 
 const GRAWLIX = '@#$%&!';
+const graphemeSegmenter =
+  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    : null;
+
+function graphemeCount(value: string) {
+  if (graphemeSegmenter) {
+    return [...graphemeSegmenter.segment(value)].length;
+  }
+  return Array.from(value).length;
+}
 
 function symbolsFor(text: string, appearance: ScrawlixAppearance) {
-  const characters = Array.from(text);
-  if (appearance === 'asterisk') return characters.map(() => '*').join('');
+  const length = graphemeCount(text);
+  if (appearance === 'asterisk') return '*'.repeat(length);
   if (appearance === 'grawlix') {
-    return characters
-      .map((_, index) => GRAWLIX[index % GRAWLIX.length])
-      .join('');
+    return Array.from(
+      { length },
+      (_, index) => GRAWLIX[index % GRAWLIX.length]
+    ).join('');
   }
   return text;
 }
