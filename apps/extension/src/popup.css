@@ -19,8 +19,7 @@ body {
 
 button,
 input,
-select,
-textarea {
+select {
   font: inherit;
 }
 
@@ -34,7 +33,7 @@ textarea {
 .peek-card,
 .access-card,
 .settings-grid,
-.custom-words,
+.manage-card,
 footer {
   border-top: 1px solid #171510;
 }
@@ -68,13 +67,14 @@ footer {
 .status-line,
 .access-status,
 .peek-meta,
-.hint,
+.manage-summary,
 footer,
 .switch-row span,
 .settings-grid label > span,
 .save-status,
 .access-actions button,
-.peek-card button {
+.peek-card button,
+.manage-card button {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -134,17 +134,13 @@ footer,
   opacity: 0.55;
 }
 
-.site-card h1,
-.custom-words h2 {
-  margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: 600;
-  letter-spacing: -0.035em;
-}
-
 .site-card h1 {
   overflow: hidden;
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -189,7 +185,8 @@ footer,
   box-shadow: inset 0 0 0 1px #f2eddf;
 }
 
-.peek-card button:focus-visible {
+.peek-card button:focus-visible,
+.manage-card button:focus-visible {
   outline: 1px solid #171510;
   outline-offset: 2px;
 }
@@ -236,21 +233,27 @@ footer,
   gap: 5px;
 }
 
-.access-actions button {
-  min-height: 28px;
-  padding: 5px 7px;
+.access-actions button,
+.manage-card button {
   color: inherit;
   background: rgba(255, 255, 255, 0.28);
   border: 1px solid rgba(23, 21, 16, 0.42);
-  font-size: 8px;
-  text-align: left;
   text-transform: uppercase;
   letter-spacing: 0.045em;
   cursor: pointer;
 }
 
+.access-actions button {
+  min-height: 28px;
+  padding: 5px 7px;
+  font-size: 8px;
+  text-align: left;
+}
+
 .access-actions button:hover,
-.access-actions button:focus-visible {
+.access-actions button:focus-visible,
+.manage-card button:hover,
+.manage-card button:focus-visible {
   border-color: #171510;
 }
 
@@ -264,24 +267,19 @@ footer,
   opacity: 0.48;
 }
 
-select,
-textarea {
+select {
   width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
   color: inherit;
   background: rgba(255, 255, 255, 0.28);
   border: 1px solid rgba(23, 21, 16, 0.42);
   border-radius: 0;
   outline: none;
-}
-
-select {
-  min-height: 34px;
-  padding: 6px 8px;
   font-size: 11px;
 }
 
-select:focus,
-textarea:focus {
+select:focus {
   border-color: #171510;
   box-shadow: 0 0 0 1px #171510;
 }
@@ -302,40 +300,36 @@ textarea:focus {
   letter-spacing: 0.08em;
 }
 
-.custom-words {
-  padding: 14px 0;
-}
-
-.section-label {
+.manage-card {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 9px;
+  gap: 14px;
+  padding: 12px 0;
 }
 
-.custom-words h2 {
-  font-size: 16px;
-}
-
-#save-status {
-  min-width: 60px;
-  text-align: right;
-}
-
-textarea {
-  resize: vertical;
-  min-height: 88px;
-  padding: 9px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 10px;
-  line-height: 1.5;
-}
-
-.hint {
-  margin: 5px 0 0;
+.manage-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 11px;
+  margin: 0;
   font-size: 8px;
-  opacity: 0.58;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+  opacity: 0.72;
+}
+
+.manage-summary strong {
+  font-size: 11px;
+  opacity: 1;
+}
+
+.manage-card button {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 8px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 footer {
