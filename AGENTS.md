@@ -23,7 +23,7 @@ A change in one layer should rarely require logic in another.
 - `apps/demo` — public interactive proof sheet and integration consumer
 - `apps/extension` — Manifest V3 application: browser state, popup UI, and injected presentation
 - `fixtures/consumer` — external packed-package smoke consumer
-- `docs` — design, adoption, and extension guidance
+- `docs` — design, adoption, compatibility, versioning, and extension guidance
 
 Scrapbook adoption remains tracked separately as a real-consumer integration.
 
@@ -44,6 +44,8 @@ Use these names in code, docs, examples, and agent-generated changes:
 
 Core defaults to `coverage: 'full'`. React defaults to `appearance="scrawl"` and `reveal="never"`. Partial coverage and reveal behavior are deliberate caller choices.
 
+The reusable packages use named runtime exports as the canonical API. `@scrawlix/rehype` and `@scrawlix/dom` do not carry duplicate default exports.
+
 Do not invent convenience packages, automatic English selection, compatibility aliases, or alternate spellings for the public API.
 
 ## Commands
@@ -58,7 +60,9 @@ pnpm build
 pnpm smoke:packages
 ```
 
-The demo and extension builds are part of the workspace build. The package smoke test installs packed tarballs into a consumer outside the workspace dependency graph and typechecks published declarations with library checking enabled.
+Repository CI uses Node 22. The demo and extension builds are part of the workspace build. The package smoke test installs packed tarballs into consumers outside the workspace dependency graph, typechecks published declarations with library checking enabled, and production-builds against React 18 and React 19.
+
+Published runtime compatibility and workspace-tooling expectations live in `docs/compatibility.md`. Release classification and public-contract rules live in `docs/versioning.md`.
 
 ## Invariants
 
@@ -160,7 +164,9 @@ Ask whether the behavior is language-neutral. Generic positional coverage may li
 
 ## Public API discipline
 
-Scrawlix is pre-release, so breaking changes are still possible. Use that freedom to remove surprising defaults and awkward names before publication. Once packages are published, classify 0.x changes deliberately and use explicit deprecation paths when compatibility aliases become necessary.
+Scrawlix is pre-release, so breaking changes are still possible. Use that freedom to remove surprising defaults and awkward names before publication. `docs/versioning.md` defines how 0.x releases classify fixes, additions, language-pack scope changes, and intentional breaks.
+
+The documented package exports, rule ids, option defaults, adapter data attributes, ignore attributes, and React CSS/render attributes are public contracts. Keep application-only browser-extension state private unless a document explicitly promotes it to a public contract.
 
 Packed-package smoke tests are a release gate: external consumers must receive compiled JavaScript, declarations, CSS exports, and valid package metadata rather than workspace-only source imports. Every new public package belongs in `scripts/smoke-packages.mjs` and `fixtures/consumer`.
 
