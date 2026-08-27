@@ -4,6 +4,7 @@ Start with the repository README for installation and the shortest path for your
 
 ## Recipes and design notes
 
+- [`troubleshooting.md`](./troubleshooting.md) — symptom-first diagnostics for matching, React CSS, Next.js boundaries, DOM observation/exclusions, coverage ranges, and package imports
 - [`compatibility.md`](./compatibility.md) — JavaScript/browser capabilities, Node baseline, React majors, grapheme fallback, DOM/CSS/TypeScript expectations
 - [`versioning.md`](./versioning.md) — synchronized release train, 0.x semver policy, public data/CSS contracts, and deprecation rules
 - [`privacy-and-output.md`](./privacy-and-output.md) — visual covers, presentation/screenshot guarantees, accessibility policy, and sanitized export semantics

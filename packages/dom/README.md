@@ -33,4 +33,4 @@ The adapter transforms only matching eligible text nodes. It skips form/editable
 
 This package emits semantic wrappers and `data-scrawlix-cover` / `data-scrawlix-rules` attributes. Presentation belongs to the consuming application.
 
-See `docs/dom.md` in the repository for lifecycle, exclusion, and restoration details.
+See the [DOM lifecycle guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/dom.md) for observation, exclusions, and restoration details. For `MutationObserver`, skipped-subtree, or lifecycle diagnostics, use the [troubleshooting guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/troubleshooting.md).
