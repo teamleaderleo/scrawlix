@@ -7,6 +7,7 @@ export type RelativeRange = {
 
 export type CoverageContext = {
   ruleId: string;
+  packId?: string;
   matchText: string;
   targetText: string;
   matchStart: number;
@@ -28,6 +29,8 @@ export type CensorRule = {
   pattern: RegExp;
   target?: CensorTarget;
   coverage?: CoverageSelector;
+  /** Pack provenance attached by rulesFromPacks(). */
+  packId?: string;
 };
 
 export type CensorRulePack = {
@@ -40,6 +43,7 @@ export type WordBoundaryMode = 'word' | 'substring';
 
 export type ScrawlixMatch = {
   ruleId: string;
+  packId?: string;
   text: string;
   start: number;
   end: number;
@@ -83,6 +87,13 @@ const graphemeSegmenter =
   typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
     ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
     : null;
+
+/**
+ * Characters that should keep a custom-term match attached to surrounding text.
+ * Marks and join controls matter here because a boundary inside an extended
+ * grapheme cluster can otherwise turn decomposed/connected text into a false hit.
+ */
+const wordContextClass = '\\p{L}\\p{N}\\p{M}\\p{Pc}\\u200C\\u200D';
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -188,6 +199,10 @@ function sanitizeRanges(
     .sort((left, right) => left.start - right.start || left.end - right.end);
 }
 
+function ruleIdentity(rule: CompiledRule) {
+  return rule.packId ? `${rule.packId}:${rule.id}` : rule.id;
+}
+
 function resolveTargetRange(match: RegExpExecArray, rule: CompiledRule) {
   const fullStart = match.index;
   const fullEnd = match.index + match[0].length;
@@ -198,7 +213,9 @@ function resolveTargetRange(match: RegExpExecArray, rule: CompiledRule) {
 
   const groupRange = match.indices?.groups?.[rule.target.group];
   if (!groupRange) {
-    return { start: fullStart, end: fullEnd };
+    throw new Error(
+      `Censor rule "${ruleIdentity(rule)}" declares target group "${rule.target.group}", but that group was unavailable for match "${match[0]}".`
+    );
   }
 
   return { start: groupRange[0], end: groupRange[1] };
@@ -222,6 +239,7 @@ function scan(text: string, rules: readonly CompiledRule[]): ScannedMatch[] {
         rule,
         match: {
           ruleId: rule.id,
+          ...(rule.packId ? { packId: rule.packId } : {}),
           text: rawMatch[0],
           start: rawMatch.index,
           end: rawMatch.index + rawMatch[0].length,
@@ -239,6 +257,7 @@ function scan(text: string, rules: readonly CompiledRule[]): ScannedMatch[] {
     (left, right) =>
       left.match.start - right.match.start ||
       right.match.end - left.match.end ||
+      (left.match.packId ?? '').localeCompare(right.match.packId ?? '') ||
       left.match.ruleId.localeCompare(right.match.ruleId)
   );
 
@@ -255,6 +274,7 @@ function collectCoveredRanges(
     const { match, rule } = scanned;
     const context: CoverageContext = {
       ruleId: match.ruleId,
+      ...(match.packId ? { packId: match.packId } : {}),
       matchText: match.text,
       targetText: match.targetText,
       matchStart: match.start,
@@ -364,7 +384,7 @@ export function censorRuleFromTerms(
   const source = `(?:${alternatives.join('|')})`;
   const boundedSource =
     boundary === 'word'
-      ? `(?<![\\p{L}\\p{N}_])${source}(?![\\p{L}\\p{N}_])`
+      ? `(?<![${wordContextClass}])${source}(?![${wordContextClass}])`
       : source;
 
   return {
@@ -377,7 +397,12 @@ export function censorRuleFromTerms(
 export function rulesFromPacks(
   ...packs: readonly CensorRulePack[]
 ): CensorRule[] {
-  return packs.flatMap(pack => pack.rules);
+  return packs.flatMap(pack =>
+    pack.rules.map(rule => ({
+      ...rule,
+      packId: pack.id,
+    }))
+  );
 }
 
 export function createScrawlix({
