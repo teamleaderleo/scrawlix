@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createScrawlix } from '@scrawlix/core';
 import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
+import { censorRuleFromWidthObfuscatedTerms } from '@scrawlix/core/width-obfuscated';
 import { createDomScrawlix } from '@scrawlix/dom';
 import {
   englishObfuscatedStrongProfanityRules,
@@ -96,6 +97,24 @@ const repeatedMatch = repeatedEngine.find('motherfuucker')[0];
 assert.equal(repeatedMatch?.text, 'motherfuucker');
 assert.equal(repeatedMatch?.targetText, 'fuuck');
 assert.equal(repeatedMatch?.profile, 'obfuscated');
+
+const widthEngine = createScrawlix({
+  rules: [
+    censorRuleFromWidthObfuscatedTerms(
+      'width-smoke',
+      [{ term: 'motherfucker', target: 'fuck' }],
+      {
+        widthVariants: { f: ['ｆ'] },
+        maxWidthVariants: 1,
+        maxRepetitions: 0,
+      }
+    ),
+  ],
+});
+const widthMatch = widthEngine.find('motherｆucker')[0];
+assert.equal(widthMatch?.text, 'motherｆucker');
+assert.equal(widthMatch?.targetText, 'ｆuck');
+assert.equal(widthMatch?.profile, 'obfuscated');
 
 const tree = {
   type: 'root',
