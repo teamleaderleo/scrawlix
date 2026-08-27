@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createScrawlix } from '../packages/core/dist/index.js';
+import { censorRuleFromConfusableObfuscatedTerms } from '../packages/core/dist/confusable-obfuscated.js';
 import { censorRuleFromRepeatedObfuscatedTerms } from '../packages/core/dist/repeated-obfuscated.js';
 import { censorRuleFromTargetedObfuscatedTerms } from '../packages/core/dist/targeted-obfuscated.js';
 import { censorRuleFromWidthObfuscatedTerms } from '../packages/core/dist/width-obfuscated.js';
@@ -91,6 +92,21 @@ const widthEngine = createScrawlix({
   ],
 });
 assert.equal(widthEngine.find('motherｆucker')[0]?.targetText, 'ｆuck');
+
+const confusableEngine = createScrawlix({
+  rules: [
+    censorRuleFromConfusableObfuscatedTerms(
+      'confusable-node18',
+      [{ term: 'motherfucker', target: 'fuck' }],
+      {
+        confusables: { c: ['с'] },
+        maxConfusables: 1,
+        maxRepetitions: 0,
+      }
+    ),
+  ],
+});
+assert.equal(confusableEngine.find('motherfuсker')[0]?.targetText, 'fuсk');
 
 const tree = {
   type: 'root',

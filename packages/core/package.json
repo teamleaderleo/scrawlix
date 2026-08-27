@@ -12,7 +12,8 @@
     "src/index.ts",
     "src/targeted-obfuscated.ts",
     "src/repeated-obfuscated.ts",
-    "src/width-obfuscated.ts"
+    "src/width-obfuscated.ts",
+    "src/confusable-obfuscated.ts"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -36,6 +37,11 @@
       "types": "./dist/width-obfuscated.d.ts",
       "import": "./dist/width-obfuscated.js",
       "default": "./dist/width-obfuscated.js"
+    },
+    "./confusable-obfuscated": {
+      "types": "./dist/confusable-obfuscated.d.ts",
+      "import": "./dist/confusable-obfuscated.js",
+      "default": "./dist/confusable-obfuscated.js"
     }
   },
   "repository": {
