@@ -29,4 +29,76 @@ describe('DOM observation lifecycle', () => {
 
     expect(document.querySelector('[data-scrawlix-dom-root]')).toBeNull();
   });
+
+  it('drops added roots that detach before queued work flushes', async () => {
+    let eligibilityChecks = 0;
+    const controller = createDomScrawlix({
+      rules,
+      coverage: 'full',
+      shouldSkipText() {
+        eligibilityChecks += 1;
+        return false;
+      },
+    });
+    const observation = controller.observe(document.body, { initial: false });
+
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'safe';
+    document.body.append(paragraph);
+    paragraph.remove();
+
+    await tick();
+
+    expect(eligibilityChecks).toBe(0);
+    observation.disconnect();
+  });
+
+  it('collapses ancestor and descendant roots from one mutation burst', async () => {
+    let eligibilityChecks = 0;
+    const controller = createDomScrawlix({
+      rules,
+      coverage: 'full',
+      shouldSkipText() {
+        eligibilityChecks += 1;
+        return false;
+      },
+    });
+    const observation = controller.observe(document.body, { initial: false });
+
+    const section = document.createElement('section');
+    document.body.append(section);
+
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'safe';
+    section.append(paragraph);
+
+    await tick();
+
+    expect(eligibilityChecks).toBe(1);
+    observation.disconnect();
+  });
+
+  it('checks dynamic text once and skips its generated wrapper mutation', async () => {
+    let eligibilityChecks = 0;
+    const controller = createDomScrawlix({
+      rules,
+      coverage: 'full',
+      shouldSkipText() {
+        eligibilityChecks += 1;
+        return false;
+      },
+    });
+    const observation = controller.observe(document.body, { initial: false });
+
+    const paragraph = document.createElement('p');
+    paragraph.textContent = 'fuck';
+    document.body.append(paragraph);
+
+    await tick();
+    await tick();
+
+    expect(eligibilityChecks).toBe(1);
+    expect(paragraph.querySelector('[data-scrawlix-dom-root]')).not.toBeNull();
+    observation.disconnect();
+  });
 });
