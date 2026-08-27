@@ -19,6 +19,13 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Store package smoke
+        run: |
+          pnpm --filter scrawlix-extension package:store -- --version 0.0.1
+          first_sha="$(cut -d' ' -f1 apps/extension/release/scrawlix-extension-0.0.1.sha256)"
+          pnpm --filter scrawlix-extension package:store -- --version 0.0.1
+          second_sha="$(cut -d' ' -f1 apps/extension/release/scrawlix-extension-0.0.1.sha256)"
+          test "$first_sha" = "$second_sha"
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium >/dev/null
       - name: Browser smoke — demo
