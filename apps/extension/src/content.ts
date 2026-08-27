@@ -16,14 +16,19 @@ import { loadExtensionState } from './storage';
 
 const INTERACTIVE_ANCESTOR =
   'a,button,input,select,textarea,summary,[role="button"],[role="link"]';
+const EXTENSION_ROOT_SELECTOR =
+  '[data-scrawlix-dom-root][data-scrawlix-extension-owned]';
 const MIN_REVEAL_MS = 250;
 const MAX_REVEAL_MS = 60_000;
 
 let observation: DomObservation | null = null;
 let presentationObserver: MutationObserver | null = null;
+let sessionBody: HTMLBodyElement | null = null;
 let activeState: ExtensionStateSnapshot | null = null;
 let restartGeneration = 0;
 let pageRevealTimer: number | null = null;
+let observedDocumentElement: HTMLElement | null = null;
+let documentElementObserver: MutationObserver | null = null;
 
 function customRule(customWords: readonly string[]): CensorRule[] {
   if (customWords.length === 0) return [];
@@ -35,7 +40,7 @@ function canOwnInteraction(root: HTMLElement) {
 }
 
 function pageIsTemporarilyRevealed() {
-  return document.documentElement.dataset.scrawlixPageRevealed === 'true';
+  return document.documentElement?.dataset.scrawlixPageRevealed === 'true';
 }
 
 function clearPageReveal() {
@@ -43,22 +48,28 @@ function clearPageReveal() {
     window.clearTimeout(pageRevealTimer);
     pageRevealTimer = null;
   }
-  delete document.documentElement.dataset.scrawlixPageRevealed;
+  if (document.documentElement) {
+    delete document.documentElement.dataset.scrawlixPageRevealed;
+  }
 }
 
 function revealPageFor(durationMs: number) {
+  const documentElement = document.documentElement;
+  if (!documentElement) return;
+
   const duration = Number.isFinite(durationMs)
     ? Math.min(MAX_REVEAL_MS, Math.max(MIN_REVEAL_MS, durationMs))
     : MIN_REVEAL_MS;
 
   if (pageRevealTimer !== null) window.clearTimeout(pageRevealTimer);
-  document.documentElement.dataset.scrawlixPageRevealed = 'true';
+  documentElement.dataset.scrawlixPageRevealed = 'true';
   pageRevealTimer = window.setTimeout(clearPageReveal, duration);
 }
 
 function decorateGeneratedRoot(root: HTMLElement, settings: SyncSettings) {
   const previousReveal = root.dataset.scrawlixReveal;
 
+  root.dataset.scrawlixExtensionOwned = '';
   root.dataset.scrawlixAppearance = settings.appearance;
   root.dataset.scrawlixReveal = settings.reveal;
   if (previousReveal !== settings.reveal || root.dataset.scrawlixRevealed === undefined) {
@@ -92,7 +103,15 @@ function decorateSubtree(node: Node, settings: SyncSettings) {
   }
 }
 
-function startPresentationObserver() {
+function restoreCopiedExtensionRoots(body: HTMLBodyElement) {
+  for (const root of Array.from(
+    body.querySelectorAll<HTMLElement>(EXTENSION_ROOT_SELECTOR)
+  )) {
+    root.replaceWith(document.createTextNode(root.textContent ?? ''));
+  }
+}
+
+function startPresentationObserver(body: HTMLBodyElement) {
   const observer = new MutationObserver(records => {
     const settings = activeState?.settings;
     if (!settings) return;
@@ -104,7 +123,7 @@ function startPresentationObserver() {
     }
   });
 
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(body, { childList: true, subtree: true });
   presentationObserver = observer;
 }
 
@@ -113,17 +132,26 @@ function stopCurrentSession() {
   presentationObserver = null;
   observation?.restore();
   observation = null;
+  sessionBody = null;
 }
 
-function startSession(state: ExtensionStateSnapshot) {
+function startSession(state: ExtensionStateSnapshot, body: HTMLBodyElement) {
+  if (document.body !== body) return;
+
+  // An SPA may clone or move an extension-decorated body. Those copied wrappers are
+  // outside the new controller's ownership, so unwrap only roots marked by Scrawlix
+  // before processing the replacement body again.
+  restoreCopiedExtensionRoots(body);
+
   const controller = createDomScrawlix({
     rules: [...englishProfanityRules, ...customRule(state.customWords)],
     coverage: coverageSelector(state.settings.coverage),
   });
 
-  observation = controller.observe(document.body);
-  decorateSubtree(document.body, state.settings);
-  startPresentationObserver();
+  observation = controller.observe(body);
+  sessionBody = body;
+  decorateSubtree(body, state.settings);
+  startPresentationObserver(body);
 }
 
 async function reconcile() {
@@ -131,12 +159,17 @@ async function reconcile() {
   const state = await loadExtensionState();
   if (generation !== restartGeneration) return;
 
+  const body = document.body;
+  if (sessionBody !== null && sessionBody !== body) {
+    stopCurrentSession();
+  }
+
   const previous = activeState;
   const hostname = location.hostname.toLowerCase();
   const action = sessionActionFor(previous, state, hostname, observation !== null);
   activeState = state;
 
-  if (!document.body) return;
+  if (!body) return;
 
   switch (action) {
     case 'stop':
@@ -145,16 +178,16 @@ async function reconcile() {
       return;
 
     case 'start':
-      startSession(state);
+      startSession(state, body);
       return;
 
     case 'restart':
       stopCurrentSession();
-      startSession(state);
+      startSession(state, body);
       return;
 
     case 'decorate':
-      decorateSubtree(document.body, state.settings);
+      decorateSubtree(body, state.settings);
       return;
 
     case 'none':
@@ -216,9 +249,39 @@ chrome.runtime.onMessage.addListener((message: ScrawlixContentMessage) => {
   }
 });
 
-function startWhenReady() {
-  if (document.body) void reconcile();
-  else window.addEventListener('DOMContentLoaded', () => void reconcile(), { once: true });
+function handleBodyLifecycleChange() {
+  if (sessionBody !== null && document.body !== sessionBody) {
+    stopCurrentSession();
+  }
+
+  if (document.body && sessionBody === null) {
+    void reconcile();
+  }
 }
 
-startWhenReady();
+function observeCurrentDocumentElement() {
+  const documentElement = document.documentElement;
+  if (documentElement === observedDocumentElement) return;
+
+  documentElementObserver?.disconnect();
+  documentElementObserver = null;
+  observedDocumentElement = documentElement;
+
+  if (documentElement) {
+    documentElementObserver = new MutationObserver(handleBodyLifecycleChange);
+    // <body> is a direct child of <html>; avoid a permanent full-document subtree watch.
+    documentElementObserver.observe(documentElement, { childList: true });
+  }
+
+  handleBodyLifecycleChange();
+}
+
+const documentRootObserver = new MutationObserver(() => {
+  observeCurrentDocumentElement();
+});
+documentRootObserver.observe(document, { childList: true });
+
+// At document_start the root/body may still be arriving. Reconcile as soon as <body>
+// exists instead of waiting for DOMContentLoaded, then keep the cheap <html> child
+// watcher alive for body replacement during long-running SPA sessions.
+observeCurrentDocumentElement();
