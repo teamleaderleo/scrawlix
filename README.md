@@ -19,6 +19,7 @@ The same word can become `████`, `f███`, `f██k`, `f█ck`, `f*
 | transform Markdown / HAST | `@scrawlix/rehype @scrawlix/en` | `rehypeScrawlix` |
 | transform an existing webpage / DOM | `@scrawlix/dom @scrawlix/en` | `createDomScrawlix` |
 | match/segment text or build your own renderer | `@scrawlix/core` plus rules | `createScrawlix` |
+| author a reviewable lexical rule pack | `@scrawlix/core` | `defineLexiconPack` from `@scrawlix/core/pack-authoring` |
 | use packaged English strong-profanity rules | `@scrawlix/en` | `englishStrongProfanityRules` |
 
 The five packages stay deliberately small: core contains no hidden language policy, and adapters receive rules explicitly.
@@ -186,7 +187,36 @@ The English package currently exports:
 - `englishVowelCoverage`
 - a regression corpus at `@scrawlix/en/corpus`
 
-Future language packs can carry their own rules, locale metadata, coverage helpers, and regression corpora. Consumers can combine packs with `rulesFromPacks(...)`. See [`docs/language-packs.md`](docs/language-packs.md).
+For reviewable lexical packs, use the opt-in authoring subpath:
+
+```ts
+import { rulesFromPacks } from '@scrawlix/core';
+import { defineLexiconPack } from '@scrawlix/core/pack-authoring';
+
+const exhibitPack = defineLexiconPack({
+  manifest: {
+    id: 'museum-exhibits',
+    version: '1.0.0',
+    name: 'Museum Exhibit Labels',
+    locale: 'en',
+    reviewStatus: 'reviewed',
+  },
+  lexicon: [
+    {
+      id: 'blue-lantern',
+      lemma: 'Blue Lantern',
+      forms: [
+        { text: 'Blue Lantern', kind: 'base' },
+        { text: 'Blue Lantern Annex', kind: 'compound', target: 'Blue Lantern' },
+      ],
+    },
+  ],
+});
+
+const rules = rulesFromPacks(exhibitPack);
+```
+
+`AuthoredRulePack` keeps manifest, lexicon, and matching-profile metadata beside ordinary compiled rules, so applications can describe a pack without bespoke metadata objects. Future language packs can carry their own rules, locale metadata, coverage helpers, and regression corpora. See [`docs/language-packs.md`](docs/language-packs.md).
 
 ## Browser extension
 
@@ -199,7 +229,7 @@ pnpm build
 
 Then load `apps/extension/dist` as an unpacked extension in a Chromium browser.
 
-The popup supports global and per-host enablement, all five appearances, generic plus English-vowel coverage, all reveal modes, and local custom terms. See [`apps/extension/README.md`](apps/extension/README.md) for permission, privacy, build, and lifecycle notes.
+The popup supports global/per-host enablement, named profiles, multiple active lenses, all five appearances, generic plus English-vowel coverage, and all reveal modes. See [`apps/extension/README.md`](apps/extension/README.md) for permission, privacy, build, and lifecycle notes.
 
 ## Demo
 
@@ -210,7 +240,7 @@ pnpm install
 pnpm dev
 ```
 
-The demo includes editable live text, coverage/reveal controls, a five-style specimen sheet, semantic-match examples, and a live component snippet.
+The demo includes editable live text, coverage/reveal controls, a five-style specimen sheet, semantic-match examples, reversible redaction poetry, progress-aware spoiler rules, privacy/output semantics, and a live component snippet.
 
 ## Documentation
 
@@ -229,7 +259,7 @@ pnpm build
 pnpm smoke:packages
 ```
 
-The packed-package smoke test installs real tarballs into external consumers, then typechecks and production-builds React 18, React 19, and Next.js App Router integrations through public package exports.
+The packed-package smoke test installs real tarballs into external consumers, then exercises runtime exports, typechecks declarations, and production-builds React 18, React 19, and Next.js App Router integrations through public package exports.
 
 ## Status
 
