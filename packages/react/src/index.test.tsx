@@ -45,6 +45,17 @@ describe('CensoredText', () => {
     expect(container.querySelector('[data-scrawlix-root]')).toBeNull();
   });
 
+  it('defaults to full coverage with a non-revealing scrawl', () => {
+    const container = render(<CensoredText rules={rules} text="fuck" />);
+    const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    const cover = container.querySelector<HTMLElement>('[data-scrawlix-cover]')!;
+
+    expect(root.dataset.reveal).toBe('never');
+    expect(root.getAttribute('tabindex')).toBeNull();
+    expect(cover.dataset.appearance).toBe('scrawl');
+    expect(cover.textContent).toBe('fuck');
+  });
+
   it('keeps one accessible source copy and hides the visual tree from assistive tech', () => {
     const text = 'well, fuck';
     const container = render(
