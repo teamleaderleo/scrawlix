@@ -1,7 +1,8 @@
+import { MAX_CUSTOM_TERM_CODE_POINTS } from './config';
+
 export const ADD_SELECTION_MENU_ID = 'scrawlix-add-selection';
 export const TEMPORARY_REVEAL_COMMAND = 'temporary-reveal';
 export const TEMPORARY_REVEAL_MS = 10_000;
-export const MAX_CUSTOM_TERM_CODE_POINTS = 200;
 
 export function customTermFromSelection(value: unknown): string | null {
   if (typeof value !== 'string') return null;
