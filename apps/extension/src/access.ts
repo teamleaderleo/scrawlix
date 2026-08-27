@@ -30,7 +30,7 @@ function contentScriptRegistration(
     matches,
     js: ['content.js'],
     css: ['content.css'],
-    runAt: 'document_idle',
+    runAt: 'document_start',
     persistAcrossSessions: true,
   };
 }
