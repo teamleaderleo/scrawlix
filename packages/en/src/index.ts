@@ -1,10 +1,13 @@
 import {
-  censorRuleFromObfuscatedTerms,
   graphemeRanges,
   type CensorRule,
   type CensorRulePack,
   type CoverageSelector,
 } from '@scrawlix/core';
+import {
+  censorRuleFromTargetedObfuscatedTerms,
+  type TargetedObfuscatedTerm,
+} from '@scrawlix/core/targeted-obfuscated';
 
 /**
  * Covers orthographic English vowels (a/e/i/o/u) inside the semantic target.
@@ -66,15 +69,65 @@ export const englishStrongProfanityPack: CensorRulePack = {
 
 const englishObfuscatedIgnored = ['.', '-', '\u200B'] as const;
 
+function targetedForms(
+  target: string,
+  forms: readonly string[]
+): TargetedObfuscatedTerm[] {
+  return forms.map(term => ({ term, target }));
+}
+
+const englishFuckForms = targetedForms('fuck', [
+  'fuck',
+  'fucking',
+  'fucked',
+  'fucker',
+  'fuckers',
+  'fucks',
+  'motherfuck',
+  'motherfucking',
+  'motherfucked',
+  'motherfucker',
+  'motherfuckers',
+  'motherfucks',
+]);
+
+const englishShitForms = targetedForms('shit', [
+  'shit',
+  'shitting',
+  'shitted',
+  'shitter',
+  'shitters',
+  'shits',
+  'shitty',
+  'bullshit',
+  'bullshitting',
+  'bullshitted',
+  'bullshitter',
+  'bullshitters',
+  'bullshits',
+  'bullshitty',
+]);
+
+const englishBitchForms = targetedForms('bitch', [
+  'bitch',
+  'bitches',
+  'bitching',
+  'bitched',
+  'bitchy',
+]);
+
+const englishAssholeForms = targetedForms('asshole', ['asshole', 'assholes']);
+const englishCuntForms = targetedForms('cunt', ['cunt', 'cunts']);
+
 /**
- * Conservative opt-in evasions for exact base forms only.
+ * Conservative opt-in evasions mirroring the canonical pack's declared forms.
  *
  * Each candidate may use one reviewed substitution OR one reviewed internal
- * separator/zero-width insertion. Inflected and compound evasions remain outside
- * this pilot until they can preserve the canonical pack's semantic target ranges.
+ * separator/zero-width insertion. Full inflections/compounds are matched, while
+ * coverage and target metadata stay attached to the canonical profanity root.
  */
 export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
-  censorRuleFromObfuscatedTerms('fuck-obfuscated', ['fuck'], {
+  censorRuleFromTargetedObfuscatedTerms('fuck-obfuscated', englishFuckForms, {
     substitutions: {
       u: ['*'],
       c: ['('],
@@ -84,7 +137,7 @@ export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
     maxIgnored: 1,
     maxChanges: 1,
   }),
-  censorRuleFromObfuscatedTerms('shit-obfuscated', ['shit'], {
+  censorRuleFromTargetedObfuscatedTerms('shit-obfuscated', englishShitForms, {
     substitutions: {
       s: ['$', '5'],
       i: ['1', '!', '*'],
@@ -95,7 +148,7 @@ export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
     maxIgnored: 1,
     maxChanges: 1,
   }),
-  censorRuleFromObfuscatedTerms('bitch-obfuscated', ['bitch'], {
+  censorRuleFromTargetedObfuscatedTerms('bitch-obfuscated', englishBitchForms, {
     substitutions: {
       i: ['1', '!', '*'],
       t: ['7'],
@@ -105,7 +158,7 @@ export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
     maxIgnored: 1,
     maxChanges: 1,
   }),
-  censorRuleFromObfuscatedTerms('asshole-obfuscated', ['asshole'], {
+  censorRuleFromTargetedObfuscatedTerms('asshole-obfuscated', englishAssholeForms, {
     substitutions: {
       a: ['@'],
       s: ['$', '5'],
@@ -116,7 +169,7 @@ export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
     maxIgnored: 1,
     maxChanges: 1,
   }),
-  censorRuleFromObfuscatedTerms('cunt-obfuscated', ['cunt'], {
+  censorRuleFromTargetedObfuscatedTerms('cunt-obfuscated', englishCuntForms, {
     substitutions: {
       u: ['*'],
     },
