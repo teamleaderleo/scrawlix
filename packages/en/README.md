@@ -100,4 +100,4 @@ import {
 
 The current package is intentionally narrow strong-profanity coverage. It is a reviewable set of English rules and aggressive examples, with explicit corpus evidence for the scope it claims.
 
-See `docs/language-packs.md` and `docs/confusable-matching.md` in the repository for authoring, composition, boundary, Unicode, and confusable-review guidance.
+See the [language-pack guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md) for authoring, composition, boundary, Unicode, and obfuscation guidance. Use the [confusable-matching guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/confusable-matching.md) for reviewed lookalike policy, and the [troubleshooting guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/troubleshooting.md) for edge/boundary or no-match diagnostics.
