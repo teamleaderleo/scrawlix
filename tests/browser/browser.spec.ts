@@ -26,6 +26,26 @@ test('demo controls drive real rendered coverage and reveal state', async ({ pag
   await proof.click();
   await expect(proof).toHaveAttribute('data-revealed', 'true');
 
+  const aliasProof = page.locator('.alias-output [data-scrawlix-alias-root]');
+  const aliasValues = aliasProof.locator('[data-scrawlix-alias-value]');
+
+  await expect(aliasProof).toBeVisible();
+  await expect(aliasProof).toHaveAttribute('data-reveal', 'click');
+  await expect(aliasValues).toHaveText([
+    'Nina Mercer',
+    'Felix Arden',
+    'Cedar Industries',
+    'Project Lantern',
+    'Nina Mercer',
+    'Project Lantern',
+  ]);
+
+  await aliasProof.click();
+  await expect(aliasProof).toHaveAttribute('data-revealed', 'true');
+  await expect(aliasProof.locator('[data-scrawlix-source]').first()).toHaveText(
+    'Alice Chen'
+  );
+
   await page.setViewportSize({ width: 390, height: 844 });
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - window.innerWidth
