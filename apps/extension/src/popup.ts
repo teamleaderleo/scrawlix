@@ -1,4 +1,5 @@
 import './popup.css';
+import './content.css';
 import {
   effectiveEnabled,
   normalizeCustomWords,
@@ -10,6 +11,7 @@ import {
   type SiteMode,
   type SyncSettings,
 } from './config';
+import { renderTreatmentPreview } from './preview';
 import {
   loadExtensionState,
   saveCustomWords,
@@ -31,6 +33,7 @@ const customWordsInput = required<HTMLTextAreaElement>('custom-words');
 const siteHeading = required<HTMLHeadingElement>('site-heading');
 const effectiveStatus = required<HTMLParagraphElement>('effective-status');
 const saveStatus = required<HTMLSpanElement>('save-status');
+const treatmentPreview = required<HTMLDivElement>('treatment-preview');
 
 let settings: SyncSettings;
 let hostname: string | null = null;
@@ -71,6 +74,10 @@ function renderSettings() {
   appearanceSelect.value = settings.appearance;
   coverageSelect.value = settings.coverage;
   revealSelect.value = settings.reveal;
+  renderTreatmentPreview(treatmentPreview, {
+    appearance: settings.appearance,
+    coverage: settings.coverage,
+  });
   renderEffectiveStatus();
 }
 
