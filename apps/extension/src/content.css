@@ -65,7 +65,8 @@
 
 [data-scrawlix-dom-root][data-scrawlix-reveal='hover']:hover [data-scrawlix-cover],
 [data-scrawlix-dom-root][data-scrawlix-reveal='focus']:focus [data-scrawlix-cover],
-[data-scrawlix-dom-root][data-scrawlix-reveal='click'][data-scrawlix-revealed='true'] [data-scrawlix-cover] {
+[data-scrawlix-dom-root][data-scrawlix-reveal='click'][data-scrawlix-revealed='true'] [data-scrawlix-cover],
+html[data-scrawlix-page-revealed='true'] [data-scrawlix-dom-root] [data-scrawlix-cover] {
   -webkit-text-fill-color: currentColor;
   background: none;
   filter: none;
@@ -76,7 +77,8 @@
 
 [data-scrawlix-dom-root][data-scrawlix-reveal='hover']:hover [data-scrawlix-cover][data-scrawlix-mask]::after,
 [data-scrawlix-dom-root][data-scrawlix-reveal='focus']:focus [data-scrawlix-cover][data-scrawlix-mask]::after,
-[data-scrawlix-dom-root][data-scrawlix-reveal='click'][data-scrawlix-revealed='true'] [data-scrawlix-cover][data-scrawlix-mask]::after {
+[data-scrawlix-dom-root][data-scrawlix-reveal='click'][data-scrawlix-revealed='true'] [data-scrawlix-cover][data-scrawlix-mask]::after,
+html[data-scrawlix-page-revealed='true'] [data-scrawlix-dom-root] [data-scrawlix-cover][data-scrawlix-mask]::after {
   opacity: 0;
 }
 
