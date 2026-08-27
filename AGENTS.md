@@ -13,6 +13,16 @@ Scrawlix is programmable censorship for text and the web. Keep four concerns ind
 
 A change in one layer should rarely require logic in another.
 
+## Work continuity
+
+Once the maintainer has given a clear objective or said to continue, prefer sustained implementation runs. Keep advancing through concrete, reviewable work while useful next actions remain; a green test, commit, or pull request is a checkpoint, not an automatic stopping point.
+
+Use CI results, review findings, release checklists, open issues, and newly exposed edge cases as prompts for the next focused slice. Keep long runs reviewable with narrow branches, tests, issues, and pull requests.
+
+Stop for a genuine human decision, unavailable credential/external action, safety or privacy boundary needing explicit approval, irreducible product ambiguity, or when further work would become speculative churn. Do not promise background or asynchronous work; this applies to sustained work during the active agent run.
+
+See `docs/agent-work-continuity.md` for the fuller guidance.
+
 ## Workspace map
 
 - `packages/core` — language-neutral matching, segmentation, generic coverage, custom-term helpers
