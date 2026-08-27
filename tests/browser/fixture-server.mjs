@@ -15,6 +15,7 @@ const fixture = `<!doctype html>
       <button id="native-button" type="button">fuck</button>
       <a id="native-link" href="/clicked.html">fuck</a>
       <button id="add-dynamic" type="button">add dynamic</button>
+      <button id="replace-body" type="button">replace body</button>
       <section id="dynamic-root"></section>
     </main>
     <script>
@@ -23,6 +24,12 @@ const fixture = `<!doctype html>
         paragraph.id = 'dynamic-copy';
         paragraph.textContent = 'dynamic fuck arrived';
         document.querySelector('#dynamic-root').append(paragraph);
+      });
+
+      document.querySelector('#replace-body').addEventListener('click', () => {
+        const nextBody = document.createElement('body');
+        nextBody.innerHTML = '<main><p id="replacement">replacement fuck arrived</p><a id="replacement-link" href="/clicked.html">fuck</a></main>';
+        document.body.replaceWith(nextBody);
       });
     </script>
   </body>

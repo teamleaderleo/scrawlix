@@ -25,6 +25,7 @@ const INTERACTIVE_ANCESTOR =
 
 let observation: DomObservation | null = null;
 let presentationObserver: MutationObserver | null = null;
+let bodyIdentityObserver: MutationObserver | null = null;
 let activeState: ExtensionSessionState | null = null;
 let activeBody: HTMLElement | null = null;
 let restartGeneration = 0;
@@ -150,6 +151,20 @@ async function restart() {
   refreshPresentation(body, profile);
 }
 
+function startBodyIdentityObserver() {
+  const root = document.documentElement;
+  if (!root || bodyIdentityObserver) return;
+
+  let previousBody = document.body;
+  bodyIdentityObserver = new MutationObserver(() => {
+    const body = document.body;
+    if (body === previousBody) return;
+    previousBody = body;
+    void restart();
+  });
+  bodyIdentityObserver.observe(root, { childList: true });
+}
+
 function clickRootFromEvent(event: Event) {
   const target = event.target;
   if (!(target instanceof Element)) return null;
@@ -189,8 +204,18 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 function startWhenReady() {
+  startBodyIdentityObserver();
   if (document.body) void restart();
-  else window.addEventListener('DOMContentLoaded', () => void restart(), { once: true });
+  else {
+    window.addEventListener(
+      'DOMContentLoaded',
+      () => {
+        startBodyIdentityObserver();
+        void restart();
+      },
+      { once: true }
+    );
+  }
 }
 
 startWhenReady();
