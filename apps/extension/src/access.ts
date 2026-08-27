@@ -1,9 +1,12 @@
+import { TEMPORARY_REVEAL_MS } from './actions';
+
 export const CONTENT_SCRIPT_ID = 'scrawlix-page';
 export const ALL_HOST_PATTERNS = ['http://*/*', 'https://*/*'] as const;
 
 export type ScrawlixContentMessage =
   | { type: 'scrawlix-reconcile' }
-  | { type: 'scrawlix-disable' };
+  | { type: 'scrawlix-disable' }
+  | { type: 'scrawlix-reveal-for'; durationMs: number };
 
 export function originPatternForUrl(value: string): string | null {
   try {
@@ -101,4 +104,14 @@ export async function activateTab(tabId: number) {
 
 export async function deactivateTab(tabId: number) {
   await sendContentMessage(tabId, { type: 'scrawlix-disable' });
+}
+
+export async function revealTabFor(
+  tabId: number,
+  durationMs = TEMPORARY_REVEAL_MS
+) {
+  return sendContentMessage(tabId, {
+    type: 'scrawlix-reveal-for',
+    durationMs,
+  });
 }
