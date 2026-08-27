@@ -36,17 +36,20 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added a React Client Component boundary for hook-based reveal behavior.
 - Added keyboard reveal handling and a single-source accessibility contract with rendered regressions.
 - Added the public CSS subpath export.
+- Bound the supported peer range to React 18 and 19 and added packed external-consumer verification for both majors.
 
 ### Markdown
 
 - Added `@scrawlix/rehype` for source-preserving HAST text transformation.
 - Added default code/script/style-like exclusions, application ignore hooks, and idempotency.
+- Kept `rehypeScrawlix` / `transformHast` as the canonical named exports without a duplicate default export before publication.
 
 ### DOM
 
 - Added `@scrawlix/dom` for arbitrary webpages.
 - Added TreeWalker-based text discovery, exact controller-owned restoration, safe editable/form/code exclusions, and mutation-local observation.
 - Added atomic observed restore for extension/site disable flows.
+- Kept `createDomScrawlix` as the canonical named entry without a duplicate default export before publication.
 
 ### Applications
 
@@ -57,7 +60,8 @@ Scrawlix is in pre-release development. Until the first package version is chose
 ### Developer experience
 
 - Added compiled ESM/declaration artifacts for public packages.
-- Added an external tarball consumer smoke test as a CI release gate and enabled strict checking of published declaration dependencies in that consumer.
+- Added external tarball consumer smoke tests as a CI release gate, with strict declaration checking and React 18/19 production builds.
 - Added package-local READMEs for every public package, exact install commands, a top-level integration chooser, a docs index, React CSS troubleshooting, Next.js client-boundary guidance, and clearer source/accessibility notes.
+- Added explicit runtime compatibility and pre-1.0 versioning/public-contract policies.
 - Aligned `README.md`, `AGENTS.md`, `llms.txt`, demo, extension, tests, and smoke consumers on the canonical pre-release public names and conservative defaults.
 - Added `docs/releasing.md`, language-pack docs, DOM lifecycle docs, extension docs, and the first-release runbook.
