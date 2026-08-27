@@ -1,4 +1,5 @@
 import {
+  censorRuleFromObfuscatedTerms,
   graphemeRanges,
   type CensorRule,
   type CensorRulePack,
@@ -56,4 +57,73 @@ export const englishStrongProfanityPack: CensorRulePack = {
   id: 'en-strong-profanity',
   locale: 'en',
   rules: englishStrongProfanityRules,
+};
+
+const englishObfuscatedIgnored = ['.', '-', '\u200B'] as const;
+
+/**
+ * Conservative opt-in evasions for exact base forms only.
+ *
+ * Each candidate may use one reviewed substitution OR one reviewed internal
+ * separator/zero-width insertion. Inflected and compound evasions remain outside
+ * this pilot until they can preserve the canonical pack's semantic target ranges.
+ */
+export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
+  censorRuleFromObfuscatedTerms('fuck-obfuscated', ['fuck'], {
+    substitutions: {
+      u: ['*'],
+      c: ['('],
+    },
+    ignored: englishObfuscatedIgnored,
+    maxSubstitutions: 1,
+    maxIgnored: 1,
+    maxChanges: 1,
+  }),
+  censorRuleFromObfuscatedTerms('shit-obfuscated', ['shit'], {
+    substitutions: {
+      s: ['$', '5'],
+      i: ['1', '!', '*'],
+      t: ['7'],
+    },
+    ignored: englishObfuscatedIgnored,
+    maxSubstitutions: 1,
+    maxIgnored: 1,
+    maxChanges: 1,
+  }),
+  censorRuleFromObfuscatedTerms('bitch-obfuscated', ['bitch'], {
+    substitutions: {
+      i: ['1', '!', '*'],
+      t: ['7'],
+    },
+    ignored: englishObfuscatedIgnored,
+    maxSubstitutions: 1,
+    maxIgnored: 1,
+    maxChanges: 1,
+  }),
+  censorRuleFromObfuscatedTerms('asshole-obfuscated', ['asshole'], {
+    substitutions: {
+      a: ['@'],
+      s: ['$', '5'],
+      o: ['0'],
+    },
+    ignored: englishObfuscatedIgnored,
+    maxSubstitutions: 1,
+    maxIgnored: 1,
+    maxChanges: 1,
+  }),
+  censorRuleFromObfuscatedTerms('cunt-obfuscated', ['cunt'], {
+    substitutions: {
+      u: ['*'],
+    },
+    ignored: englishObfuscatedIgnored,
+    maxSubstitutions: 1,
+    maxIgnored: 1,
+    maxChanges: 1,
+  }),
+] as const;
+
+export const englishObfuscatedStrongProfanityPack: CensorRulePack = {
+  id: 'en-strong-profanity-obfuscated',
+  locale: 'en',
+  rules: englishObfuscatedStrongProfanityRules,
 };
