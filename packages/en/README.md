@@ -83,4 +83,4 @@ import {
 
 The current package is intentionally narrow strong-profanity coverage. It is a reviewable set of English rules and aggressive examples, with explicit corpus evidence for the scope it claims.
 
-See `docs/language-packs.md` in the repository for authoring, composition, boundary, Unicode, and obfuscation guidance.
+See the [language-pack guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md) for authoring, composition, boundary, Unicode, and obfuscation guidance. For edge/boundary or no-match diagnostics, use the [troubleshooting guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/troubleshooting.md).
