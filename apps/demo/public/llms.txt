@@ -7,7 +7,7 @@ Source: https://github.com/teamleaderleo/scrawlix
 Packages:
 - @scrawlix/core — language-neutral matching and segmentation
 - @scrawlix/en — English profanity rules, English vowel coverage, regression corpus
-- @scrawlix/react — React renderer and visual/reveal presets
+- @scrawlix/react — React censorship/alias rendering and visual/reveal presets
 - @scrawlix/rehype — HAST/rehype transformer for Markdown-rendered prose
 - @scrawlix/dom — arbitrary-page DOM transformation, restoration, and mutation observation
 
@@ -30,6 +30,25 @@ import '@scrawlix/react/styles.css';
   reveal="hover"
 />
 ```
+
+Canonical stable-alias usage:
+
+```tsx
+import { AliasText } from '@scrawlix/react';
+
+const aliases = [
+  { term: 'Alice Chen', alias: 'Nina Mercer' },
+  { term: 'Project Velvet', alias: 'Project Lantern' },
+];
+
+<AliasText
+  text="Alice Chen approved Project Velvet."
+  aliases={aliases}
+  reveal="never"
+/>
+```
+
+`AliasText` is reversible presentation: the current React contract keeps the original source available for accessibility/reveal. Use a sanitizing export path when source text must be removed from an artifact.
 
 Canonical core usage:
 
@@ -83,9 +102,11 @@ Generic coverage presets: full, tail, middle, inner.
 English-specific helper: englishVowelCoverage.
 React appearances: scrawl, bar, blur, asterisk, grawlix.
 React reveal modes: hover, focus, click, never.
+React stable aliases: AliasText with explicit `{ term, alias }` mappings.
 
 Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md
 Language packs: https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md
+Stable aliases: https://github.com/teamleaderleo/scrawlix/blob/main/docs/aliases.md
 DOM lifecycle: https://github.com/teamleaderleo/scrawlix/blob/main/docs/dom.md
 Extension notes: https://github.com/teamleaderleo/scrawlix/blob/main/apps/extension/README.md
 Release readiness: https://github.com/teamleaderleo/scrawlix/issues/18
