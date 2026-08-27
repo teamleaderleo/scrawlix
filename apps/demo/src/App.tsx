@@ -7,6 +7,7 @@ import {
   CensoredText,
   type ScrawlixAppearance,
   type ScrawlixReveal,
+  type ScrawlixRevealScope,
 } from '@scrawlix/react';
 import { useMemo, useState } from 'react';
 
@@ -31,6 +32,7 @@ const coverages: readonly CoverageChoice[] = [
 ];
 
 const reveals: readonly ScrawlixReveal[] = ['hover', 'focus', 'click', 'never'];
+const revealScopes: readonly ScrawlixRevealScope[] = ['match', 'component'];
 
 const defaultText =
   'This fucking delightful little thing can censor shit without flattening every word into the same black rectangle.';
@@ -80,6 +82,7 @@ export function App() {
   const [appearance, setAppearance] = useState<ScrawlixAppearance>('scrawl');
   const [coverage, setCoverage] = useState<CoverageChoice>('middle');
   const [reveal, setReveal] = useState<ScrawlixReveal>('hover');
+  const [revealScope, setRevealScope] = useState<ScrawlixRevealScope>('match');
   const [text, setText] = useState(defaultText);
   const coverageSelector = selectorForCoverage(coverage);
 
@@ -89,8 +92,10 @@ export function App() {
         ? '  coverage={englishVowelCoverage}'
         : `  coverage="${coverage}"`;
 
-    return `import { englishProfanityRules${coverage === 'vowel' ? ', englishVowelCoverage' : ''} } from '@scrawlix/en';\nimport { CensoredText } from '@scrawlix/react';\n\n<CensoredText\n  text={copy}\n  rules={englishProfanityRules}\n${coverageLine}\n  appearance="${appearance}"\n  reveal="${reveal}"\n/>`;
-  }, [appearance, coverage, reveal]);
+    return `import { englishProfanityRules${coverage === 'vowel' ? ', englishVowelCoverage' : ''} } from '@scrawlix/en';\nimport { CensoredText } from '@scrawlix/react';\n\n<CensoredText\n  text={copy}\n  rules={englishProfanityRules}\n${coverageLine}\n  appearance="${appearance}"\n  reveal="${reveal}"\n  revealScope="${revealScope}"\n/>`;
+  }, [appearance, coverage, reveal, revealScope]);
+
+  const proofTarget = revealScope === 'match' ? 'a censored term' : 'the proof';
 
   return (
     <main>
@@ -130,14 +135,16 @@ export function App() {
               appearance={appearance}
               coverage={coverageSelector}
               reveal={reveal}
+              revealScope={revealScope}
               rules={englishProfanityRules}
               text={text}
             />
           </div>
           <p className="proof-hint">
-            {reveal === 'hover' && 'hover the proof to reveal'}
-            {reveal === 'focus' && 'tab into the proof to reveal'}
-            {reveal === 'click' && 'click or press enter to toggle reveal'}
+            {reveal === 'hover' && `hover ${proofTarget} to reveal`}
+            {reveal === 'focus' && `tab to ${proofTarget} to reveal`}
+            {reveal === 'click' &&
+              `click ${proofTarget} or use the keyboard controls to toggle reveal`}
             {reveal === 'never' && 'this proof stays censored'}
           </p>
         </div>
@@ -162,6 +169,12 @@ export function App() {
             onChange={setReveal}
             value={reveal}
             values={reveals}
+          />
+          <SegmentControl
+            label="reveal scope"
+            onChange={setRevealScope}
+            value={revealScope}
+            values={revealScopes}
           />
         </div>
 
@@ -200,6 +213,7 @@ export function App() {
                       appearance={style}
                       coverage={coverageSelector}
                       reveal="hover"
+                      revealScope="match"
                       rules={englishProfanityRules}
                       text={sample}
                     />

@@ -155,6 +155,15 @@ function coverElement(document: Document, segment: ScrawlixSegment) {
   const element = document.createElement('span');
   element.setAttribute('data-scrawlix-cover', '');
   element.setAttribute('data-scrawlix-rules', segment.ruleIds.join(','));
+  element.setAttribute('data-scrawlix-matches', segment.matchIds.join(','));
+  element.setAttribute('data-scrawlix-start', String(segment.start));
+  element.setAttribute('data-scrawlix-end', String(segment.end));
+  if (segment.revealId) {
+    element.setAttribute('data-scrawlix-reveal-id', segment.revealId);
+  }
+  if (segment.coverageEdge) {
+    element.setAttribute('data-scrawlix-edge', segment.coverageEdge);
+  }
   element.append(document.createTextNode(segment.text));
   return element;
 }

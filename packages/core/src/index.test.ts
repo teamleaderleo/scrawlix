@@ -27,7 +27,14 @@ function source(segments: readonly ScrawlixSegment[]) {
 describe('Scrawlix core', () => {
   it('is language-neutral and does nothing until rules are supplied', () => {
     expect(createScrawlix().segment('fuck')).toEqual([
-      { text: 'fuck', covered: false, ruleIds: [] },
+      {
+        text: 'fuck',
+        covered: false,
+        start: 0,
+        end: 4,
+        ruleIds: [],
+        matchIds: [],
+      },
     ]);
     expect(createScrawlix().find('fuck')).toEqual([]);
   });
@@ -44,6 +51,7 @@ describe('Scrawlix core', () => {
 
     expect(scrawlix.find('motherfucker')).toEqual([
       {
+        matchId: 'm0',
         ruleId: 'semantic-test',
         text: 'motherfucker',
         start: 0,
@@ -135,10 +143,41 @@ describe('Scrawlix core', () => {
 
     expect(second).toEqual(first);
     expect(afterFind).toHaveLength(2);
+    expect(afterFind.map(match => match.matchId)).toEqual(['m0', 'm1']);
     expect(third).toEqual(first);
   });
 
-  it('merges overlapping covered ranges and keeps contributing rule ids', () => {
+  it('gives separate matches separate reveal ids', () => {
+    const scrawlix = createScrawlix({
+      rules: [censorRuleFromWords('secret', ['secret'])],
+      coverage: 'middle',
+    });
+    const covered = scrawlix
+      .segment('secret and secret')
+      .filter(segment => segment.covered);
+
+    expect(covered).toHaveLength(2);
+    expect(covered.map(segment => segment.matchIds)).toEqual([['m0'], ['m1']]);
+    expect(covered.map(segment => segment.revealId)).toEqual(['m0', 'm1']);
+    expect(covered.map(segment => segment.coverageEdge)).toEqual(['solo', 'solo']);
+  });
+
+  it('shares one reveal id across disjoint coverage islands from the same match', () => {
+    const scrawlix = createScrawlix({
+      rules: [censorRuleFromWords('secret', ['secret'])],
+      coverage: () => [
+        { start: 1, end: 2 },
+        { start: 4, end: 5 },
+      ],
+    });
+    const covered = scrawlix.segment('secret').filter(segment => segment.covered);
+
+    expect(covered.map(segment => segment.text)).toEqual(['e', 'e']);
+    expect(covered.map(segment => segment.revealId)).toEqual(['m0', 'm0']);
+    expect(covered.map(segment => segment.coverageEdge)).toEqual(['start', 'end']);
+  });
+
+  it('merges overlapping covered ranges into one disclosure group', () => {
     const scrawlix = createScrawlix({
       rules: [semanticRule, { id: 'whole', pattern: /motherfucker/gi }],
       coverage: 'full',
@@ -149,7 +188,12 @@ describe('Scrawlix core', () => {
     expect(segments[0]).toMatchObject({
       text: 'motherfucker',
       covered: true,
+      start: 0,
+      end: 12,
+      revealId: 'g:0:12:m0+m1',
+      coverageEdge: 'solo',
     });
+    expect(new Set(segments[0]!.matchIds)).toEqual(new Set(['m0', 'm1']));
     expect([...segments[0]!.ruleIds].sort()).toEqual([
       'semantic-test',
       'whole',
@@ -237,14 +281,25 @@ describe('Scrawlix core', () => {
 
       expect(source(first)).toBe(text);
       expect(second).toEqual(first);
+      let cursor = 0;
       for (const segment of first) {
         expect(segment.text.length).toBeGreaterThan(0);
+        expect(segment.start).toBe(cursor);
+        expect(segment.end - segment.start).toBe(segment.text.length);
+        cursor = segment.end;
         if (segment.covered) {
           expect(segment.ruleIds.length).toBeGreaterThan(0);
+          expect(segment.matchIds.length).toBeGreaterThan(0);
+          expect(segment.revealId).toBeTruthy();
+          expect(segment.coverageEdge).toBeTruthy();
         } else {
           expect(segment.ruleIds).toEqual([]);
+          expect(segment.matchIds).toEqual([]);
+          expect(segment.revealId).toBeUndefined();
+          expect(segment.coverageEdge).toBeUndefined();
         }
       }
+      expect(cursor).toBe(text.length);
     }
   });
 });

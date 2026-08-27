@@ -31,6 +31,17 @@ scrawlix.segment('what the fuck');
 
 The English pack understands semantic targets inside larger matches, so `fuck`, `fucking`, and `motherfucker` can all apply coverage specifically to the `fuck` portion.
 
+### Match and segment metadata
+
+`find()` returns each sorted semantic match with an opaque render-local `matchId` plus its match/target offsets. `segment()` preserves source offsets on every segment and carries presentation metadata on covered ranges:
+
+- `ruleIds` — rules contributing to the covered union
+- `matchIds` — semantic matches contributing to that union; treat this collection as unordered provenance
+- `revealId` — the disclosure-group key renderers should use for interaction
+- `coverageEdge` — `solo`, `start`, `middle`, or `end`, allowing several covered islands from one disclosure group to read as one visual gesture
+
+The IDs and offsets are local to the source string passed into that `find()` / `segment()` call. React therefore scopes them to one `CensoredText` input. DOM and rehype adapters run against individual source text nodes, so their `m0` identifiers and numeric offsets are source-node local as well.
+
 ## React
 
 ```tsx
@@ -51,7 +62,9 @@ Current appearances: `scrawl`, `bar`, `blur`, `whiteout`, `mosaic`, `asterisk`, 
 
 Current reveal modes: `hover`, `focus`, `click`, and `never`.
 
-The renderer exposes a namespaced presentation contract through `data-scrawlix-root`, `data-scrawlix-appearance`, `data-scrawlix-reveal`, `data-scrawlix-revealed`, `data-scrawlix-cover`, `data-scrawlix-rules`, and optional `data-scrawlix-mask` attributes. Preset styling can be tuned with CSS custom properties including `--scrawlix-ink`, `--scrawlix-surface`, `--scrawlix-bar-height`, `--scrawlix-blur-radius`, and `--scrawlix-mosaic-cell`.
+Reveal scope is independent too. `revealScope="component"` keeps the original whole-component behavior and remains the compatibility default. `revealScope="match"` reveals one disclosure group at a time. Pointer hover/click targets the corresponding covered range; keyboard focus/click uses visually hidden controls outside the `aria-hidden` visual copy and paints focus onto the matching censor mark.
+
+The renderer exposes a namespaced presentation contract through `data-scrawlix-root`, `data-scrawlix-appearance`, `data-scrawlix-reveal`, `data-scrawlix-reveal-scope`, `data-scrawlix-revealed`, `data-scrawlix-cover`, `data-scrawlix-rules`, `data-scrawlix-matches`, `data-scrawlix-reveal-id`, `data-scrawlix-edge`, source-local offset attributes, and optional `data-scrawlix-mask`. Preset styling can be tuned with CSS custom properties including `--scrawlix-ink`, `--scrawlix-surface`, `--scrawlix-bar-height`, `--scrawlix-blur-radius`, and `--scrawlix-mosaic-cell`.
 
 ## Markdown / rehype
 
@@ -77,7 +90,7 @@ import ReactMarkdown from 'react-markdown';
 </ReactMarkdown>;
 ```
 
-Covered fragments become spans carrying `data-scrawlix-cover` and `data-scrawlix-rules`. The adapter keeps appearance policy out of the syntax-tree pass, so a site can style those spans with its own editorial language.
+Covered fragments become spans carrying the same rule/match/reveal/edge metadata used by the other adapters. Numeric offsets and match IDs are local to each HAST text node. The adapter keeps appearance policy out of the syntax-tree pass, so a site can style those spans with its own editorial language.
 
 `code`, `pre`, `script`, `style`, and `textarea` subtrees are skipped by default. Applications can add excluded tags, place `data-scrawlix-ignore` on a subtree, or provide a `shouldSkip` predicate. The transformer also skips its own output, so repeated processing stays idempotent.
 
@@ -97,7 +110,7 @@ const censor = createDomScrawlix({
 const observation = censor.observe(document.body);
 ```
 
-Only text nodes with actual covered ranges are wrapped. Generated roots use `data-scrawlix-dom-root`; covered fragments use the same `data-scrawlix-cover` and `data-scrawlix-rules` attributes as the rehype adapter.
+Only text nodes with actual covered ranges are wrapped. Generated roots use `data-scrawlix-dom-root`; covered fragments carry rule/match/reveal/edge metadata and source-node-local offsets. Each generated root forms its own source unit, so repeated `m0` identifiers across separate wrappers are expected.
 
 Dynamic observation queues only nodes reported by `MutationObserver`. Turning a site off can be one lifecycle call:
 
@@ -173,7 +186,7 @@ pnpm install
 pnpm dev
 ```
 
-The demo includes an editable live proof, coverage and reveal controls, a seven-style specimen sheet, semantic-match examples, and a live component snippet.
+The demo includes an editable live proof, coverage/reveal/reveal-scope controls, a seven-style specimen sheet, semantic-match examples, and a live component snippet.
 
 ### Vercel
 
@@ -214,6 +227,8 @@ pnpm smoke:packages
 - [Appearance DOM/CSS contract](https://github.com/teamleaderleo/scrawlix/issues/26)
 - [Per-match reveal metadata](https://github.com/teamleaderleo/scrawlix/issues/27)
 - [Demo X-ray and specimen lab](https://github.com/teamleaderleo/scrawlix/issues/28)
+- [Custom appearance hooks](https://github.com/teamleaderleo/scrawlix/issues/42)
+- [Gesture-aware and archival censor presets](https://github.com/teamleaderleo/scrawlix/issues/66)
 
 ## Status
 
