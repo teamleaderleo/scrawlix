@@ -67,6 +67,17 @@ assert.ok(
   )
 );
 
+const englishWidth = obfuscatedEngine.find('motherｆucker')[0];
+assert.equal(englishWidth?.text, 'motherｆucker');
+assert.equal(englishWidth?.targetText, 'ｆuck');
+assert.equal(englishWidth?.targetStart, 6);
+assert.equal(englishWidth?.targetEnd, 10);
+assert.ok(
+  englishObfuscatedProfanityCorpus.some(
+    testCase => testCase.id === 'obfuscated-width-fuck-mother-f'
+  )
+);
+
 const targetedEngine = createScrawlix({
   rules: [
     censorRuleFromTargetedObfuscatedTerms(
