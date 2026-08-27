@@ -116,17 +116,29 @@ A pack can export several named helpers without changing the core API.
 
 ## Corpora
 
-Every language pack should grow a small, reviewable regression corpus alongside its rules. A useful corpus contains:
+Every language pack should grow a small, reviewable regression corpus alongside its rules. Corpus cases are ordinary JSON data under `src/corpus-data/`, validated by the shared `schemas/corpus.schema.json` contract.
 
-- positive matches
-- expected semantic targets
-- casing and punctuation variants
-- compounds and inflections
-- false-positive traps
-- Unicode context
-- dialect or severity cases when relevant
+Each case records:
 
-Keep corpus entries simple enough to add during a bug fix. The English pack exports its current corpus from `@scrawlix/en/corpus` and uses the same data directly in tests.
+- a stable case id
+- the exact source text
+- the matching profile under test
+- tags that explain why the case exists
+- expected full-match and semantic-target text
+- exact UTF-16 source offsets for every expected match
+- an optional human note
+
+The validator also checks facts JSON Schema cannot express conveniently: case ids stay unique within a pack, every range is non-empty and contained by the source, semantic targets sit inside their full matches, and slicing the source at the declared offsets reproduces the declared match text exactly.
+
+Run corpus validation with:
+
+```sh
+pnpm validate:corpora
+```
+
+The workspace test command runs that validation before package tests. `@scrawlix/en/corpus` remains the public JavaScript export; the English implementation imports the validated JSON so its tests and public corpus consume the same source data.
+
+Useful corpora contain positive matches, semantic targets, casing and punctuation variants, compounds and inflections, false-positive traps, Unicode context, and dialect or severity cases when relevant. Every matcher expansion should ideally arrive with the newly caught form plus plausible clean neighbors that could regress.
 
 A corpus is evidence about expected behavior, not a claim of linguistic completeness. Pack docs should say which dialect, register, severity band, and edge cases the pack intentionally covers.
 
