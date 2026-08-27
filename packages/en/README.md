@@ -43,7 +43,7 @@ The package also exports a separate aggressive pack:
 - `englishObfuscatedStrongProfanityRules`
 - `englishObfuscatedStrongProfanityPack`
 
-It catches a small reviewed set of one-change evasions across the same inflection and compound families declared by the canonical pack for `fuck`, `shit`, `bitch`, `asshole`, and `cunt`. Each candidate may use one reviewed symbol/digit substitution, one internal `.`, `-`, or zero-width-space insertion, one excess repeated letter, **or** one reviewed fullwidth ASCII grapheme. The total budget stays one transform.
+It catches a small reviewed set of one-change evasions across the same inflection and compound families declared by the canonical pack for `fuck`, `shit`, `bitch`, `asshole`, and `cunt`. Each candidate may use one reviewed symbol/digit substitution, one internal `.`, `-`, or zero-width-space insertion, one excess repeated letter, one reviewed fullwidth ASCII grapheme, **or** one reviewed Unicode confusable. The total budget stays one transform.
 
 ```ts
 import { createScrawlix, rulesFromPacks } from '@scrawlix/core';
@@ -60,17 +60,30 @@ const scrawlix = createScrawlix({
 });
 ```
 
-Examples include substitutions such as `f*ck` and `sh1t`, inserted separators such as `mother-fucker`, bounded repetitions such as `fuuck`, `fuckking`, `motherfuucker`, `shittting`, `bittches`, `assshole`, and `cunnt`, and reviewed fullwidth forms such as `ｆuck`, `fuckｉng`, `motherｆucker`, `bullshｉt`, `ｂitches`, `asshｏles`, and `cｕnts`.
+Examples include substitutions such as `f*ck` and `sh1t`, inserted separators such as `mother-fucker`, bounded repetitions such as `fuuck` and `shittting`, fullwidth forms such as `ｆuck` and `motherｆucker`, and reviewed cross-script forms such as `fuсk`, `fuckіng`, `motherfuсker`, `ѕhit`, `bullshіt`, `bіtches`, `аsshole`, `asshоles`, and `сunts`.
 
-Full obfuscated forms preserve the canonical semantic root. For example, `f*cking` targets `f*ck`; `mother-fucker` targets `fuck`; `motherfuucker` targets `fuuck`; `shittting` targets `shit`; `motherｆucker` targets `ｆuck`; and a fullwidth letter in a suffix such as `fuckｉng` stays outside the `fuck` target. Coverage therefore follows the same semantic profanity root as the canonical regex pack.
+Full obfuscated forms preserve the canonical semantic root. For example, `motherfuсker` targets `fuсk`, `fuckіng` targets `fuck`, and `asshоles` targets `asshоle`. Coverage follows the same semantic profanity root as the canonical regex pack.
 
-Canonical repeated runs remain meaningful. The declared `ss` in `asshole` is the minimum accepted run; `assshole` consumes one repetition budget while `ashole` stays clean. Fullwidth mappings use a separate reviewed class limited to true U+FF01–U+FF5E forms. Circled and superscript compatibility characters stay outside this pack's width table.
+### Reviewed confusable set
 
-The one-change ceiling applies across every aggressive class. Two fullwidth letters, a fullwidth letter plus a substitution, a fullwidth letter plus a repeat, or a fullwidth letter plus an inserted separator all exceed the pack policy.
+The current English pack reviews only this small set of source lookalikes:
+
+- Latin `a` ← Cyrillic `а` (U+0430)
+- Latin `c` ← Cyrillic `с` (U+0441)
+- Latin `e` ← Cyrillic `е` (U+0435)
+- Latin `i` ← Ukrainian Cyrillic `і` (U+0456)
+- Latin `o` ← Cyrillic `о` (U+043E)
+- Latin `s` ← Cyrillic `ѕ` (U+0455)
+
+Other lookalikes stay clean until they receive their own corpus evidence and explicit review. The clean corpus includes Greek omicron `ο` and Greek lunate sigma `ϲ` examples to pin that boundary. Fullwidth forms stay in the width class, and compatibility forms such as circled letters stay outside the confusable table.
+
+Canonical repeated runs remain meaningful. The declared `ss` in `asshole` is the minimum accepted run; `assshole` consumes one repetition budget while `ashole` stays clean. Fullwidth mappings use a separate reviewed class limited to true U+FF01–U+FF5E forms.
+
+The one-change ceiling applies across every aggressive class. Two confusables, or a confusable combined with a substitution, width variant, repeat, or inserted separator, exceed the pack policy.
 
 Matches from this pack expose `profile: 'obfuscated'` and `packId: 'en-strong-profanity-obfuscated'` when composed through `rulesFromPacks()`.
 
-The reviewed tables and form families live in ordinary package code, and positive plus false-positive/over-budget cases live in JSON corpora. Width cases live in their own corpus files so reviewers can inspect that behavior independently.
+The reviewed tables and form families live in ordinary package code, and positive plus false-positive/over-budget cases live in JSON corpora. Width and confusable cases live in separate corpus files so reviewers can inspect those behaviors independently.
 
 ## Regression data
 
@@ -87,4 +100,4 @@ import {
 
 The current package is intentionally narrow strong-profanity coverage. It is a reviewable set of English rules and aggressive examples, with explicit corpus evidence for the scope it claims.
 
-See `docs/language-packs.md` in the repository for authoring, composition, boundary, Unicode, and obfuscation guidance.
+See `docs/language-packs.md` and `docs/confusable-matching.md` in the repository for authoring, composition, boundary, Unicode, and confusable-review guidance.
