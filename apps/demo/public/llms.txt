@@ -71,6 +71,13 @@ const engine = createScrawlix({
 });
 ```
 
+Framework-neutral renderer rule:
+- For Vue, Svelte, Solid, plain DOM, or another UI layer, start from `engine.segment(text)` before proposing a new Scrawlix package.
+- Render segments in order and preserve each `segment.text` exactly. Covered segments carry `covered: true` plus `ruleIds`; appearance and interaction belong to the application renderer.
+- Use `docs/custom-renderers.md` for plain-DOM, Vue, Svelte, and Solid sketches.
+- A dedicated adapter package is justified when it owns reusable framework-specific interaction, accessibility, lifecycle/restoration, SSR/client-boundary behavior, plugin integration, or a tested DOM/CSS contract. A simple segment loop belongs in application code/docs.
+- Custom renderers preserve source text unless they explicitly implement separate sanitized-output semantics; do not market a CSS cover as destructive redaction.
+
 Custom terms and phrases:
 
 ```ts
@@ -119,6 +126,7 @@ The browser extension keeps browser state outside reusable packages. Global trea
 
 Use only documented public package exports. Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md
 Docs index: https://github.com/teamleaderleo/scrawlix/blob/main/docs/README.md
+Custom renderers: https://github.com/teamleaderleo/scrawlix/blob/main/docs/custom-renderers.md
 Compatibility: https://github.com/teamleaderleo/scrawlix/blob/main/docs/compatibility.md
 Versioning: https://github.com/teamleaderleo/scrawlix/blob/main/docs/versioning.md
 Language packs: https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md
