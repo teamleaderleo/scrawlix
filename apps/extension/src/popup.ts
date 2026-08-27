@@ -150,6 +150,10 @@ async function refreshAccess() {
   renderSettings();
 }
 
+async function ensureCurrentPageRuntime() {
+  if (page && persistentAccess) await activateTab(page.tabId);
+}
+
 async function persistSettings(next: SyncSettings) {
   settings = next;
   renderSettings();
@@ -173,6 +177,7 @@ async function persistSettings(next: SyncSettings) {
 
   settingsSaveQueue = queued.catch(() => undefined);
   await queued.catch(() => undefined);
+  await ensureCurrentPageRuntime();
 }
 
 function wordsFromTextarea() {
@@ -189,6 +194,7 @@ async function persistWords() {
   try {
     await saveCustomWords(wordsFromTextarea());
     saveStatus.textContent = 'saved';
+    await ensureCurrentPageRuntime();
   } catch {
     saveStatus.textContent = 'save failed';
   }
@@ -288,6 +294,7 @@ async function initialize() {
   page = activePage;
   customWordsInput.value = state.customWords.join('\n');
   await refreshAccess();
+  await ensureCurrentPageRuntime();
 }
 
 void initialize();
