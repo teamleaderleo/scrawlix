@@ -1,18 +1,25 @@
 import './popup.css';
 import {
+  ENGLISH_PROFANITY_LENS_ID,
+  activeProfile,
   effectiveEnabled,
   normalizeCustomWords,
+  setActiveProfile,
   setSiteMode,
   siteModeFor,
+  updateActiveProfile,
   type ExtensionAppearance,
   type ExtensionCoverage,
+  type ExtensionLens,
+  type ExtensionLocalState,
+  type ExtensionProfile,
   type ExtensionReveal,
   type SiteMode,
   type SyncSettings,
 } from './config';
 import {
   loadExtensionState,
-  saveCustomWords,
+  saveLocalState,
   saveSettings,
 } from './storage';
 
@@ -27,14 +34,20 @@ const siteModeSelect = required<HTMLSelectElement>('site-mode');
 const appearanceSelect = required<HTMLSelectElement>('appearance');
 const coverageSelect = required<HTMLSelectElement>('coverage');
 const revealSelect = required<HTMLSelectElement>('reveal');
-const customWordsInput = required<HTMLTextAreaElement>('custom-words');
+const profileSelect = required<HTMLSelectElement>('profile');
+const profileNameInput = required<HTMLInputElement>('profile-name');
+const addProfileButton = required<HTMLButtonElement>('add-profile');
+const deleteProfileButton = required<HTMLButtonElement>('delete-profile');
+const lensList = required<HTMLDivElement>('lens-list');
+const addLensButton = required<HTMLButtonElement>('add-lens');
 const siteHeading = required<HTMLHeadingElement>('site-heading');
 const effectiveStatus = required<HTMLParagraphElement>('effective-status');
-const saveStatus = required<HTMLSpanElement>('save-status');
+const localSaveStatus = required<HTMLSpanElement>('local-save-status');
 
 let settings: SyncSettings;
+let localState: ExtensionLocalState;
 let hostname: string | null = null;
-let wordSaveTimer: number | null = null;
+let localSaveChain = Promise.resolve();
 
 async function currentHostname() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -50,6 +63,10 @@ async function currentHostname() {
   }
 }
 
+function makeId(prefix: 'lens' | 'profile') {
+  return `${prefix}:${crypto.randomUUID()}`;
+}
+
 function renderEffectiveStatus() {
   if (!hostname) {
     siteHeading.textContent = 'This page is unavailable';
@@ -62,16 +79,168 @@ function renderEffectiveStatus() {
   siteModeSelect.disabled = false;
   siteModeSelect.value = siteModeFor(settings, hostname);
   const enabledHere = effectiveEnabled(settings, hostname);
-  effectiveStatus.textContent = enabledHere ? 'censoring is on here' : 'censoring is off here';
+  const profile = activeProfile(localState);
+  effectiveStatus.textContent = `${enabledHere ? 'censoring is on here' : 'censoring is off here'} · ${profile.name}`;
   effectiveStatus.dataset.enabled = enabledHere ? 'true' : 'false';
+}
+
+function renderProfiles() {
+  const profile = activeProfile(localState);
+  profileSelect.replaceChildren();
+
+  for (const candidate of localState.profiles) {
+    const option = document.createElement('option');
+    option.value = candidate.id;
+    option.textContent = candidate.name;
+    profileSelect.append(option);
+  }
+
+  profileSelect.value = profile.id;
+  profileNameInput.value = profile.name;
+  deleteProfileButton.disabled = localState.profiles.length <= 1;
+}
+
+function replaceLens(
+  state: ExtensionLocalState,
+  lensId: string,
+  patch: Partial<Omit<ExtensionLens, 'id' | 'kind'>>
+): ExtensionLocalState {
+  return {
+    ...state,
+    lenses: state.lenses.map(lens =>
+      lens.id === lensId && lens.kind === 'terms' ? { ...lens, ...patch } : lens
+    ),
+  };
+}
+
+function removeLens(state: ExtensionLocalState, lensId: string): ExtensionLocalState {
+  return {
+    ...state,
+    lenses: state.lenses.filter(lens => lens.id !== lensId),
+    profiles: state.profiles.map(profile => ({
+      ...profile,
+      lensIds: profile.lensIds.filter(id => id !== lensId),
+    })),
+  };
+}
+
+function lensToggle(lens: ExtensionLens, profile: ExtensionProfile) {
+  const label = document.createElement('label');
+  label.className = 'lens-toggle';
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = profile.lensIds.includes(lens.id);
+  checkbox.setAttribute('aria-label', `Use ${lens.name} in ${profile.name}`);
+  checkbox.addEventListener('change', () => {
+    const nextIds = new Set(activeProfile(localState).lensIds);
+    if (checkbox.checked) nextIds.add(lens.id);
+    else nextIds.delete(lens.id);
+    void persistLocal(
+      updateActiveProfile(localState, { lensIds: Array.from(nextIds) })
+    );
+  });
+
+  const marker = document.createElement('span');
+  marker.textContent = checkbox.checked ? 'on' : 'off';
+
+  label.append(checkbox, marker);
+  return label;
+}
+
+function renderLenses() {
+  lensList.replaceChildren();
+  const profile = activeProfile(localState);
+
+  for (const lens of localState.lenses) {
+    const card = document.createElement('article');
+    card.className = 'lens-card';
+    card.dataset.lensKind = lens.kind;
+
+    const header = document.createElement('div');
+    header.className = 'lens-card-header';
+    header.append(lensToggle(lens, profile));
+
+    if (lens.id === ENGLISH_PROFANITY_LENS_ID) {
+      const title = document.createElement('div');
+      title.className = 'lens-title';
+      const name = document.createElement('strong');
+      name.textContent = lens.name;
+      const detail = document.createElement('span');
+      detail.textContent = 'built-in English pack';
+      title.append(name, detail);
+      header.prepend(title);
+      card.append(header);
+    } else {
+      const nameInput = document.createElement('input');
+      nameInput.className = 'lens-name';
+      nameInput.value = lens.name;
+      nameInput.setAttribute('aria-label', 'Lens name');
+      nameInput.addEventListener('input', () => {
+        const next = replaceLens(localState, lens.id, { name: nameInput.value });
+        localState = next;
+        checkboxOptionLabel(lens.id, nameInput.value);
+        void persistLocal(next, false);
+      });
+
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'danger-button';
+      deleteButton.textContent = 'remove';
+      deleteButton.addEventListener('click', () => {
+        void persistLocal(removeLens(localState, lens.id));
+      });
+
+      header.prepend(nameInput);
+      header.append(deleteButton);
+
+      const termsInput = document.createElement('textarea');
+      termsInput.rows = 3;
+      termsInput.value = lens.terms.join('\n');
+      termsInput.placeholder = 'Project Velvet\nClient Name\nspoiler phrase';
+      termsInput.spellcheck = false;
+      termsInput.setAttribute('aria-label', `${lens.name} terms`);
+      termsInput.addEventListener('input', () => {
+        const next = replaceLens(localState, lens.id, {
+          terms: normalizeCustomWords(termsInput.value.split('\n')),
+        });
+        localState = next;
+        void persistLocal(next, false);
+      });
+
+      card.append(header, termsInput);
+    }
+
+    lensList.append(card);
+  }
+}
+
+function checkboxOptionLabel(lensId: string, name: string) {
+  const checkbox = lensList.querySelector<HTMLInputElement>(
+    `input[type="checkbox"][aria-label*="${CSS.escape(lensId)}"]`
+  );
+  void checkbox;
+  const profile = activeProfile(localState);
+  const lens = localState.lenses.find(candidate => candidate.id === lensId);
+  if (!lens) return;
+  const toggle = Array.from(lensList.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))
+    .find(candidate => candidate.getAttribute('aria-label')?.includes(lens.name));
+  if (toggle) toggle.setAttribute('aria-label', `Use ${name} in ${profile.name}`);
+}
+
+function renderLocalState() {
+  const profile = activeProfile(localState);
+  renderProfiles();
+  appearanceSelect.value = profile.appearance;
+  coverageSelect.value = profile.coverage;
+  revealSelect.value = profile.reveal;
+  renderLenses();
+  renderEffectiveStatus();
 }
 
 function renderSettings() {
   enabledInput.checked = settings.enabled;
-  appearanceSelect.value = settings.appearance;
-  coverageSelect.value = settings.coverage;
-  revealSelect.value = settings.reveal;
-  renderEffectiveStatus();
+  renderLocalState();
 }
 
 async function persistSettings(next: SyncSettings) {
@@ -80,29 +249,22 @@ async function persistSettings(next: SyncSettings) {
   await saveSettings(settings);
 }
 
-function wordsFromTextarea() {
-  return normalizeCustomWords(customWordsInput.value.split('\n'));
-}
+function persistLocal(next: ExtensionLocalState, rerender = true) {
+  localState = next;
+  if (rerender) renderLocalState();
+  localSaveStatus.textContent = 'saving…';
+  const snapshot = next;
 
-async function persistWords() {
-  if (wordSaveTimer !== null) {
-    window.clearTimeout(wordSaveTimer);
-    wordSaveTimer = null;
-  }
+  localSaveChain = localSaveChain
+    .then(() => saveLocalState(snapshot))
+    .then(() => {
+      if (localState === snapshot) localSaveStatus.textContent = 'saved';
+    })
+    .catch(() => {
+      localSaveStatus.textContent = 'save failed';
+    });
 
-  saveStatus.textContent = 'saving…';
-  try {
-    await saveCustomWords(wordsFromTextarea());
-    saveStatus.textContent = 'saved';
-  } catch {
-    saveStatus.textContent = 'save failed';
-  }
-}
-
-function scheduleWordSave() {
-  if (wordSaveTimer !== null) window.clearTimeout(wordSaveTimer);
-  saveStatus.textContent = 'editing';
-  wordSaveTimer = window.setTimeout(() => void persistWords(), 250);
+  return localSaveChain;
 }
 
 enabledInput.addEventListener('change', () => {
@@ -116,29 +278,88 @@ siteModeSelect.addEventListener('change', () => {
   );
 });
 
-appearanceSelect.addEventListener('change', () => {
-  void persistSettings({
-    ...settings,
-    appearance: appearanceSelect.value as ExtensionAppearance,
+profileSelect.addEventListener('change', () => {
+  void persistLocal(setActiveProfile(localState, profileSelect.value));
+});
+
+profileNameInput.addEventListener('input', () => {
+  const next = updateActiveProfile(localState, { name: profileNameInput.value });
+  localState = next;
+  const option = Array.from(profileSelect.options).find(
+    candidate => candidate.value === activeProfile(next).id
+  );
+  if (option) option.textContent = profileNameInput.value || 'Untitled profile';
+  renderEffectiveStatus();
+  void persistLocal(next, false);
+});
+
+addProfileButton.addEventListener('click', () => {
+  const source = activeProfile(localState);
+  const profile: ExtensionProfile = {
+    ...source,
+    id: makeId('profile'),
+    name: `Profile ${localState.profiles.length + 1}`,
+    lensIds: [...source.lensIds],
+  };
+  void persistLocal({
+    ...localState,
+    profiles: [...localState.profiles, profile],
+    activeProfileId: profile.id,
   });
+});
+
+deleteProfileButton.addEventListener('click', () => {
+  if (localState.profiles.length <= 1) return;
+  const active = activeProfile(localState);
+  const profiles = localState.profiles.filter(profile => profile.id !== active.id);
+  void persistLocal({
+    ...localState,
+    profiles,
+    activeProfileId: profiles[0]!.id,
+  });
+});
+
+appearanceSelect.addEventListener('change', () => {
+  void persistLocal(
+    updateActiveProfile(localState, {
+      appearance: appearanceSelect.value as ExtensionAppearance,
+    }),
+    false
+  );
 });
 
 coverageSelect.addEventListener('change', () => {
-  void persistSettings({
-    ...settings,
-    coverage: coverageSelect.value as ExtensionCoverage,
-  });
+  void persistLocal(
+    updateActiveProfile(localState, {
+      coverage: coverageSelect.value as ExtensionCoverage,
+    }),
+    false
+  );
 });
 
 revealSelect.addEventListener('change', () => {
-  void persistSettings({
-    ...settings,
-    reveal: revealSelect.value as ExtensionReveal,
-  });
+  void persistLocal(
+    updateActiveProfile(localState, {
+      reveal: revealSelect.value as ExtensionReveal,
+    }),
+    false
+  );
 });
 
-customWordsInput.addEventListener('input', scheduleWordSave);
-customWordsInput.addEventListener('change', () => void persistWords());
+addLensButton.addEventListener('click', () => {
+  const lens: ExtensionLens = {
+    id: makeId('lens'),
+    name: `Lens ${localState.lenses.filter(candidate => candidate.kind === 'terms').length + 1}`,
+    kind: 'terms',
+    terms: [],
+  };
+  const profile = activeProfile(localState);
+  const next = updateActiveProfile(
+    { ...localState, lenses: [...localState.lenses, lens] },
+    { lensIds: [...profile.lensIds, lens.id] }
+  );
+  void persistLocal(next);
+});
 
 async function initialize() {
   const [state, activeHostname] = await Promise.all([
@@ -147,8 +368,8 @@ async function initialize() {
   ]);
 
   settings = state.settings;
+  localState = state.localState;
   hostname = activeHostname;
-  customWordsInput.value = state.customWords.join('\n');
   renderSettings();
 }
 
