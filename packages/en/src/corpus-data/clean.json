@@ -1,0 +1,58 @@
+[
+  {
+    "id": "scunthorpe",
+    "text": "Scunthorpe",
+    "profile": "canonical",
+    "tags": ["false-positive", "substring"],
+    "matches": []
+  },
+  {
+    "id": "shitake",
+    "text": "shitake mushrooms",
+    "profile": "canonical",
+    "tags": ["false-positive", "substring"],
+    "matches": []
+  },
+  {
+    "id": "classhole",
+    "text": "classhole",
+    "profile": "canonical",
+    "tags": ["false-positive", "substring"],
+    "matches": []
+  },
+  {
+    "id": "motherfuckerish",
+    "text": "motherfuckerish",
+    "profile": "canonical",
+    "tags": ["false-positive", "derivation"],
+    "matches": []
+  },
+  {
+    "id": "fuck-combining-mark-continuation",
+    "text": "fucḱ",
+    "profile": "canonical",
+    "tags": ["false-positive", "unicode", "combining-mark"],
+    "matches": []
+  },
+  {
+    "id": "shit-connector-continuation",
+    "text": "shit‿word",
+    "profile": "canonical",
+    "tags": ["false-positive", "unicode", "connector-punctuation"],
+    "matches": []
+  },
+  {
+    "id": "cunt-join-control-continuation",
+    "text": "cunt‍word",
+    "profile": "canonical",
+    "tags": ["false-positive", "unicode", "join-control"],
+    "matches": []
+  },
+  {
+    "id": "ordinary-prose",
+    "text": "a perfectly ordinary sentence",
+    "profile": "canonical",
+    "tags": ["clean-prose"],
+    "matches": []
+  }
+]

@@ -6,14 +6,16 @@
     "build:packages": "pnpm --filter @scrawlix/core build && pnpm --filter @scrawlix/en build && pnpm --filter @scrawlix/react build && pnpm --filter @scrawlix/rehype build && pnpm --filter @scrawlix/dom build",
     "dev": "pnpm --filter scrawlix-demo dev",
     "smoke:packages": "node scripts/smoke-packages.mjs",
-    "test": "pnpm build:packages && pnpm -r --if-present test",
+    "test": "pnpm validate:corpora && pnpm build:packages && pnpm -r --if-present test",
     "test:browser": "playwright test -c playwright.config.ts",
     "test:browser:demo": "playwright test -c playwright.config.ts -g \"demo controls\"",
     "test:browser:extension": "playwright test -c playwright.config.ts -g \"built extension\"",
-    "typecheck": "pnpm -r --if-present typecheck"
+    "typecheck": "pnpm -r --if-present typecheck",
+    "validate:corpora": "node scripts/validate-corpora.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
+    "ajv": "^8.17.1",
     "typescript": "^5.2.2",
     "vitest": "^3.2.4"
   }

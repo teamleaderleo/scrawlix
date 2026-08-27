@@ -23,7 +23,11 @@ describe('@scrawlix/en', () => {
     const matches = engine.find(corpusCase.text).map(match => ({
       ruleId: match.ruleId,
       text: match.text,
+      start: match.start,
+      end: match.end,
       targetText: match.targetText,
+      targetStart: match.targetStart,
+      targetEnd: match.targetEnd,
     }));
 
     expect(matches).toEqual(corpusCase.matches);
