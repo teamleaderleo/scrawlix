@@ -1,0 +1,6 @@
+# Synthetic ranked entries for the offline miner smoke test.
+shirt	1000
+sh1t	900
+country	800
+fuсk	700
+assorted	600
