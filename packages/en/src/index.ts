@@ -4,10 +4,8 @@ import {
   type CensorRulePack,
   type CoverageSelector,
 } from '@scrawlix/core';
-import {
-  censorRuleFromTargetedObfuscatedTerms,
-  type TargetedObfuscatedTerm,
-} from '@scrawlix/core/targeted-obfuscated';
+import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
+import type { TargetedObfuscatedTerm } from '@scrawlix/core/targeted-obfuscated';
 
 /**
  * Covers orthographic English vowels (a/e/i/o/u) inside the semantic target.
@@ -122,12 +120,13 @@ const englishCuntForms = targetedForms('cunt', ['cunt', 'cunts']);
 /**
  * Conservative opt-in evasions mirroring the canonical pack's declared forms.
  *
- * Each candidate may use one reviewed substitution OR one reviewed internal
- * separator/zero-width insertion. Full inflections/compounds are matched, while
+ * Each candidate may use one reviewed substitution, one reviewed internal
+ * separator/zero-width insertion, or one excess repeated letter. The combined
+ * budget remains one transform. Full inflections/compounds are matched while
  * coverage and target metadata stay attached to the canonical profanity root.
  */
 export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
-  censorRuleFromTargetedObfuscatedTerms('fuck-obfuscated', englishFuckForms, {
+  censorRuleFromRepeatedObfuscatedTerms('fuck-obfuscated', englishFuckForms, {
     substitutions: {
       u: ['*'],
       c: ['('],
@@ -135,9 +134,10 @@ export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
     ignored: englishObfuscatedIgnored,
     maxSubstitutions: 1,
     maxIgnored: 1,
+    maxRepetitions: 1,
     maxChanges: 1,
   }),
-  censorRuleFromTargetedObfuscatedTerms('shit-obfuscated', englishShitForms, {
+  censorRuleFromRepeatedObfuscatedTerms('shit-obfuscated', englishShitForms, {
     substitutions: {
       s: ['$', '5'],
       i: ['1', '!', '*'],
@@ -146,9 +146,10 @@ export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
     ignored: englishObfuscatedIgnored,
     maxSubstitutions: 1,
     maxIgnored: 1,
+    maxRepetitions: 1,
     maxChanges: 1,
   }),
-  censorRuleFromTargetedObfuscatedTerms('bitch-obfuscated', englishBitchForms, {
+  censorRuleFromRepeatedObfuscatedTerms('bitch-obfuscated', englishBitchForms, {
     substitutions: {
       i: ['1', '!', '*'],
       t: ['7'],
@@ -156,9 +157,10 @@ export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
     ignored: englishObfuscatedIgnored,
     maxSubstitutions: 1,
     maxIgnored: 1,
+    maxRepetitions: 1,
     maxChanges: 1,
   }),
-  censorRuleFromTargetedObfuscatedTerms('asshole-obfuscated', englishAssholeForms, {
+  censorRuleFromRepeatedObfuscatedTerms('asshole-obfuscated', englishAssholeForms, {
     substitutions: {
       a: ['@'],
       s: ['$', '5'],
@@ -167,15 +169,17 @@ export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
     ignored: englishObfuscatedIgnored,
     maxSubstitutions: 1,
     maxIgnored: 1,
+    maxRepetitions: 1,
     maxChanges: 1,
   }),
-  censorRuleFromTargetedObfuscatedTerms('cunt-obfuscated', englishCuntForms, {
+  censorRuleFromRepeatedObfuscatedTerms('cunt-obfuscated', englishCuntForms, {
     substitutions: {
       u: ['*'],
     },
     ignored: englishObfuscatedIgnored,
     maxSubstitutions: 1,
     maxIgnored: 1,
+    maxRepetitions: 1,
     maxChanges: 1,
   }),
 ] as const;
