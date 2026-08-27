@@ -104,11 +104,43 @@ const engine = createScrawlix({ rules: [canonical, obfuscated] });
 
 The obfuscated helper applies the same NFC/source-range, grapheme, and boundary guarantees as canonical terms. It defaults to `profile: 'obfuscated'` so `find()` and coverage callbacks can identify the aggressive path.
 
+### Semantic targets in obfuscated forms
+
+When a full inflection or compound should match while coverage stays attached to a smaller semantic root, use the explicit subpath helper:
+
+```ts
+import { createScrawlix } from '@scrawlix/core';
+import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
+
+const rule = censorRuleFromTargetedObfuscatedTerms(
+  'example-obfuscated',
+  [
+    { term: 'fucking', target: 'fuck' },
+    { term: 'motherfucker', target: 'fuck' },
+  ],
+  {
+    substitutions: { u: ['*'] },
+    ignored: ['-'],
+    maxSubstitutions: 1,
+    maxIgnored: 1,
+    maxChanges: 1,
+  }
+);
+
+const engine = createScrawlix({ rules: [rule] });
+engine.find('f*cking')[0]?.targetText; // "f*ck"
+engine.find('mother-fucker')[0]?.targetText; // "fuck"
+```
+
+Each object entry declares a full canonical `term` and one unique exact canonical `target` substring. Target edges must align to extended-grapheme boundaries. The helper delegates full matching, transform budgets, boundary policy, and canonical-source matching to `censorRuleFromObfuscatedTerms()`, then maps the declared target through the accepted transformed source slice. Ignored graphemes inside the semantic root remain inside `targetText`; ignored graphemes before or after the root remain outside it.
+
+String entries are also accepted and use the complete term as their semantic target. This helper lives on a focused subpath while the API is exercised by language packs before a wider pre-1.0 barrel decision.
+
 ## Match profiles
 
 Rules can carry an optional `profile` string. `find()` exposes it as `match.profile`, and coverage callbacks receive the same value in their context. This lets packs distinguish conservative and aggressive matching paths in diagnostics and policy code.
 
-`censorRuleFromTerms()` labels its rules `canonical` by default, while `censorRuleFromObfuscatedTerms()` labels its rules `obfuscated` by default.
+`censorRuleFromTerms()` labels its rules `canonical` by default, while `censorRuleFromObfuscatedTerms()` and the targeted obfuscated helper label their rules `obfuscated` by default.
 
 Profile names describe the matching path. Packs still own linguistic scope, reviewed transform tables, budgets, and regression negatives.
 
@@ -121,6 +153,7 @@ Profile names describe the matching path. Packs still own linguistic scope, revi
 - generic coverage presets are `full`, `tail`, `middle`, and `inner`
 - literal/custom-term matching defaults to NFC canonical equivalence and `profile: 'canonical'`
 - bounded aggressive term matching is opt-in through `censorRuleFromObfuscatedTerms()`
+- targeted aggressive matching can preserve a smaller semantic root through `@scrawlix/core/targeted-obfuscated`
 - every exposed match, target, and covered segment respects extended-grapheme boundaries
 
 Scrawlix deliberately has no built-in language or hidden profanity list. Callers select rules explicitly.

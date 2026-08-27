@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createScrawlix } from '@scrawlix/core';
+import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
 import { createDomScrawlix } from '@scrawlix/dom';
 import {
   englishObfuscatedStrongProfanityRules,
@@ -35,6 +36,23 @@ assert.ok(
     testCase => testCase.id === 'obfuscated-shit-digit'
   )
 );
+
+const targetedEngine = createScrawlix({
+  rules: [
+    censorRuleFromTargetedObfuscatedTerms(
+      'targeted-smoke',
+      [{ term: 'fucking', target: 'fuck' }],
+      {
+        substitutions: { u: ['*'] },
+        maxSubstitutions: 1,
+      }
+    ),
+  ],
+});
+const targetedMatch = targetedEngine.find('f*cking')[0];
+assert.equal(targetedMatch?.text, 'f*cking');
+assert.equal(targetedMatch?.targetText, 'f*ck');
+assert.equal(targetedMatch?.profile, 'obfuscated');
 
 const tree = {
   type: 'root',
