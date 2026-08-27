@@ -1,4 +1,9 @@
-import { type CoveragePreset, type CoverageSelector } from '@scrawlix/core';
+import {
+  censorRuleFromTerms,
+  createScrawlix,
+  type CoveragePreset,
+  type CoverageSelector,
+} from '@scrawlix/core';
 import {
   englishStrongProfanityRules,
   englishVowelCoverage,
@@ -40,8 +45,116 @@ const specimens = [
   'Well, shit. That actually works.',
 ] as const;
 
+const defaultPoetryText =
+  'The quarterly committee reviewed ordinary numbers until desire, against all accounting procedure, fell through the margins and into heaven shortly before Tuesday. Everyone signed the report and went home.';
+
+const defaultPoetryTerms = ['desire', 'fell', 'through', 'heaven', 'Tuesday'];
+
+type PoetrySegment = {
+  text: string;
+  visible: boolean;
+};
+
 function selectorForCoverage(coverage: CoverageChoice): CoverageSelector {
   return coverage === 'vowel' ? englishVowelCoverage : coverage;
+}
+
+function normalizeTerms(value: string) {
+  const seen = new Set<string>();
+  const terms: string[] = [];
+
+  for (const line of value.split(/\n|,/)) {
+    const term = line.trim();
+    if (!term) continue;
+    const key = term.toLocaleLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    terms.push(term);
+  }
+
+  return terms;
+}
+
+function inverseSegments(text: string, terms: readonly string[]): PoetrySegment[] {
+  if (!text) return [];
+  if (terms.length === 0) return [{ text, visible: false }];
+
+  const rule = censorRuleFromTerms('redaction-poetry-visible', terms);
+  const matches = createScrawlix({ rules: [rule], coverage: 'full' }).find(text);
+  const ranges: Array<{ start: number; end: number }> = [];
+
+  for (const match of matches) {
+    const previous = ranges.at(-1);
+    if (previous && match.start <= previous.end) {
+      previous.end = Math.max(previous.end, match.end);
+    } else {
+      ranges.push({ start: match.start, end: match.end });
+    }
+  }
+
+  if (ranges.length === 0) return [{ text, visible: false }];
+
+  const segments: PoetrySegment[] = [];
+  let cursor = 0;
+
+  for (const range of ranges) {
+    if (range.start > cursor) {
+      segments.push({ text: text.slice(cursor, range.start), visible: false });
+    }
+    segments.push({ text: text.slice(range.start, range.end), visible: true });
+    cursor = range.end;
+  }
+
+  if (cursor < text.length) {
+    segments.push({ text: text.slice(cursor), visible: false });
+  }
+
+  return segments;
+}
+
+function RedactionPoem({
+  text,
+  terms,
+}: {
+  text: string;
+  terms: readonly string[];
+}) {
+  const [revealed, setRevealed] = useState(false);
+  const segments = useMemo(() => inverseSegments(text, terms), [text, terms]);
+
+  return (
+    <article
+      className="redaction-sheet"
+      data-redaction-poetry
+      data-redaction-revealed={revealed ? 'true' : 'false'}
+    >
+      <header className="redaction-header">
+        <span>CASE SC-034</span>
+        <strong>SELECTIVE DISCLOSURE</strong>
+        <span>{revealed ? 'SOURCE RESTORED' : 'DECLASSIFIED IN PART'}</span>
+      </header>
+
+      <span data-redaction-a11y>{text}</span>
+      <p aria-hidden="true" className="redaction-copy" data-redaction-visual>
+        {segments.map((segment, index) => (
+          <span
+            data-redaction-covered={segment.visible ? undefined : ''}
+            data-redaction-visible={segment.visible ? '' : undefined}
+            key={`${index}-${segment.text}`}
+          >
+            {segment.text}
+          </span>
+        ))}
+      </p>
+
+      <div className="redaction-footer">
+        <span>{terms.length} words spared</span>
+        <button onClick={() => setRevealed(value => !value)} type="button">
+          {revealed ? 'apply redaction' : 'restore source'}
+        </button>
+      </div>
+    </article>
+  );
 }
 
 function SegmentControl<T extends string>({
@@ -79,7 +192,15 @@ export function App() {
   const [coverage, setCoverage] = useState<CoverageChoice>('middle');
   const [reveal, setReveal] = useState<ScrawlixReveal>('hover');
   const [text, setText] = useState(defaultText);
+  const [poetryText, setPoetryText] = useState(defaultPoetryText);
+  const [poetryTermsText, setPoetryTermsText] = useState(
+    defaultPoetryTerms.join('\n')
+  );
   const coverageSelector = selectorForCoverage(coverage);
+  const poetryTerms = useMemo(
+    () => normalizeTerms(poetryTermsText),
+    [poetryTermsText]
+  );
 
   const code = useMemo(() => {
     const coverageLine =
@@ -238,9 +359,49 @@ export function App() {
         </p>
       </section>
 
+      <section className="poetry-section" aria-labelledby="poetry-title">
+        <div className="section-heading">
+          <p className="eyebrow">04 / misuse it</p>
+          <h2 id="poetry-title">Redact everything. Keep the accidental poem.</h2>
+          <p>
+            Pick the words allowed to survive. Scrawlix finds them; this demo covers
+            the complement and turns bureaucratic prose into blackout poetry.
+          </p>
+        </div>
+
+        <div className="poetry-lab">
+          <RedactionPoem text={poetryText} terms={poetryTerms} />
+
+          <div className="poetry-controls">
+            <label>
+              <span>source document</span>
+              <textarea
+                onChange={event => setPoetryText(event.target.value)}
+                rows={7}
+                spellCheck="true"
+                value={poetryText}
+              />
+            </label>
+            <label>
+              <span>words to spare</span>
+              <textarea
+                onChange={event => setPoetryTermsText(event.target.value)}
+                rows={6}
+                spellCheck="false"
+                value={poetryTermsText}
+              />
+            </label>
+            <p>
+              One word or phrase per line. The black ink is reversible presentation;
+              the exact source remains underneath for the restore button.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section className="code-section" aria-labelledby="code-title">
         <div>
-          <p className="eyebrow">04 / use it</p>
+          <p className="eyebrow">05 / use it</p>
           <h2 id="code-title">Pick the language. Pick the damage.</h2>
           <p>
             Matching rules live in explicit language or custom packs. The core stays
