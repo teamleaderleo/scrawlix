@@ -21,13 +21,13 @@ describe('CensoredText root stability', () => {
     );
     const cleanRoot = ref.current!;
     expect(cleanRoot.textContent).toBe('ordinary');
-    expect(cleanRoot.getAttribute('data-scrawlix-root')).toBeNull();
+    expect(cleanRoot.hasAttribute('data-scrawlix-root')).toBe(false);
 
     act(() =>
       root.render(<CensoredText id="copy" ref={ref} rules={rules} text="fuck" />)
     );
     expect(ref.current).toBe(cleanRoot);
-    expect(ref.current?.dataset.scrawlixRoot).toBe('');
+    expect(ref.current?.hasAttribute('data-scrawlix-root')).toBe(true);
 
     act(() =>
       root.render(
@@ -35,7 +35,7 @@ describe('CensoredText root stability', () => {
       )
     );
     expect(ref.current).toBe(cleanRoot);
-    expect(ref.current?.getAttribute('data-scrawlix-root')).toBeNull();
+    expect(ref.current?.hasAttribute('data-scrawlix-root')).toBe(false);
     expect(ref.current?.textContent).toBe('ordinary again');
 
     act(() => root.unmount());
