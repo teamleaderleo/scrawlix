@@ -14,7 +14,7 @@ Scrawlix publishes ESM and TypeScript declarations targeting modern JavaScript. 
 
 For published-package execution in Node, **Node 18 and newer** is the supported baseline for core/rehype and SSR contexts that execute package code directly.
 
-Repository development and release verification use **Node 22**. The workspace includes current build/test tools with their own Node requirements, so contributors should follow the CI/toolchain baseline instead of treating the package-runtime minimum as the repository-development minimum.
+Repository CI and ordinary development verification use **Node 22**. The OIDC npm publication job uses **Node 24** so its release runner comfortably satisfies npm trusted-publishing runtime requirements. The workspace includes current build/test tools with their own Node requirements, so contributors should follow the CI/toolchain baseline instead of treating the package-runtime minimum as the repository-development minimum.
 
 For browsers, support is capability-based during pre-1.0: the consuming browser must support the features above. Scrawlix's browser CI exercises current Chromium. Add explicit Firefox/Safari version claims only alongside CI or targeted compatibility tests that enforce them.
 

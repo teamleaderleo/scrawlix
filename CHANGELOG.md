@@ -67,4 +67,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added package-local READMEs for every public package, exact install commands, a top-level integration chooser, a docs index, React CSS troubleshooting, Next.js client-boundary guidance, and clearer source/accessibility notes.
 - Added explicit runtime compatibility and pre-1.0 versioning/public-contract policies.
 - Aligned `README.md`, `AGENTS.md`, `llms.txt`, demo, extension, tests, and smoke consumers on the canonical pre-release public names and conservative defaults.
+- Committed a pnpm 10.34.5 lockfile, pinned the workspace package manager, and switched CI to frozen installs.
+- Added a synchronized release-version gate plus a manual GitHub OIDC publication workflow with dry-run default, registry preflight checks, dependency-order publishing, provenance, and no long-lived npm write token.
+- Documented npm's one-time package-bootstrap requirement before per-package trusted publishers can be configured.
 - Added `docs/releasing.md`, language-pack docs, DOM lifecycle docs, extension docs, and the first-release runbook.

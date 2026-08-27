@@ -1,17 +1,18 @@
 # Releasing Scrawlix
 
-Scrawlix is still pre-release. This runbook exists so the first registry publish is a deliberate operation with clear stop conditions.
+Scrawlix is still pre-release. This runbook exists so the first registry publish and every later release are deliberate operations with clear stop conditions.
 
 ## Stop conditions
 
-Do not publish until all of these are resolved:
+Do not create registry history until all of these are resolved:
 
-1. **npm scope ownership** — the current package names use `@scrawlix/*`. Confirm the npm organization/scope `scrawlix` exists under our control and the publishing identity can write public packages there. If it cannot, rename packages before creating registry history.
+1. **npm scope ownership** — the package names use `@scrawlix/*`. Confirm the npm organization/scope `scrawlix` exists under our control and the publishing identity can create public packages there. If it cannot, rename packages before the bootstrap publish.
 2. **license** — choose an open-source license, add the root license file, and add the matching SPDX `license` field to every publishable package.
-3. **version strategy** — choose the first package version and dist-tag policy. An early `0.x` version under `next`/`beta` preserves pre-1.0 API freedom.
-4. **reproducible dependency graph** — complete issue #45: commit `pnpm-lock.yaml`, pin pnpm through the root `packageManager` field, and use the same frozen install in CI and release verification.
-5. **trusted publisher** — complete the npm-side trusted-publisher configuration for the GitHub Actions release workflow from #45. Publication should use OIDC instead of a long-lived npm write token.
-6. **release commit** — publish only from a clean `main` commit whose complete CI is green.
+3. **version/tag strategy** — choose the first package version and dist-tag policy. The five public packages release together; `docs/versioning.md` defines the 0.x compatibility policy.
+4. **bootstrap strategy** — npm trusted publishers can only be configured after a package already exists. Decide whether the authenticated bootstrap creates the intended first version or a dedicated bootstrap prerelease, then record that choice in issue #18.
+5. **release commit** — publish only from a clean `main` commit whose complete CI is green.
+
+The repository commits `pnpm-lock.yaml`, pins pnpm through the root `packageManager` field, and uses frozen installs in CI and the permanent publication workflow.
 
 The public demo URL can be treated as either a release gate or an immediate follow-up; record that choice in issue #18.
 
@@ -39,16 +40,16 @@ pnpm build
 pnpm smoke:packages
 ```
 
-The packed-package smoke test is a hard release gate. It packs every public package, installs the tarballs into a consumer outside the pnpm workspace, typechecks the public declarations with library checking enabled, and production-builds the consumer through public exports.
+The packed-package smoke test is a hard release gate. It packs every public package, installs those tarballs into consumers outside the pnpm workspace, typechecks published declarations through React 18 and React 19 consumers, production-builds both React majors, and production-builds the documented Next.js App Router integration.
 
-Confirm the extension build validator and real Chromium demo/extension smoke tests have also passed in CI on the release commit.
+Confirm the real Chromium demo/extension smoke tests have also passed in CI on the exact release commit.
 
 ## 2. Verify package metadata and tarball contents
 
 Before the first publish, inspect each package manifest for:
 
 - final package name
-- final version
+- synchronized final version
 - description
 - repository/homepage/bugs links
 - SPDX license
@@ -58,6 +59,12 @@ Before the first publish, inspect each package manifest for:
 - `sideEffects`
 - `publishConfig.access = public`
 - package-specific README
+
+Confirm the version with the repository gate:
+
+```sh
+node scripts/check-release-version.mjs <version>
+```
 
 Then perform registry publish dry-runs from the workspace:
 
@@ -78,9 +85,9 @@ Review the file list reported by every dry run. Verify:
 - source/declaration maps point somewhere useful
 - `@scrawlix/en/corpus` exists
 - `@scrawlix/react/styles.css` exists
-- each package's README is included
+- each package README is included
 - tests, workspace fixtures, demo files, and extension files are absent from package tarballs
-- workspace dependency specs are converted into publishable registry ranges by the package manager
+- workspace dependency specs are converted into publishable registry ranges by pnpm
 
 ## 3. Verify registry identity before any write
 
@@ -88,7 +95,7 @@ Authenticate with the intended npm account and prove the publishing identity con
 
 A missing package name does not prove control of the organization scope; scope access is the authoritative check.
 
-Configure the npm trusted publisher to the exact GitHub repository and release workflow filename. Keep the workflow on a GitHub-hosted runner and grant the job `id-token: write` plus the minimum read permissions needed for checkout.
+The npm account used for package creation/trust configuration must meet npm's current 2FA requirements.
 
 ## 4. Version the package set
 
@@ -98,21 +105,64 @@ Until Scrawlix adopts dedicated monorepo version tooling, treat the five public 
 - keep internal `workspace:*` relationships in source manifests
 - update `CHANGELOG.md`
 - commit the version/changelog change
-- let CI pass on that exact commit
+- let the complete CI pass on that exact commit
+- run `node scripts/check-release-version.mjs <version>`
 
-Avoid hand-publishing from a dirty tree or from a commit that differs from the reviewed release commit.
+Avoid publishing from a dirty tree or from a commit that differs from the reviewed release commit.
 
-## 5. Publish through the trusted workflow
+## 5. Bootstrap brand-new npm packages once
 
-Publish in dependency order: core first, then packages that depend on it.
+npm trusted publishing has a chicken-and-egg constraint: a package must already exist on the registry before its trusted-publisher configuration can be created.
 
-The release workflow from #45 should run the same frozen install, verification commands, and package order documented here, then invoke npm publication through trusted publishing. The workflow should carry no long-lived npm write token.
+For each of the five package names, perform the one-time bootstrap from the exact reviewed release checkout with an interactively authenticated npm account. Publish in dependency order: core first, then `en`, `react`, `rehype`, and `dom`.
 
-For a public repository using GitHub OIDC trusted publishing, npm can attach provenance to the published package automatically. Treat that provenance as part of the intended release path.
+Two deliberate bootstrap policies are available:
 
-## 6. Verify from a clean consumer
+- **first-version bootstrap** — publish the intended first release manually once; OIDC begins with the next release.
+- **bootstrap prerelease** — create each package with a clearly labeled prerelease/dist-tag, configure trusted publishing, then publish the intended first supported release through GitHub OIDC.
 
-After registry publication, create a directory outside the repository and install from the registry using the chosen prerelease tag.
+Choose one policy in issue #18 before any registry write. npm registry history is durable, so a bootstrap prerelease also becomes permanent public history.
+
+Do not store the bootstrap credential in GitHub Actions. Use the maintainer's interactive npm login/2FA flow for this one operation.
+
+## 6. Configure npm trusted publishing
+
+After every package exists, configure its npm Trusted Publisher with these exact GitHub values:
+
+- owner/user: `teamleaderleo`
+- repository: `scrawlix`
+- workflow filename: `publish.yml`
+- allowed action: publish
+
+Trusted publishing is configured per package, so repeat it for all five. npm currently requires the package to exist before this configuration can be saved.
+
+The permanent workflow is `.github/workflows/publish.yml`. Its publish job grants only `contents: read` and `id-token: write`, runs on a GitHub-hosted runner, contains no npm write token, and uses `pnpm publish --provenance`.
+
+## 7. Publish subsequent releases through GitHub OIDC
+
+Dispatch **Publish npm packages** from `main` with:
+
+- `version` — the exact synchronized version already committed to all five package manifests
+- `dist_tag` — for example `next`, `beta`, or eventually `latest`
+- `dry_run` — leave this enabled first; disable it only after the dry run is reviewed
+
+The workflow:
+
+1. installs the committed lockfile with pinned pnpm
+2. reruns typecheck, tests, build, and packed-package smokes
+3. refuses the workspace placeholder version `0.0.0`
+4. refuses mismatched package versions
+5. for a real publish, verifies all five package names already exist (the bootstrap/trusted-publisher prerequisite)
+6. refuses to start if any target package/version already exists, reducing partial-release mistakes
+7. publishes core → English → React → rehype → DOM with the requested dist-tag and provenance
+
+OIDC uses short-lived credentials. No long-lived `NPM_TOKEN`/`NODE_AUTH_TOKEN` belongs in repository secrets for this workflow.
+
+For public packages published through npm trusted publishing from a public GitHub repository, provenance is attached automatically; the workflow also requests provenance explicitly.
+
+## 8. Verify from a clean registry consumer
+
+After registry publication, create a directory outside the repository and install from the registry using the chosen dist-tag.
 
 Verify at minimum:
 
@@ -131,7 +181,7 @@ import { createDomScrawlix } from '@scrawlix/dom';
 
 Typecheck and production-build that consumer. Confirm core finds an English match, React CSS resolves, and public subpath imports resolve.
 
-## 7. Inspect public registry pages
+## 9. Inspect public registry pages
 
 For every package, verify the npm page shows the intended:
 
@@ -141,10 +191,11 @@ For every package, verify the npm page shows the intended:
 - license
 - TypeScript declarations
 - dependencies/peer dependencies
+- provenance for OIDC-published versions
 
 Then add registry links from the repository README/demo.
 
-## 8. Tag and release notes
+## 10. Tag and release notes
 
 After registry verification:
 
@@ -156,4 +207,4 @@ After registry verification:
 
 ## Rollback mindset
 
-npm registry history is durable. Prefer a corrected follow-up version over trying to erase a published mistake. That makes dry-run tarball review, trusted publication, and clean-consumer verification especially valuable for the first release.
+npm registry history is durable. Prefer a corrected follow-up version over trying to erase a published mistake. That makes dry-run tarball review, the bootstrap policy, trusted publication, and clean-consumer verification especially valuable for the first release.
