@@ -59,6 +59,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added a Manifest V3 Chromium extension under `apps/extension` with global/site preferences, five appearances, coverage/reveal controls, and local custom terms.
 - Added local extension lenses and named profiles, with per-profile treatment, legacy custom-term migration, semantic-session reuse, and atomic live-page profile switching.
 - Added a demo-local inverse-coverage / redaction-poetry experiment that preserves exact source text while selected terms survive the ink.
+- Added a fictional progress-aware spoiler pack demo where viewing progress activates only future-episode rules.
 
 ### Developer experience
 

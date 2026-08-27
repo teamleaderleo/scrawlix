@@ -4,6 +4,7 @@ import '@scrawlix/react/styles.css';
 import { App } from './App';
 import './styles.css';
 import './poetry.css';
+import './spoilers.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
