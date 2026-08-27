@@ -2,14 +2,16 @@ import { censorRuleFromWords, createScrawlix } from '@scrawlix/core';
 import './content.css';
 import './options.css';
 import { removeHostAccess } from './access';
-import { MAX_CUSTOM_TERM_CODE_POINTS } from './actions';
 import {
   CUSTOM_WORDS_KEY,
+  MAX_CUSTOM_TERM_CODE_POINTS,
+  MAX_CUSTOM_TERMS,
+  MAX_CUSTOM_TOTAL_CODE_POINTS,
   SITE_OVERRIDES_KEY,
   SYNC_SETTINGS_KEY,
   coverageSelector,
   maskFor,
-  normalizeCustomWords,
+  mergeCustomWords,
   setSiteMode,
   type ExtensionAppearance,
   type ExtensionCoverage,
@@ -142,11 +144,16 @@ function renderGeneral() {
   renderPreview();
 }
 
+function customCodePointUsage() {
+  return customWords.reduce((total, term) => total + Array.from(term).length, 0);
+}
+
 function renderTerms() {
   const query = termFilter.value;
   const filtered = customWords.filter(term => filterMatch(term, query));
+  const usedCodePoints = customCodePointUsage();
 
-  customCount.textContent = `${customWords.length} ${customWords.length === 1 ? 'term' : 'terms'}`;
+  customCount.textContent = `${customWords.length}/${MAX_CUSTOM_TERMS} terms · ${usedCodePoints.toLocaleString()}/${MAX_CUSTOM_TOTAL_CODE_POINTS.toLocaleString()} chars`;
   termList.replaceChildren();
 
   for (const term of filtered) {
@@ -348,28 +355,33 @@ async function removeCustomTerm(term: string) {
   await persistCustomWords(next, `Removed ${term}`);
 }
 
-async function addCustomTerms() {
-  const candidates = normalizeCustomWords(newTermsInput.value.split('\n'));
-  const accepted = candidates.filter(
-    term => Array.from(term).length <= MAX_CUSTOM_TERM_CODE_POINTS
-  );
-  const rejected = candidates.length - accepted.length;
-  const next = normalizeCustomWords([...customWords, ...accepted]);
-  const added = next.length - customWords.length;
+function customMergeMessage(result: ReturnType<typeof mergeCustomWords>) {
+  const skipped: string[] = [];
+  if (result.duplicates > 0) skipped.push(`${result.duplicates} duplicate`);
+  if (result.overLength > 0) skipped.push(`${result.overLength} too long`);
+  if (result.overCapacity > 0) skipped.push(`${result.overCapacity} over list budget`);
 
-  if (accepted.length === 0) {
-    customStatus.textContent = rejected > 0 ? 'Terms over the length limit were skipped.' : 'Enter a word or phrase first.';
+  if (result.added > 0) {
+    const added = `Added ${result.added} ${result.added === 1 ? 'term' : 'terms'}`;
+    return skipped.length > 0 ? `${added}; skipped ${skipped.join(', ')}` : added;
+  }
+
+  if (result.overCapacity > 0) return 'Custom-term list is at its matching budget.';
+  if (result.overLength > 0) {
+    return `Terms can be up to ${MAX_CUSTOM_TERM_CODE_POINTS} characters each.`;
+  }
+  if (result.duplicates > 0) return 'Those terms are already in your list.';
+  return 'Enter a word or phrase first.';
+}
+
+async function addCustomTerms() {
+  const result = mergeCustomWords(customWords, newTermsInput.value.split('\n'));
+  if (result.added === 0) {
+    customStatus.textContent = customMergeMessage(result);
     return;
   }
 
-  await persistCustomWords(
-    next,
-    rejected > 0
-      ? `Added ${added}; skipped ${rejected} over the length limit`
-      : added > 0
-        ? `Added ${added} ${added === 1 ? 'term' : 'terms'}`
-        : 'Those terms are already in your list'
-  );
+  await persistCustomWords(result.words, customMergeMessage(result));
   newTermsInput.value = '';
   newTermsInput.focus();
 }

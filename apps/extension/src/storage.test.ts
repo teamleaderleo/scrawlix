@@ -1,6 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_SETTINGS, SITE_OVERRIDES_KEY, SYNC_SETTINGS_KEY } from './config';
-import { loadSettings, migrateSiteOverridesToLocal, saveSettings } from './storage';
+import {
+  CUSTOM_WORDS_KEY,
+  DEFAULT_SETTINGS,
+  MAX_CUSTOM_TERM_CODE_POINTS,
+  MAX_CUSTOM_TERMS,
+  SITE_OVERRIDES_KEY,
+  SYNC_SETTINGS_KEY,
+} from './config';
+import {
+  loadSettings,
+  migrateSiteOverridesToLocal,
+  saveCustomWords,
+  saveSettings,
+} from './storage';
 
 type Store = Record<string, unknown>;
 
@@ -95,14 +107,9 @@ describe('extension storage split', () => {
     });
   });
 
-  it('preserves an intentionally empty local override map during migration', async () => {
-    const syncStore: Store = {
-      [SYNC_SETTINGS_KEY]: {
-        ...DEFAULT_SETTINGS,
-        siteOverrides: { 'legacy.example': 'on' },
-      },
-    };
-    const localStore: Store = { [SITE_OVERRIDES_KEY]: {} };
+  it('persists only the bounded normalized custom-term list', async () => {
+    const syncStore: Store = {};
+    const localStore: Store = {};
     vi.stubGlobal('chrome', {
       storage: {
         sync: storageArea(syncStore),
@@ -110,15 +117,14 @@ describe('extension storage split', () => {
       },
     });
 
-    await migrateSiteOverridesToLocal();
+    const terms = [
+      ...Array.from({ length: MAX_CUSTOM_TERMS + 10 }, (_, index) => `term-${index}`),
+      'x'.repeat(MAX_CUSTOM_TERM_CODE_POINTS + 1),
+    ];
+    await saveCustomWords(terms);
 
-    expect(localStore[SITE_OVERRIDES_KEY]).toEqual({});
-    expect(syncStore[SYNC_SETTINGS_KEY]).toEqual({
-      paused: false,
-      enabled: true,
-      appearance: 'scrawl',
-      coverage: 'middle',
-      reveal: 'hover',
-    });
+    const stored = localStore[CUSTOM_WORDS_KEY] as string[];
+    expect(stored).toHaveLength(MAX_CUSTOM_TERMS);
+    expect(stored).not.toContain('x'.repeat(MAX_CUSTOM_TERM_CODE_POINTS + 1));
   });
 });

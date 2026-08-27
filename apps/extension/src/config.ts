@@ -32,9 +32,20 @@ export type ExtensionStateSnapshot = {
 
 export type SessionAction = 'none' | 'start' | 'stop' | 'restart' | 'decorate';
 
+export type CustomWordMergeResult = {
+  words: string[];
+  added: number;
+  duplicates: number;
+  overLength: number;
+  overCapacity: number;
+};
+
 export const SYNC_SETTINGS_KEY = 'scrawlixSettings';
 export const SITE_OVERRIDES_KEY = 'scrawlixSiteOverrides';
 export const CUSTOM_WORDS_KEY = 'scrawlixCustomWords';
+export const MAX_CUSTOM_TERM_CODE_POINTS = 200;
+export const MAX_CUSTOM_TERMS = 500;
+export const MAX_CUSTOM_TOTAL_CODE_POINTS = 20_000;
 
 export const DEFAULT_SETTINGS: SyncSettings = {
   paused: false,
@@ -106,23 +117,88 @@ export function normalizeSettings(value: unknown): SyncSettings {
   };
 }
 
-export function normalizeCustomWords(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
+function codePointLength(value: string) {
+  return Array.from(value).length;
+}
 
-  const seen = new Set<string>();
-  const words: string[] = [];
+function appendCustomWord(
+  state: {
+    words: string[];
+    seen: Set<string>;
+    totalCodePoints: number;
+  },
+  item: unknown
+): 'added' | 'empty' | 'duplicate' | 'overLength' | 'overCapacity' {
+  if (typeof item !== 'string') return 'empty';
+  const word = item.trim();
+  if (!word) return 'empty';
 
-  for (const item of value) {
-    if (typeof item !== 'string') continue;
-    const word = item.trim();
-    if (!word) continue;
-    const key = word.toLocaleLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    words.push(word);
+  const length = codePointLength(word);
+  if (length > MAX_CUSTOM_TERM_CODE_POINTS) return 'overLength';
+
+  const key = word.toLocaleLowerCase();
+  if (state.seen.has(key)) return 'duplicate';
+
+  if (
+    state.words.length >= MAX_CUSTOM_TERMS ||
+    state.totalCodePoints + length > MAX_CUSTOM_TOTAL_CODE_POINTS
+  ) {
+    return 'overCapacity';
   }
 
-  return words;
+  state.seen.add(key);
+  state.words.push(word);
+  state.totalCodePoints += length;
+  return 'added';
+}
+
+export function mergeCustomWords(
+  existing: readonly string[],
+  incoming: unknown
+): CustomWordMergeResult {
+  const state = {
+    words: [] as string[],
+    seen: new Set<string>(),
+    totalCodePoints: 0,
+  };
+
+  for (const item of existing) appendCustomWord(state, item);
+
+  const result: CustomWordMergeResult = {
+    words: state.words,
+    added: 0,
+    duplicates: 0,
+    overLength: 0,
+    overCapacity: 0,
+  };
+
+  if (!Array.isArray(incoming)) return result;
+
+  for (const item of incoming) {
+    switch (appendCustomWord(state, item)) {
+      case 'added':
+        result.added += 1;
+        break;
+      case 'duplicate':
+        result.duplicates += 1;
+        break;
+      case 'overLength':
+        result.overLength += 1;
+        break;
+      case 'overCapacity':
+        result.overCapacity += 1;
+        break;
+      case 'empty':
+        break;
+    }
+  }
+
+  return result;
+}
+
+export function normalizeCustomWords(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return mergeCustomWords([], value).words;
 }
 
 export function siteModeFor(settings: SyncSettings, hostname: string): SiteMode {
