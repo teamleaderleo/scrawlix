@@ -9,8 +9,9 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, posix, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { gunzipSync } from 'node:zlib';
 
 const root = process.cwd();
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
@@ -33,6 +34,98 @@ function run(args, cwd = root) {
   }
 }
 
+function readTarString(buffer, start, length) {
+  const slice = buffer.subarray(start, start + length);
+  const terminator = slice.indexOf(0);
+  return slice
+    .subarray(0, terminator === -1 ? slice.length : terminator)
+    .toString('utf8')
+    .trim();
+}
+
+function tarEntries(tarball) {
+  const archive = gunzipSync(readFileSync(tarball));
+  const entries = new Map();
+  let offset = 0;
+
+  while (offset + 512 <= archive.length) {
+    const header = archive.subarray(offset, offset + 512);
+    if (header.every(byte => byte === 0)) break;
+
+    const name = readTarString(header, 0, 100);
+    const prefix = readTarString(header, 345, 155);
+    const entryPath = prefix ? `${prefix}/${name}` : name;
+    const sizeText = readTarString(header, 124, 12);
+    const size = sizeText ? Number.parseInt(sizeText, 8) : 0;
+    const type = header[156];
+    const dataStart = offset + 512;
+    const dataEnd = dataStart + size;
+
+    if (type === 0 || type === 48) {
+      entries.set(entryPath, archive.subarray(dataStart, dataEnd));
+    }
+
+    offset = dataStart + Math.ceil(size / 512) * 512;
+  }
+
+  return entries;
+}
+
+function verifyPackedSourceMaps(tarball, packageDirectory) {
+  const entries = tarEntries(tarball);
+  const mapPaths = [...entries.keys()].filter(
+    path => path.startsWith('package/dist/') && path.endsWith('.map')
+  );
+
+  if (mapPaths.length === 0) {
+    throw new Error(`${packageDirectory} packed no source/declaration maps to verify.`);
+  }
+
+  const packedTests = [...entries.keys()].filter(
+    path => path.startsWith('package/src/') && /\.test\.[cm]?[jt]sx?$/.test(path)
+  );
+  if (packedTests.length > 0) {
+    throw new Error(
+      `${packageDirectory} unexpectedly packed source tests: ${packedTests.join(', ')}`
+    );
+  }
+
+  for (const mapPath of mapPaths) {
+    const sourceMap = JSON.parse(entries.get(mapPath).toString('utf8'));
+    const sources = Array.isArray(sourceMap.sources) ? sourceMap.sources : [];
+    const sourcesContent = Array.isArray(sourceMap.sourcesContent)
+      ? sourceMap.sourcesContent
+      : [];
+    const sourceRoot = typeof sourceMap.sourceRoot === 'string' ? sourceMap.sourceRoot : '';
+
+    for (const [index, source] of sources.entries()) {
+      if (typeof source !== 'string') continue;
+      if (/^(?:[a-z]+:|\/\/)/i.test(source)) continue;
+      if (sourcesContent[index] != null) continue;
+
+      const packedSourcePath = posix.normalize(
+        posix.join(posix.dirname(mapPath), sourceRoot, source)
+      );
+
+      if (!packedSourcePath.startsWith('package/')) {
+        throw new Error(
+          `${packageDirectory} ${mapPath} source escapes the package: ${source}`
+        );
+      }
+
+      if (!entries.has(packedSourcePath)) {
+        throw new Error(
+          `${packageDirectory} ${mapPath} points to unavailable source ${source} (expected ${packedSourcePath} in the tarball).`
+        );
+      }
+    }
+  }
+
+  console.log(
+    `${packageDirectory} source-map verification passed (${mapPaths.length} map files).`
+  );
+}
+
 function packPackage(packageDirectory) {
   const before = new Set(
     existsSync(packDirectory)
@@ -52,7 +145,9 @@ function packPackage(packageDirectory) {
     );
   }
 
-  return join(packDirectory, created[0]);
+  const tarball = join(packDirectory, created[0]);
+  verifyPackedSourceMaps(tarball, packageDirectory);
+  return tarball;
 }
 
 const asFileDependency = path => `file:${path.replaceAll('\\', '/')}`;
