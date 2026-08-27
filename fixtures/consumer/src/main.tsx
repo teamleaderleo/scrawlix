@@ -1,4 +1,4 @@
-import { createScrawlix } from '@scrawlix/core';
+import { createScrawlix, rulesFromPacks } from '@scrawlix/core';
 import { createDomScrawlix } from '@scrawlix/dom';
 import { englishStrongProfanityRules } from '@scrawlix/en';
 import { englishProfanityCorpus } from '@scrawlix/en/corpus';
@@ -7,6 +7,7 @@ import { CensoredText } from '@scrawlix/react';
 import '@scrawlix/react/styles.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { referenceExhibitPack } from './reference-pack';
 
 const engine = createScrawlix({
   rules: englishStrongProfanityRules,
@@ -16,6 +17,18 @@ const engine = createScrawlix({
 const matches = engine.find('well, fuck');
 if (matches.length !== 1 || matches[0]?.targetText.toLowerCase() !== 'fuck') {
   throw new Error('Scrawlix core/English package smoke assertion failed.');
+}
+
+const exhibitEngine = createScrawlix({
+  rules: rulesFromPacks(referenceExhibitPack),
+});
+const exhibitMatch = exhibitEngine.find('Visit the Blue Lantern Annex.')[0];
+if (
+  referenceExhibitPack.manifest.name !== 'Reference Exhibit Labels' ||
+  exhibitMatch?.text !== 'Blue Lantern Annex' ||
+  exhibitMatch.targetText !== 'Blue Lantern'
+) {
+  throw new Error('Scrawlix pack-authoring subpath smoke assertion failed.');
 }
 
 const corpusCase = englishProfanityCorpus.find(entry => entry.id === 'fuck-base');
