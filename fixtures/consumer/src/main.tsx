@@ -1,6 +1,6 @@
 import { createScrawlix } from '@scrawlix/core';
 import { createDomScrawlix } from '@scrawlix/dom';
-import { englishProfanityRules } from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
 import { transformHast } from '@scrawlix/rehype';
 import { CensoredText } from '@scrawlix/react';
 import '@scrawlix/react/styles.css';
@@ -8,7 +8,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 const engine = createScrawlix({
-  rules: englishProfanityRules,
+  rules: englishStrongProfanityRules,
   coverage: 'middle',
 });
 
@@ -30,7 +30,7 @@ const tree: Parameters<typeof transformHast>[0] = {
 };
 
 transformHast(tree, {
-  rules: englishProfanityRules,
+  rules: englishStrongProfanityRules,
   coverage: 'middle',
 });
 
@@ -52,7 +52,7 @@ if (
 const domHost = document.createElement('div');
 domHost.textContent = 'well, fuck';
 const domResult = createDomScrawlix({
-  rules: englishProfanityRules,
+  rules: englishStrongProfanityRules,
   coverage: 'middle',
 }).apply(domHost);
 
@@ -69,7 +69,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       appearance="scrawl"
       coverage="middle"
       reveal="hover"
-      rules={englishProfanityRules}
+      rules={englishStrongProfanityRules}
       text="well, fuck"
     />
   </React.StrictMode>

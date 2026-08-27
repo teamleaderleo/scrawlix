@@ -43,7 +43,7 @@ export const englishVowelCoverage: CoverageSelector = context =>
     return /[aeiou]/iu.test(grapheme);
   });
 
-export const englishProfanityRules: readonly CensorRule[] = [
+export const englishStrongProfanityRules: readonly CensorRule[] = [
   {
     id: 'fuck',
     pattern:
@@ -79,5 +79,5 @@ export const englishProfanityRules: readonly CensorRule[] = [
 export const englishStrongProfanityPack: CensorRulePack = {
   id: 'en-strong-profanity',
   locale: 'en',
-  rules: englishProfanityRules,
+  rules: englishStrongProfanityRules,
 };

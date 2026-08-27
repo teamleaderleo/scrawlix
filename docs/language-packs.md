@@ -29,7 +29,6 @@ import { englishStrongProfanityPack } from '@scrawlix/en';
 
 const engine = createScrawlix({
   rules: rulesFromPacks(englishStrongProfanityPack, myPrivateTermsPack),
-  coverage: 'middle',
 });
 ```
 
@@ -39,12 +38,14 @@ Scrawlix deliberately avoids automatic language detection. Applications know mor
 
 ## Boundaries
 
-`censorRuleFromWords()` defaults to `boundary: 'word'`, using Unicode-aware lookarounds. Letters, numbers, combining marks, connector punctuation, ZWNJ, and ZWJ keep a candidate attached to surrounding text. This prevents a boundary from appearing inside many decomposed or connected Unicode sequences while still blocking ordinary substring false positives.
+`censorRuleFromTerms()` defaults to `boundary: 'word'`, using Unicode-aware lookarounds. Letters, numbers, combining marks, connector punctuation, ZWNJ, and ZWJ keep a candidate attached to surrounding text. This prevents a boundary from appearing inside many decomposed or connected Unicode sequences while still blocking ordinary substring false positives.
 
 Some scripts and phrase lists need direct substring matching:
 
 ```ts
-const rule = censorRuleFromWords('ja-example', ['くそ'], {
+import { censorRuleFromTerms } from '@scrawlix/core';
+
+const rule = censorRuleFromTerms('ja-example', ['くそ'], {
   boundary: 'substring',
 });
 ```
@@ -107,6 +108,8 @@ Core coverage presets are positional and language-neutral:
 - `middle`
 - `inner`
 
+`full` is the default engine policy. Packs and consumers can choose a different policy explicitly.
+
 Language-specific character classes belong in packs. `@scrawlix/en`, for example, exports `englishVowelCoverage` as a `CoverageSelector` callback instead of teaching core what an English vowel is.
 
 A pack can export several named helpers without changing the core API.
@@ -137,3 +140,16 @@ Prefer narrowly described packs over giant universal lists. Examples:
 - an application-owned private-name pack
 
 A caller can compose several packs. Smaller packs keep policy choices visible and make corpus regressions easier to understand.
+
+## Package author checklist
+
+A publishable third-party pack should contain:
+
+1. a dependency on `@scrawlix/core`
+2. one or more named rule collections plus a `CensorRulePack` export
+3. locale and scope/severity notes
+4. positive and clean/false-positive regression data
+5. tests for semantic targets, casing, punctuation, compounds/inflections, Unicode context, and known ambiguity
+6. an ordinary package README with an install command and copy/paste consumer example
+
+Keep pack-specific presentation and application state outside the pack. Matching policy should remain inspectable as ordinary code/data.

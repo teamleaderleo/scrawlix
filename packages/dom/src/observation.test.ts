@@ -1,10 +1,10 @@
 /** @vitest-environment jsdom */
 
-import { censorRuleFromWords } from '@scrawlix/core';
+import { censorRuleFromTerms } from '@scrawlix/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createDomScrawlix } from './index';
 
-const rules = [censorRuleFromWords('fuck', ['fuck'])] as const;
+const rules = [censorRuleFromTerms('fuck', ['fuck'])] as const;
 
 function tick() {
   return new Promise<void>(resolve => setTimeout(resolve, 0));

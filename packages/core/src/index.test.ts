@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  censorRuleFromWords,
+  censorRuleFromTerms,
   createScrawlix,
   rulesFromPacks,
   type CensorMatcher,
@@ -32,6 +32,11 @@ describe('Scrawlix core', () => {
       { text: 'fuck', covered: false, ruleIds: [] },
     ]);
     expect(createScrawlix().find('fuck')).toEqual([]);
+  });
+
+  it('uses full coverage when rules are supplied without an explicit coverage policy', () => {
+    const scrawlix = createScrawlix({ rules: [semanticRule] });
+    expect(marked(scrawlix.segment('motherfucker'))).toBe('mother[fuck]er');
   });
 
   it('covers a semantic target inside a larger match', () => {
@@ -153,15 +158,15 @@ describe('Scrawlix core', () => {
     expect(marked(scrawlix.segment('fuck'))).toBe(expected);
   });
 
-  it('supports custom word and phrase rules', () => {
-    const privateWords = censorRuleFromWords('private', [
+  it('supports custom term and phrase rules', () => {
+    const privateTerms = censorRuleFromTerms('private', [
       'Mothbit',
       'Luna',
       'C++',
       'Project Velvet',
     ]);
     const scrawlix = createScrawlix({
-      rules: [privateWords],
+      rules: [privateTerms],
       coverage: 'full',
     });
 
@@ -176,8 +181,8 @@ describe('Scrawlix core', () => {
     );
   });
 
-  it('uses Unicode-aware word boundaries for custom words', () => {
-    const cafe = censorRuleFromWords('cafe', ['café']);
+  it('uses Unicode-aware word boundaries for custom terms', () => {
+    const cafe = censorRuleFromTerms('cafe', ['café']);
     const scrawlix = createScrawlix({ rules: [cafe], coverage: 'full' });
 
     expect(marked(scrawlix.segment('caféteria café CAFÉ.'))).toBe(
@@ -186,7 +191,7 @@ describe('Scrawlix core', () => {
   });
 
   it('keeps marks, connector punctuation, and join controls inside word context', () => {
-    const bad = censorRuleFromWords('bad', ['bad']);
+    const bad = censorRuleFromTerms('bad', ['bad']);
     const scrawlix = createScrawlix({ rules: [bad], coverage: 'full' });
     const input = 'bad\u0301 bad\u200Dword bad‿word bad';
 
@@ -196,7 +201,7 @@ describe('Scrawlix core', () => {
   });
 
   it('supports substring boundary mode for scripts without whitespace-delimited words', () => {
-    const japanesePhrase = censorRuleFromWords('ja-example', ['くそ'], {
+    const japanesePhrase = censorRuleFromTerms('ja-example', ['くそ'], {
       boundary: 'substring',
     });
     const scrawlix = createScrawlix({
@@ -222,7 +227,7 @@ describe('Scrawlix core', () => {
 
   it('does not leak compiled RegExp cursor state between calls', () => {
     const scrawlix = createScrawlix({
-      rules: [censorRuleFromWords('secret', ['secret'])],
+      rules: [censorRuleFromTerms('secret', ['secret'])],
       coverage: 'full',
     });
 
@@ -300,11 +305,11 @@ describe('Scrawlix core', () => {
   it('combines explicit rule packs and preserves their provenance', () => {
     const privatePack = {
       id: 'private',
-      rules: [censorRuleFromWords('private', ['Velvet'])],
+      rules: [censorRuleFromTerms('private', ['Velvet'])],
     };
     const spoilerPack = {
       id: 'spoiler',
-      rules: [censorRuleFromWords('spoiler', ['Rosebud'])],
+      rules: [censorRuleFromTerms('spoiler', ['Rosebud'])],
     };
     const scrawlix = createScrawlix({
       rules: rulesFromPacks(privatePack, spoilerPack),
@@ -329,11 +334,11 @@ describe('Scrawlix core', () => {
   it('distinguishes duplicate rule ids from different packs in find results', () => {
     const firstPack = {
       id: 'alpha',
-      rules: [censorRuleFromWords('shared', ['Velvet'])],
+      rules: [censorRuleFromTerms('shared', ['Velvet'])],
     };
     const secondPack = {
       id: 'beta',
-      rules: [censorRuleFromWords('shared', ['Velvet'])],
+      rules: [censorRuleFromTerms('shared', ['Velvet'])],
     };
     const scrawlix = createScrawlix({
       rules: rulesFromPacks(firstPack, secondPack),
@@ -351,8 +356,8 @@ describe('Scrawlix core', () => {
   it('preserves core segmentation invariants across deterministic fuzz cases', () => {
     const scrawlix = createScrawlix({
       rules: [
-        censorRuleFromWords('bad', ['bad']),
-        censorRuleFromWords('secret', ['secret']),
+        censorRuleFromTerms('bad', ['bad']),
+        censorRuleFromTerms('secret', ['secret']),
       ],
       coverage: 'middle',
     });

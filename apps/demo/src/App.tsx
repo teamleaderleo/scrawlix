@@ -1,6 +1,6 @@
 import { type CoveragePreset, type CoverageSelector } from '@scrawlix/core';
 import {
-  englishProfanityRules,
+  englishStrongProfanityRules,
   englishVowelCoverage,
 } from '@scrawlix/en';
 import {
@@ -87,7 +87,7 @@ export function App() {
         ? '  coverage={englishVowelCoverage}'
         : `  coverage="${coverage}"`;
 
-    return `import { englishProfanityRules${coverage === 'vowel' ? ', englishVowelCoverage' : ''} } from '@scrawlix/en';\nimport { CensoredText } from '@scrawlix/react';\n\n<CensoredText\n  text={copy}\n  rules={englishProfanityRules}\n${coverageLine}\n  appearance="${appearance}"\n  reveal="${reveal}"\n/>`;
+    return `import { englishStrongProfanityRules${coverage === 'vowel' ? ', englishVowelCoverage' : ''} } from '@scrawlix/en';\nimport { CensoredText } from '@scrawlix/react';\n\n<CensoredText\n  text={copy}\n  rules={englishStrongProfanityRules}\n${coverageLine}\n  appearance="${appearance}"\n  reveal="${reveal}"\n/>`;
   }, [appearance, coverage, reveal]);
 
   return (
@@ -128,7 +128,7 @@ export function App() {
               appearance={appearance}
               coverage={coverageSelector}
               reveal={reveal}
-              rules={englishProfanityRules}
+              rules={englishStrongProfanityRules}
               text={text}
             />
           </div>
@@ -198,7 +198,7 @@ export function App() {
                       appearance={style}
                       coverage={coverageSelector}
                       reveal="hover"
-                      rules={englishProfanityRules}
+                      rules={englishStrongProfanityRules}
                       text={sample}
                     />
                   </p>

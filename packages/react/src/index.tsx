@@ -1,3 +1,5 @@
+'use client';
+
 import {
   createScrawlix,
   type CensorRule,
@@ -40,9 +42,9 @@ function symbolsFor(text: string, appearance: ScrawlixAppearance) {
 export function CensoredText({
   text,
   rules,
-  coverage = 'middle',
+  coverage = 'full',
   appearance = 'scrawl',
-  reveal = 'hover',
+  reveal = 'never',
   className = '',
   title = 'Censored text',
 }: CensoredTextProps) {

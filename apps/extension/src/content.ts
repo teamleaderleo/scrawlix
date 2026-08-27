@@ -1,6 +1,6 @@
-import { censorRuleFromWords, type CensorRule } from '@scrawlix/core';
+import { censorRuleFromTerms, type CensorRule } from '@scrawlix/core';
 import { createDomScrawlix, type DomObservation } from '@scrawlix/dom';
-import { englishProfanityRules } from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
 import {
   CUSTOM_WORDS_KEY,
   SYNC_SETTINGS_KEY,
@@ -19,9 +19,9 @@ let presentationObserver: MutationObserver | null = null;
 let activeSettings: SyncSettings | null = null;
 let restartGeneration = 0;
 
-function customRule(customWords: readonly string[]): CensorRule[] {
-  if (customWords.length === 0) return [];
-  return [censorRuleFromWords('custom', customWords)];
+function customRule(customTerms: readonly string[]): CensorRule[] {
+  if (customTerms.length === 0) return [];
+  return [censorRuleFromTerms('custom', customTerms)];
 }
 
 function canOwnInteraction(root: HTMLElement) {
@@ -95,7 +95,7 @@ async function restart() {
   if (!document.body || !effectiveEnabled(state.settings, hostname)) return;
 
   const controller = createDomScrawlix({
-    rules: [...englishProfanityRules, ...customRule(state.customWords)],
+    rules: [...englishStrongProfanityRules, ...customRule(state.customWords)],
     coverage: coverageSelector(state.settings.coverage),
   });
 

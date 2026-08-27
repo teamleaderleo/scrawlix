@@ -2,28 +2,84 @@
 
 **Programmable censorship for text and the web.**
 
-Scrawlix separates the interesting parts of censorship so they can be mixed deliberately:
+Scrawlix separates four concerns so applications can combine them deliberately:
 
 - **matching** — what semantic term or phrase was found?
-- **coverage** — which part of that match gets covered?
+- **coverage** — which part of that semantic target gets covered?
 - **appearance** — how should the covered part look?
 - **reveal** — when, if ever, should the original text show through?
 
-That means the same word can become `████`, `f███`, `f██k`, `f█ck`, `f**k`, a blur, an inked-over scrawl, or a grawlix — while callers keep control of the underlying source text.
+The same word can become `████`, `f███`, `f██k`, `f█ck`, `f**k`, a blur, an inked-over scrawl, or a grawlix while the caller keeps control of the original source text.
 
-Scrawlix began as a censor/reveal primitive in [Scrapbook](https://github.com/teamleaderleo/scrapbook). The standalone project turns that experiment into a small language-neutral engine with rule packs and adapters for React, Markdown, arbitrary DOMs, and a browser extension built from the same pieces.
+## Choose your path
 
-## Quick start
+| You want to… | Install | Start with |
+| --- | --- | --- |
+| render censored text in React | `@scrawlix/react @scrawlix/en` | `CensoredText` |
+| transform Markdown / HAST | `@scrawlix/rehype @scrawlix/en` | `rehypeScrawlix` |
+| transform an existing webpage / DOM | `@scrawlix/dom @scrawlix/en` | `createDomScrawlix` |
+| match/segment text or build your own renderer | `@scrawlix/core` plus rules | `createScrawlix` |
+| use packaged English strong-profanity rules | `@scrawlix/en` | `englishStrongProfanityRules` |
 
-Scrawlix asks callers to pick a rule pack explicitly:
+The five packages stay deliberately small: core contains no hidden language policy, and adapters receive rules explicitly.
+
+## React — five-minute start
+
+```sh
+npm install @scrawlix/react @scrawlix/en
+```
+
+Import the stylesheet once in your application entry/global CSS path:
+
+```tsx
+import { englishStrongProfanityRules } from '@scrawlix/en';
+import { CensoredText } from '@scrawlix/react';
+import '@scrawlix/react/styles.css';
+
+<CensoredText
+  text="what the fuck"
+  rules={englishStrongProfanityRules}
+/>;
+```
+
+The first-use defaults are deliberately conservative: full semantic-target coverage, `scrawl` appearance, and `reveal="never"`.
+
+Opt into partial coverage and reveal behavior explicitly:
+
+```tsx
+<CensoredText
+  text="what the fuck"
+  rules={englishStrongProfanityRules}
+  coverage="middle"
+  appearance="grawlix"
+  reveal="hover"
+/>;
+```
+
+Current appearances: `scrawl`, `bar`, `blur`, `asterisk`, `grawlix`.
+
+Current reveal modes: `never`, `hover`, `focus`, `click`.
+
+### React CSS and source text
+
+`@scrawlix/react/styles.css` is required for the built-in treatments and the visually-hidden accessibility copy. If text appears duplicated or visibly uncensored, check that import first.
+
+`CensoredText` is reversible presentation. It keeps one exact source copy available to assistive technology and marks the decorative visual tree `aria-hidden="true"`. Secrets or destructive redaction belong upstream; Scrawlix intentionally preserves caller-owned source text.
+
+The React entry is a Client Component, so Next.js App Router consumers can import it across a normal client boundary. Put the global stylesheet in the application’s global CSS path.
+
+## Core
+
+```sh
+npm install @scrawlix/core @scrawlix/en
+```
 
 ```ts
 import { createScrawlix } from '@scrawlix/core';
-import { englishProfanityRules } from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
 
 const scrawlix = createScrawlix({
-  rules: englishProfanityRules,
-  coverage: 'middle',
+  rules: englishStrongProfanityRules,
 });
 
 scrawlix.segment('what the fuck');
@@ -31,83 +87,94 @@ scrawlix.segment('what the fuck');
 
 The English pack understands semantic targets inside larger matches, so `fuck`, `fucking`, and `motherfucker` can all apply coverage specifically to the `fuck` portion.
 
-## React
-
-```tsx
-import { englishProfanityRules } from '@scrawlix/en';
-import { CensoredText } from '@scrawlix/react';
-import '@scrawlix/react/styles.css';
-
-<CensoredText
-  text="what the fuck"
-  rules={englishProfanityRules}
-  coverage="middle"
-  appearance="scrawl"
-  reveal="hover"
-/>;
-```
-
-Current appearances: `scrawl`, `bar`, `blur`, `asterisk`, and `grawlix`.
-
-Current reveal modes: `hover`, `focus`, `click`, and `never`.
+Generic core coverage presets are `full`, `tail`, `middle`, and `inner`. `full` is the engine default; partial coverage is an explicit editorial choice.
 
 ## Markdown / rehype
 
-`@scrawlix/rehype` walks HAST text nodes and marks covered ranges while leaving the source text intact:
+```sh
+npm install @scrawlix/rehype @scrawlix/en
+```
+
+`@scrawlix/rehype` walks HAST text nodes and marks covered ranges while leaving source text intact:
 
 ```tsx
-import { englishProfanityRules } from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
 import { rehypeScrawlix } from '@scrawlix/rehype';
 import ReactMarkdown from 'react-markdown';
 
 <ReactMarkdown
   rehypePlugins={[
-    [
-      rehypeScrawlix,
-      {
-        rules: englishProfanityRules,
-        coverage: 'middle',
-      },
-    ],
+    [rehypeScrawlix, { rules: englishStrongProfanityRules }],
   ]}
 >
   {markdown}
 </ReactMarkdown>;
 ```
 
-Covered fragments become spans carrying `data-scrawlix-cover` and `data-scrawlix-rules`. The adapter keeps appearance policy out of the syntax-tree pass, so a site can style those spans with its own editorial language.
+Covered fragments become spans carrying `data-scrawlix-cover` and `data-scrawlix-rules`. Appearance policy stays outside the syntax-tree pass so a site can style those spans in its own editorial language.
 
-`code`, `pre`, `script`, `style`, and `textarea` subtrees are skipped by default. Applications can add excluded tags, place `data-scrawlix-ignore` on a subtree, or provide a `shouldSkip` predicate. The transformer also skips its own output, so repeated processing stays idempotent.
+`code`, `pre`, `script`, `style`, and `textarea` subtrees are skipped by default. Applications can add excluded tags, place `data-scrawlix-ignore` on a subtree, or provide a `shouldSkip` predicate. The transformer skips its own output so repeated processing remains idempotent.
 
 ## Arbitrary webpages / DOM
 
-`@scrawlix/dom` applies the same rules to an existing DOM and can observe future page mutations:
+```sh
+npm install @scrawlix/dom @scrawlix/en
+```
 
 ```ts
 import { createDomScrawlix } from '@scrawlix/dom';
-import { englishProfanityRules } from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
 
 const censor = createDomScrawlix({
-  rules: englishProfanityRules,
-  coverage: 'middle',
+  rules: englishStrongProfanityRules,
 });
 
 const observation = censor.observe(document.body);
 ```
 
-Only text nodes with actual covered ranges are wrapped. Generated roots use `data-scrawlix-dom-root`; covered fragments use the same `data-scrawlix-cover` and `data-scrawlix-rules` attributes as the rehype adapter.
+Only text nodes with covered ranges are wrapped. Generated roots use `data-scrawlix-dom-root`; covered fragments use the same `data-scrawlix-cover` and `data-scrawlix-rules` attributes as the rehype adapter.
 
-Dynamic observation queues only nodes reported by `MutationObserver`. Turning a site off can be one lifecycle call:
+Turning a site off can be one lifecycle call:
 
 ```ts
 observation.restore();
 ```
 
-That disconnects observation, clears pending work, and restores the controller-owned source strings. Form/editable/code-like regions, non-HTML namespaces, and generated output are skipped by default. See `docs/dom.md` for exclusion and lifecycle details.
+That disconnects observation, clears pending work, and restores controller-owned source strings. Form/editable/code-like regions, non-HTML namespaces, and generated output are skipped by default. See [`docs/dom.md`](docs/dom.md).
+
+## Custom terms and phrases
+
+Profanity is one rule pack. Callers can censor names, spoilers, codenames, or arbitrary phrases:
+
+```ts
+import { censorRuleFromTerms, createScrawlix } from '@scrawlix/core';
+
+const privateTerms = censorRuleFromTerms('private', [
+  'Project Velvet',
+  'Mothbit',
+]);
+
+const censor = createScrawlix({ rules: [privateTerms] });
+```
+
+`censorRuleFromTerms()` uses Unicode-aware word boundaries by default. Packs for scripts where matches can sit directly beside other letters can opt into `boundary: 'substring'`.
+
+## Language packs
+
+`@scrawlix/core` owns matching mechanics and generic positional coverage. Linguistic assumptions live in packages such as `@scrawlix/en`.
+
+The English package currently exports:
+
+- `englishStrongProfanityRules`
+- `englishStrongProfanityPack`
+- `englishVowelCoverage`
+- a regression corpus at `@scrawlix/en/corpus`
+
+Future language packs can carry their own rules, locale metadata, coverage helpers, and regression corpora. Consumers can combine packs with `rulesFromPacks(...)`. See [`docs/language-packs.md`](docs/language-packs.md).
 
 ## Browser extension
 
-The unpacked Manifest V3 extension lives in `apps/extension`. It is a thin application around `@scrawlix/dom` and `@scrawlix/en`: page matching/restoration stays in the packages, while browser storage, per-host preferences, injected presentation, and popup UI stay in the extension.
+The unpacked Manifest V3 extension lives in `apps/extension`. It is a thin application around `@scrawlix/dom` and `@scrawlix/en`: page matching/restoration stays in packages, while browser storage, per-host preferences, injected presentation, and popup UI stay in the extension.
 
 ```sh
 pnpm install
@@ -116,72 +183,24 @@ pnpm build
 
 Then load `apps/extension/dist` as an unpacked extension in a Chromium browser.
 
-The popup currently supports:
-
-- a global on/off switch
-- per-host **follow global / always on / always off** behavior
-- all five appearances
-- all generic coverage modes plus English vowel coverage
-- hover / focus / click / never reveal
-- local custom words and phrases
-
-Small preferences and sparse hostname overrides use `chrome.storage.sync`; custom terms use `chrome.storage.local`. A settings change restores the current page's source text before starting the newly configured observation session.
-
-The development manifest runs automatically on HTTP/HTTPS pages so per-site behavior survives navigation. That broad host access is intentionally called out as a store-release review item; see `apps/extension/README.md` for the permission, privacy, build, and lifecycle notes.
-
-## Custom words and phrases
-
-Profanity is only one rule pack. Callers can censor names, spoilers, codenames, or arbitrary phrases:
-
-```ts
-import { censorRuleFromWords, createScrawlix } from '@scrawlix/core';
-
-const privateTerms = censorRuleFromWords('private', [
-  'Project Velvet',
-  'Mothbit',
-]);
-
-const censor = createScrawlix({
-  rules: [privateTerms],
-  coverage: 'full',
-});
-```
-
-`censorRuleFromWords` uses Unicode-aware word boundaries by default. Packs for scripts where matches can sit directly beside other letters can opt into `boundary: 'substring'`.
-
-## Language packs
-
-`@scrawlix/core` owns matching mechanics and generic coverage (`full`, `tail`, `middle`, `inner`). Linguistic assumptions live in packages such as `@scrawlix/en`.
-
-The English package currently exports:
-
-- `englishProfanityRules`
-- `englishStrongProfanityPack`
-- `englishVowelCoverage`
-- a small regression corpus at `@scrawlix/en/corpus`
-
-Future language packs can carry their own rules, locale metadata, coverage helpers, and regression corpora. Consumers can combine packs with `rulesFromPacks(...)`. See `docs/language-packs.md`.
+The popup supports global and per-host enablement, all five appearances, generic plus English-vowel coverage, all reveal modes, and local custom terms. See [`apps/extension/README.md`](apps/extension/README.md) for permission, privacy, build, and lifecycle notes.
 
 ## Demo
 
-The interactive demo lives in `apps/demo`. It is a small Vite app that consumes the workspace packages exactly like an external React application would.
+The interactive proof sheet lives in `apps/demo` and consumes workspace packages like an external React application.
 
 ```sh
 pnpm install
 pnpm dev
 ```
 
-The demo includes an editable live proof, coverage and reveal controls, a five-style specimen sheet, semantic-match examples, and a live component snippet.
+The demo includes editable live text, coverage/reveal controls, a five-style specimen sheet, semantic-match examples, and a live component snippet.
 
-### Vercel
+## Documentation
 
-The repository includes `vercel.json` at the root. Importing the Git repository into Vercel uses:
+Start with [`docs/README.md`](docs/README.md) for the recipe index. Maintainers and coding agents should also read [`AGENTS.md`](AGENTS.md), which records package responsibilities, invariants, commands, and extension rules.
 
-- install: `pnpm install --no-frozen-lockfile`
-- build: `pnpm build`
-- output: `apps/demo/dist`
-
-The demo builds to static assets.
+The demo serves `llms.txt` with canonical package selection and copy/paste usage for coding agents.
 
 ## Contributing
 
@@ -194,22 +213,8 @@ pnpm build
 pnpm smoke:packages
 ```
 
-`AGENTS.md` is the maintainer/agent map: package responsibilities, invariants, commands, and extension rules. Corpus regressions should be data-first: when a matcher bug teaches us a durable example, add that example to the relevant language corpus.
-
-## Roadmap
-
-- [Core engine: matching, semantic targets, and coverage](https://github.com/teamleaderleo/scrawlix/issues/1)
-- [React adapter and visual presets](https://github.com/teamleaderleo/scrawlix/issues/2)
-- [Rehype adapter](https://github.com/teamleaderleo/scrawlix/issues/3)
-- [DOM adapter](https://github.com/teamleaderleo/scrawlix/issues/4)
-- [Browser extension](https://github.com/teamleaderleo/scrawlix/issues/5)
-- [Scrapbook adoption](https://github.com/teamleaderleo/scrawlix/issues/6)
-- [Interactive demo and deployment](https://github.com/teamleaderleo/scrawlix/issues/8)
-- [Corpus-driven regressions](https://github.com/teamleaderleo/scrawlix/issues/11)
-- [Language packs](https://github.com/teamleaderleo/scrawlix/issues/12)
-- [Human and agent adoption ergonomics](https://github.com/teamleaderleo/scrawlix/issues/13)
-- [First public release readiness](https://github.com/teamleaderleo/scrawlix/issues/18)
+The packed-package smoke test installs real tarballs into a consumer outside the workspace graph, then typechecks and production-builds through public package exports.
 
 ## Status
 
-Early development. The API is being discovered through real use before publication.
+Early development. The public API is being tightened through real consumers before the first npm release. Release readiness is tracked in [issue #18](https://github.com/teamleaderleo/scrawlix/issues/18).

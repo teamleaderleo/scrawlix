@@ -1,69 +1,84 @@
 # Scrawlix
 
-Scrawlix is programmable censorship for text and the web. It separates matching, coverage, appearance, and reveal behavior while preserving the caller's original source text.
+Scrawlix is programmable censorship for text and the web. It separates matching, coverage, appearance, and reveal behavior while preserving caller-owned source text.
 
 Source: https://github.com/teamleaderleo/scrawlix
 
 Packages:
 - @scrawlix/core — language-neutral matching and segmentation
-- @scrawlix/en — English profanity rules, English vowel coverage, regression corpus
+- @scrawlix/en — English strong-profanity rules, English vowel coverage, regression corpus
 - @scrawlix/react — React renderer and visual/reveal presets
 - @scrawlix/rehype — HAST/rehype transformer for Markdown-rendered prose
 - @scrawlix/dom — arbitrary-page DOM transformation, restoration, and mutation observation
 
-Applications:
-- apps/demo — interactive proof-sheet demo
-- apps/extension — Manifest V3 browser extension built on @scrawlix/dom
+Choose the smallest package path for the target project. Do not invent aggregate package names or hidden language defaults.
+
+React install:
+
+```sh
+npm install @scrawlix/react @scrawlix/en
+```
 
 Canonical React usage:
 
 ```tsx
-import { englishProfanityRules } from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
 import { CensoredText } from '@scrawlix/react';
 import '@scrawlix/react/styles.css';
 
 <CensoredText
   text="what the fuck"
-  rules={englishProfanityRules}
-  coverage="middle"
-  appearance="scrawl"
-  reveal="hover"
-/>
+  rules={englishStrongProfanityRules}
+/>;
+```
+
+React defaults: `coverage="full"`, `appearance="scrawl"`, `reveal="never"`. Add partial coverage or reveal props only when the application asks for them. The stylesheet import is required for built-in appearances and the visually-hidden accessibility copy. `CensoredText` preserves one exact source copy for assistive technology; it is reversible presentation, not destructive redaction.
+
+Core install:
+
+```sh
+npm install @scrawlix/core @scrawlix/en
 ```
 
 Canonical core usage:
 
 ```ts
 import { createScrawlix } from '@scrawlix/core';
-import { englishProfanityRules } from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
 
 const engine = createScrawlix({
-  rules: englishProfanityRules,
-  coverage: 'middle',
+  rules: englishStrongProfanityRules,
 });
+```
+
+Custom terms and phrases:
+
+```ts
+import { censorRuleFromTerms } from '@scrawlix/core';
+
+const privateTerms = censorRuleFromTerms('private', [
+  'Project Velvet',
+  'Mothbit',
+]);
 ```
 
 Canonical rehype usage:
 
 ```ts
-import { englishProfanityRules } from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
 import { rehypeScrawlix } from '@scrawlix/rehype';
 
-const plugin = [
-  rehypeScrawlix,
-  { rules: englishProfanityRules, coverage: 'middle' },
-];
+const plugin = [rehypeScrawlix, { rules: englishStrongProfanityRules }];
 ```
 
 Canonical arbitrary-page usage:
 
 ```ts
 import { createDomScrawlix } from '@scrawlix/dom';
-import { englishProfanityRules } from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
 
 const controller = createDomScrawlix({
-  rules: englishProfanityRules,
-  coverage: 'middle',
+  rules: englishStrongProfanityRules,
 });
 
 const observation = controller.observe(document.body);
@@ -71,20 +86,19 @@ const observation = controller.observe(document.body);
 observation.restore();
 ```
 
-The browser extension keeps browser state outside reusable packages. Global treatment settings + sparse hostname overrides use chrome.storage.sync; custom terms use chrome.storage.local. Storage changes restore the old DOM session before a newly configured observation begins. Build it with `pnpm build`, then load `apps/extension/dist` as an unpacked Chromium extension.
+Core is deliberately language-neutral. Select language/rule packs explicitly. Generic coverage presets are full, tail, middle, inner. Full coverage is the engine default. English-specific helper: englishVowelCoverage.
 
-The rehype adapter emits spans with `data-scrawlix-cover` and `data-scrawlix-rules`, preserves the original text as text content, and skips code/pre/script/style/textarea by default.
-
-The DOM adapter transforms only matching text nodes, marks controller output with `data-scrawlix-dom-root`, skips editable/form/code/non-HTML regions by default, observes only mutation roots delivered by MutationObserver, and can restore exact controller-owned source strings.
-
-Core is deliberately language-neutral. Select language/rule packs explicitly. Custom names, spoilers, and phrases can be supplied with `censorRuleFromWords()`.
-
-Generic coverage presets: full, tail, middle, inner.
-English-specific helper: englishVowelCoverage.
 React appearances: scrawl, bar, blur, asterisk, grawlix.
-React reveal modes: hover, focus, click, never.
+React reveal modes: never, hover, focus, click.
 
-Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md
+The rehype adapter emits spans with `data-scrawlix-cover` and `data-scrawlix-rules`, preserves source as text content, and skips code/pre/script/style/textarea by default.
+
+The DOM adapter transforms only matching eligible text nodes, marks controller output with `data-scrawlix-dom-root`, skips editable/form/code/non-HTML regions by default, observes only mutation roots delivered by MutationObserver, and can restore exact controller-owned source strings.
+
+The browser extension keeps browser state outside reusable packages. Global treatment settings + sparse hostname overrides use chrome.storage.sync; custom terms use chrome.storage.local. Storage changes restore the old DOM session before a newly configured observation begins.
+
+Use only documented public package exports. Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md
+Docs index: https://github.com/teamleaderleo/scrawlix/blob/main/docs/README.md
 Language packs: https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md
 DOM lifecycle: https://github.com/teamleaderleo/scrawlix/blob/main/docs/dom.md
 Extension notes: https://github.com/teamleaderleo/scrawlix/blob/main/apps/extension/README.md

@@ -1,9 +1,9 @@
-import { censorRuleFromWords } from '@scrawlix/core';
+import { censorRuleFromTerms } from '@scrawlix/core';
 import type { Element, Root, RootContent } from 'hast';
 import { describe, expect, it } from 'vitest';
 import { rehypeScrawlix, transformHast } from './index';
 
-const rules = [censorRuleFromWords('fuck', ['fuck'])] as const;
+const rules = [censorRuleFromTerms('fuck', ['fuck'])] as const;
 
 function text(value: string): RootContent {
   return { type: 'text', value };
@@ -59,7 +59,7 @@ function coveredElements(node: Root | RootContent): Element[] {
 
 describe('@scrawlix/rehype', () => {
   it('splits covered ranges while preserving the exact source text', () => {
-    const tree = root(element('p', [text('well, fuck this')]))
+    const tree = root(element('p', [text('well, fuck this')]));
     const original = textContent(tree);
 
     transformHast(tree, { rules, coverage: 'middle' });
@@ -73,7 +73,7 @@ describe('@scrawlix/rehype', () => {
 
   it('transforms text inside ordinary inline elements without replacing the element', () => {
     const link = element('a', [text('fuck')], { href: '/somewhere' });
-    const tree = root(element('p', [text('say '), link, text(' here')]))
+    const tree = root(element('p', [text('say '), link, text(' here')]));
 
     transformHast(tree, { rules, coverage: 'full' });
 
@@ -98,7 +98,7 @@ describe('@scrawlix/rehype', () => {
   it.each(['code', 'pre', 'script', 'style', 'textarea'])(
     'skips <%s> subtrees by default',
     tagName => {
-      const tree = root(element(tagName, [text('fuck')]))
+      const tree = root(element(tagName, [text('fuck')]));
 
       transformHast(tree, { rules, coverage: 'full' });
 
@@ -108,7 +108,7 @@ describe('@scrawlix/rehype', () => {
   );
 
   it('supports additional excluded tags', () => {
-    const tree = root(element('a', [text('fuck')]))
+    const tree = root(element('a', [text('fuck')]));
 
     transformHast(tree, {
       rules,
@@ -146,7 +146,7 @@ describe('@scrawlix/rehype', () => {
   });
 
   it('is idempotent and does not wrap its own covered output again', () => {
-    const tree = root(element('p', [text('fuck')]))
+    const tree = root(element('p', [text('fuck')]));
 
     transformHast(tree, { rules, coverage: 'full' });
     transformHast(tree, { rules, coverage: 'full' });
@@ -156,7 +156,7 @@ describe('@scrawlix/rehype', () => {
   });
 
   it('provides a rehype-compatible transformer factory', () => {
-    const tree = root(element('p', [text('fuck')]))
+    const tree = root(element('p', [text('fuck')]));
     const transform = rehypeScrawlix({ rules, coverage: 'full' });
 
     transform(tree);
