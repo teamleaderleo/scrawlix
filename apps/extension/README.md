@@ -61,7 +61,7 @@ Long-lived collections live in a full-tab `options.html` page opened through `ch
 - General preferences with a live specimen rendered by the real Scrawlix core/coverage/mask logic
 - explicit Add/Remove custom-term management with filtering and the same 200-code-point limit used by context-menu additions
 - searchable site exceptions with `always on`, `always off`, and **use default** actions
-- a read-only summary of persistent browser host grants
+- persistent browser host grants with safe removal
 - concise privacy/source/version information
 
 Moving custom terms out of the popup removes the popup-lifecycle debounce hazard: term changes now persist through explicit Add/Remove actions in a durable browser tab.
@@ -73,13 +73,15 @@ The store-facing manifest requests no HTTP/HTTPS host permission at install time
 - allow the current HTTP/HTTPS origin
 - allow all HTTP and HTTPS websites
 
-A small Manifest V3 service worker keeps one dynamic content-script registration aligned with the origins Chrome currently grants to Scrawlix. Dynamic registration persists across browser sessions. Removing browser access updates the registration; removing access from the popup also tells the current page session to restore its source text immediately.
+A small Manifest V3 service worker keeps one dynamic content-script registration aligned with the origins Chrome currently grants to Scrawlix. Dynamic registration persists across browser sessions.
 
 Browser access and Scrawlix policy are separate. A site can be configured `on` while Chrome access is still missing; the popup reports that state directly instead of claiming censorship is already active.
 
 Opening the popup on a persistently granted site also ensures the current page runtime is present. This covers pages that were already open when access changed and keeps the displayed current-site state aligned with the actual page.
 
-The Options page currently summarizes granted sites without removing them. Multi-site access removal belongs there only after revocation can restore every affected open tab before Chrome drops the grant.
+Host revocation is centralized in `access.ts`. Before Chrome drops an origin grant, Scrawlix queries every open tab covered by that grant and asks each page to restore its exact source text. After removal it updates the dynamic content-script registration and immediately reconciles tabs still covered by an overlapping remaining grant. If Chrome refuses to remove a required or policy-controlled permission, those page sessions are restored instead of being left disabled.
+
+This lifecycle lets both the popup and Options remove grants without adding the broad `tabs` permission: an existing host grant is sufficient for URL-filtered tab queries and page messaging while that grant still exists.
 
 ## Quick interactions
 
@@ -151,4 +153,4 @@ See [`docs/extension-privacy.md`](../../docs/extension-privacy.md) for the curre
 - broad HTTP/HTTPS patterns remain optional instead of required host permissions
 - every directly referenced popup/background/options asset exists in `dist`
 
-Unit tests cover preference normalization/reconciliation, browser-access helpers, local-vs-sync storage, and selection normalization. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration, real content script, temporary page reveal, and Options custom-term round trip without weakening the shipping manifest.
+Unit tests cover preference normalization/reconciliation, browser-access helpers including restore-before-revoke behavior, local-vs-sync storage, and selection normalization. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration, real content script, temporary page reveal, and Options custom-term round trip without weakening the shipping manifest.

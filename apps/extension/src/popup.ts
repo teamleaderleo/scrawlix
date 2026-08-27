@@ -2,7 +2,6 @@ import './popup.css';
 import {
   ALL_HOST_PATTERNS,
   activateTab,
-  deactivateTab,
   hasAllHostsAccess,
   hasPersistentAccess,
   originPatternForUrl,
@@ -261,7 +260,6 @@ siteAccessButton.addEventListener('click', () => {
     accessStatus.textContent = persistentAccess ? 'removing access…' : 'requesting access…';
     try {
       if (persistentAccess) {
-        await deactivateTab(page.tabId);
         await removeHostAccess([page.originPattern]);
       } else {
         const granted = await requestHostAccess([page.originPattern]);
@@ -279,9 +277,7 @@ allSitesAccessButton.addEventListener('click', () => {
     accessStatus.textContent = allHostsAccess ? 'removing all-sites access…' : 'requesting all-sites access…';
     try {
       if (allHostsAccess) {
-        if (page) await deactivateTab(page.tabId);
         await removeHostAccess(ALL_HOST_PATTERNS);
-        if (page && (await hasPersistentAccess(page.url))) await activateTab(page.tabId);
       } else {
         const granted = await requestHostAccess(ALL_HOST_PATTERNS);
         if (granted && page) await activateTab(page.tabId);

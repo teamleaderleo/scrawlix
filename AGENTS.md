@@ -101,7 +101,7 @@ Storage changes should perform the minimum page work. Policy changes that leave 
 
 Extension reveal interaction must avoid stealing native page controls. Generated roots inside links, buttons, inputs, or similar controls stay outside the extension's own focus/click-toggle path.
 
-HTTP/HTTPS host access is optional and user-granted. Keep dynamic content-script registration aligned with Chrome's currently granted origin patterns, and keep browser access separate from Scrawlix site policy in both code and UI. Removing access from the extension UI should restore the current page session immediately. Any permission expansion is a browser-product and store-review change that must include its UX and privacy rationale.
+HTTP/HTTPS host access is optional and user-granted. Keep dynamic content-script registration aligned with Chrome's currently granted origin patterns, and keep browser access separate from Scrawlix site policy in both code and UI. Before removing a host grant, restore every matching open Scrawlix page while the permission still permits reliable messaging; after removal, reconcile any affected tabs still covered by an overlapping remaining grant. If Chrome refuses removal, restore the page sessions that were temporarily stopped. Any permission expansion is a browser-product and store-review change that must include its UX and privacy rationale.
 
 ### Add corpus cases for learned linguistic behavior
 

@@ -1,6 +1,7 @@
 import { censorRuleFromWords, createScrawlix } from '@scrawlix/core';
 import './content.css';
 import './options.css';
+import { removeHostAccess } from './access';
 import { MAX_CUSTOM_TERM_CODE_POINTS } from './actions';
 import {
   CUSTOM_WORDS_KEY,
@@ -25,6 +26,11 @@ import {
 
 const PREVIEW_TERM = 'Mothbit';
 const previewRule = censorRuleFromWords('options-preview', [PREVIEW_TERM]);
+
+type AccessDisplayEntry = {
+  label: string;
+  origins: string[];
+};
 
 function required<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -58,6 +64,7 @@ const siteEmpty = required<HTMLParagraphElement>('site-empty');
 const accessCount = required<HTMLSpanElement>('access-count');
 const accessList = required<HTMLUListElement>('access-list');
 const accessEmpty = required<HTMLParagraphElement>('access-empty');
+const accessActionStatus = required<HTMLParagraphElement>('access-action-status');
 
 let settings: SyncSettings;
 let customWords: string[] = [];
@@ -230,20 +237,42 @@ function humanAccessPattern(pattern: string) {
   return pattern.replace(/\/\*$/, '');
 }
 
-function accessDisplayEntries(origins: readonly string[]) {
+function accessDisplayEntries(origins: readonly string[]): AccessDisplayEntry[] {
   const set = new Set(origins.filter(origin => /^https?:\/\//.test(origin)));
-  const entries: string[] = [];
+  const entries: AccessDisplayEntry[] = [];
   const allHttp = set.delete('http://*/*');
   const allHttps = set.delete('https://*/*');
 
-  if (allHttp && allHttps) entries.push('All HTTP and HTTPS websites');
-  else {
-    if (allHttp) entries.push('All HTTP websites');
-    if (allHttps) entries.push('All HTTPS websites');
+  if (allHttp && allHttps) {
+    entries.push({
+      label: 'All HTTP and HTTPS websites',
+      origins: ['http://*/*', 'https://*/*'],
+    });
+  } else {
+    if (allHttp) entries.push({ label: 'All HTTP websites', origins: ['http://*/*'] });
+    if (allHttps) entries.push({ label: 'All HTTPS websites', origins: ['https://*/*'] });
   }
 
-  entries.push(...[...set].sort().map(humanAccessPattern));
+  entries.push(
+    ...[...set].sort().map(origin => ({
+      label: humanAccessPattern(origin),
+      origins: [origin],
+    }))
+  );
   return entries;
+}
+
+async function removeAccess(entry: AccessDisplayEntry) {
+  accessActionStatus.textContent = `removing ${entry.label}…`;
+  try {
+    const removed = await removeHostAccess(entry.origins);
+    await renderAccess();
+    accessActionStatus.textContent = removed
+      ? `Removed ${entry.label}`
+      : `Chrome kept ${entry.label}`;
+  } catch {
+    accessActionStatus.textContent = `Could not remove ${entry.label}`;
+  }
 }
 
 async function renderAccess() {
@@ -254,9 +283,22 @@ async function renderAccess() {
   accessList.replaceChildren();
 
   for (const entry of entries) {
-    const item = document.createElement('li');
-    item.textContent = entry;
-    accessList.append(item);
+    const row = document.createElement('li');
+    row.className = 'managed-row access-row';
+
+    const label = document.createElement('span');
+    label.className = 'managed-value access-value';
+    label.textContent = entry.label;
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'quiet-button';
+    remove.textContent = 'remove';
+    remove.setAttribute('aria-label', `Remove access for ${entry.label}`);
+    remove.addEventListener('click', () => void removeAccess(entry));
+
+    row.append(label, remove);
+    accessList.append(row);
   }
 
   accessEmpty.hidden = entries.length > 0;
