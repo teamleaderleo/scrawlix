@@ -165,6 +165,11 @@ async function reconcile() {
   }
 }
 
+async function revealWhenReady(durationMs: number) {
+  if (observation === null) await reconcile();
+  if (observation !== null) revealPageFor(durationMs);
+}
+
 function clickRootFromEvent(event: Event) {
   if (pageIsTemporarilyRevealed()) return null;
 
@@ -220,7 +225,7 @@ chrome.runtime.onMessage.addListener((message: ScrawlixContentMessage) => {
   }
 
   if (message?.type === 'scrawlix-reveal-for') {
-    if (observation !== null) revealPageFor(message.durationMs);
+    void revealWhenReady(message.durationMs);
   }
 });
 
