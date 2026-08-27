@@ -63,6 +63,16 @@ A small Manifest V3 service worker keeps one dynamic content-script registration
 
 Browser access and Scrawlix policy are separate. A site can be configured `on` while Chrome access is still missing; the popup reports that state directly instead of claiming censorship is already active.
 
+Opening the popup on a persistently granted site also ensures the current page runtime is present. This covers pages that were already open when access changed and keeps the displayed current-site state aligned with the actual page.
+
+## Quick interactions
+
+The popup includes **reveal page · 10s**. This sends a session-only message to the current content script and adds one temporary data attribute to the document root. CSS reveals all Scrawlix-owned covered spans while the existing DOM controller and wrappers stay in place. The timer clears the attribute after ten seconds; it writes no preference state and does not rebuild the page session.
+
+The manifest also declares a `temporary-reveal` command with `Alt+Shift+R` as its suggested shortcut. The popup reads the browser's actual assigned shortcut at runtime because users can remap extension commands and Chrome may leave a conflicting suggestion unassigned.
+
+A selection-only context-menu action, **Add “selection” to Scrawlix**, normalizes whitespace and appends the selected phrase to the existing local custom-term list. Context-menu additions are capped at 200 Unicode code points to avoid turning an accidental huge selection into an oversized matching rule. The existing custom-term normalization handles case-insensitive deduplication.
+
 ## Page lifecycle
 
 The content script:
@@ -72,7 +82,7 @@ The content script:
 3. observes `document.body`
 4. decorates only Scrawlix-generated roots with extension presentation metadata
 5. listens for sync/local preference changes and reconciles the minimum required work
-6. accepts extension messages to reconcile or restore the current page when browser access changes
+6. accepts extension messages to reconcile, restore, or temporarily reveal the current page
 
 Preference reconciliation is incremental:
 
@@ -105,6 +115,7 @@ The manifest uses:
 - `storage` — persist preferences
 - `activeTab` — let the popup inspect and act on the current page after the user opens it
 - `scripting` — register/inject the local content script for user-granted origins
+- `contextMenus` — add selected page text to the local custom-term list after the user chooses the Scrawlix menu action
 - optional HTTP/HTTPS host access — granted at runtime by the user
 
 The extension has no Scrawlix-operated network dependency and sends no browsing or page text to a Scrawlix server. Matching happens inside the page's content-script context using bundled Scrawlix packages.
@@ -123,4 +134,4 @@ See [`docs/extension-privacy.md`](../../docs/extension-privacy.md) for the curre
 - broad HTTP/HTTPS patterns remain optional instead of required host permissions
 - every directly referenced popup/background asset exists in `dist`
 
-Unit tests cover preference normalization/reconciliation, browser-access helpers, and the local-vs-sync storage split. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration and real content script without weakening the shipping manifest.
+Unit tests cover preference normalization/reconciliation, browser-access helpers, local-vs-sync storage, and selection normalization. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration, real content script, and temporary page reveal without weakening the shipping manifest.
