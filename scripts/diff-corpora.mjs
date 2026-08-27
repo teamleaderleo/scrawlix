@@ -84,6 +84,7 @@ function parseArguments(argv) {
   let json = false;
 
   for (const argument of argv) {
+    if (argument === '--') continue;
     if (argument === '--json') json = true;
     else positional.push(argument);
   }
