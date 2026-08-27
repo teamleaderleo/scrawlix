@@ -51,7 +51,11 @@ type ScrawlixOwnedSpanProp =
   | 'style'
   | 'title';
 
-type CallerSpanProps = Omit<SpanProps, ScrawlixOwnedSpanProp>;
+type DataAttributeValue = string | number | boolean | null | undefined;
+type CallerDataProps = {
+  [Key in `data-${string}`]?: DataAttributeValue;
+};
+type CallerSpanProps = Omit<SpanProps, ScrawlixOwnedSpanProp> & CallerDataProps;
 type ReservedScrawlixDataProps = {
   [Key in `data-scrawlix-${string}`]?: never;
 };
