@@ -95,6 +95,7 @@ function smokeConsumer({
 
   console.log(`\nSmoke consumer: React ${reactMajor}`);
   run(['install', '--no-frozen-lockfile'], consumerDirectory);
+  run(['exec', 'node', 'runtime.mjs'], consumerDirectory);
   run(['typecheck'], consumerDirectory);
   run(['build'], consumerDirectory);
 }
