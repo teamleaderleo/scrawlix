@@ -70,16 +70,23 @@ test('built extension registers granted hosts and handles page interaction in Ch
           const scripts = await chrome.scripting.getRegisteredContentScripts({
             ids: ['scrawlix-page'],
           });
-          return scripts[0]?.matches?.sort() ?? [];
+          return {
+            matches: scripts[0]?.matches?.sort() ?? [],
+            runAt: scripts[0]?.runAt ?? null,
+          };
         })
       )
-      .toEqual(['http://*/*', 'https://*/*']);
+      .toEqual({
+        matches: ['http://*/*', 'https://*/*'],
+        runAt: 'document_start',
+      });
 
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
 
     const initialRoot = page.locator('#initial [data-scrawlix-dom-root]');
     await expect(initialRoot).toHaveCount(1);
+    await expect(initialRoot).toHaveAttribute('data-scrawlix-extension-owned', '');
     await expect(
       page.locator('#initial [data-scrawlix-cover]')
     ).toHaveText('uc');
@@ -179,6 +186,32 @@ test('built extension registers granted hosts and handles page interaction in Ch
       page.locator('#custom-term-copy [data-scrawlix-dom-root]')
     ).toHaveCount(0);
     await options.close();
+
+    // Some SPA runtimes replace the complete body. A clone can carry copied Scrawlix
+    // wrappers that belong to no live controller; unwrap/reprocess them and reconnect.
+    await page.evaluate(() => {
+      const replacement = document.body.cloneNode(true) as HTMLBodyElement;
+      const paragraph = document.createElement('p');
+      paragraph.id = 'body-replacement-copy';
+      paragraph.textContent = 'replacement fuck arrived';
+      replacement.querySelector('main')?.append(paragraph);
+      document.body.replaceWith(replacement);
+    });
+
+    await expect(
+      page.locator('#body-replacement-copy [data-scrawlix-dom-root]')
+    ).toHaveCount(1);
+    await expect(
+      page.locator('#body-replacement-copy [data-scrawlix-cover]')
+    ).toHaveText('uc');
+    await expect(page.locator('#initial [data-scrawlix-dom-root]')).toHaveCount(1);
+    await expect(
+      page.locator('#initial [data-scrawlix-dom-root]')
+    ).toHaveAttribute('data-scrawlix-extension-owned', '');
+    await expect(page.locator('[data-scrawlix-dom-root][tabindex]')).toHaveCount(0);
+    await expect(
+      page.locator('#native-link [data-scrawlix-dom-root]')
+    ).toHaveCount(1);
 
     // Native controls remain native under click reveal; Scrawlix does not intercept the link.
     await page.locator('#native-link').click();
