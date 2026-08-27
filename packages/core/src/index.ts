@@ -24,14 +24,42 @@ export type CensorTarget = {
   group: string;
 };
 
-export type CensorRule = {
+export type CensorMatcherMatch = {
+  /** UTF-16 source offset into the original input. */
+  start: number;
+  /** Exclusive UTF-16 source offset into the original input. */
+  end: number;
+  /** Optional semantic-target start, contained inside the full match. */
+  targetStart?: number;
+  /** Optional semantic-target end, contained inside the full match. */
+  targetEnd?: number;
+};
+
+export type CensorMatcher = {
+  /** Return exact ranges into the original source string. */
+  find(text: string): Iterable<CensorMatcherMatch>;
+};
+
+type CensorRuleBase = {
   id: string;
-  pattern: RegExp;
-  target?: CensorTarget;
   coverage?: CoverageSelector;
   /** Pack provenance attached by rulesFromPacks(). */
   packId?: string;
 };
+
+export type CensorRegexRule = CensorRuleBase & {
+  pattern: RegExp;
+  target?: CensorTarget;
+  matcher?: never;
+};
+
+export type CensorMatcherRule = CensorRuleBase & {
+  matcher: CensorMatcher;
+  pattern?: never;
+  target?: never;
+};
+
+export type CensorRule = CensorRegexRule | CensorMatcherRule;
 
 export type CensorRulePack = {
   id: string;
@@ -68,9 +96,11 @@ export type ScrawlixEngine = {
   segment(text: string): ScrawlixSegment[];
 };
 
-type CompiledRule = Omit<CensorRule, 'pattern'> & {
+type CompiledRegexRule = Omit<CensorRegexRule, 'pattern'> & {
   pattern: RegExp;
 };
+
+type CompiledRule = CompiledRegexRule | CensorMatcherRule;
 
 type ScannedMatch = {
   match: ScrawlixMatch;
@@ -117,6 +147,10 @@ function advanceStringIndex(value: string, index: number, unicode: boolean) {
   if (second < 0xdc00 || second > 0xdfff) return index + 1;
 
   return index + 2;
+}
+
+function isMatcherRule(rule: CensorRule): rule is CensorMatcherRule {
+  return rule.matcher !== undefined;
 }
 
 function graphemeRanges(value: string): RelativeRange[] {
@@ -216,7 +250,30 @@ function ruleIdentity(rule: CompiledRule) {
   return rule.packId ? `${rule.packId}:${rule.id}` : rule.id;
 }
 
-function resolveTargetRange(match: RegExpExecArray, rule: CompiledRule) {
+function scannedMatchFromRange(
+  text: string,
+  rule: CompiledRule,
+  start: number,
+  end: number,
+  targetStart: number,
+  targetEnd: number
+): ScannedMatch {
+  return {
+    rule,
+    match: {
+      ruleId: rule.id,
+      ...(rule.packId ? { packId: rule.packId } : {}),
+      text: text.slice(start, end),
+      start,
+      end,
+      targetText: text.slice(targetStart, targetEnd),
+      targetStart,
+      targetEnd,
+    },
+  };
+}
+
+function resolveTargetRange(match: RegExpExecArray, rule: CompiledRegexRule) {
   const fullStart = match.index;
   const fullEnd = match.index + match[0].length;
 
@@ -234,13 +291,12 @@ function resolveTargetRange(match: RegExpExecArray, rule: CompiledRule) {
   return { start: groupRange[0], end: groupRange[1] };
 }
 
-function scan(text: string, rules: readonly CompiledRule[]): ScannedMatch[] {
+function scanRegexRule(text: string, rule: CompiledRegexRule): ScannedMatch[] {
   const matches: ScannedMatch[] = [];
+  rule.pattern.lastIndex = 0;
 
-  for (const rule of rules) {
-    rule.pattern.lastIndex = 0;
+  try {
     let rawMatch: RegExpExecArray | null;
-
     while ((rawMatch = rule.pattern.exec(text)) !== null) {
       if (!rawMatch[0]) {
         const unicode =
@@ -250,23 +306,106 @@ function scan(text: string, rules: readonly CompiledRule[]): ScannedMatch[] {
       }
 
       const target = resolveTargetRange(rawMatch, rule);
-      matches.push({
-        rule,
-        match: {
-          ruleId: rule.id,
-          ...(rule.packId ? { packId: rule.packId } : {}),
-          text: rawMatch[0],
-          start: rawMatch.index,
-          end: rawMatch.index + rawMatch[0].length,
-          targetText: text.slice(target.start, target.end),
-          targetStart: target.start,
-          targetEnd: target.end,
-        },
-      });
+      matches.push(
+        scannedMatchFromRange(
+          text,
+          rule,
+          rawMatch.index,
+          rawMatch.index + rawMatch[0].length,
+          target.start,
+          target.end
+        )
+      );
     }
-
+  } finally {
     rule.pattern.lastIndex = 0;
   }
+
+  return matches;
+}
+
+function validatedMatcherRange(
+  textLength: number,
+  rule: CensorMatcherRule,
+  range: CensorMatcherMatch
+) {
+  if (
+    !Number.isInteger(range.start) ||
+    !Number.isInteger(range.end) ||
+    range.start < 0 ||
+    range.end > textLength ||
+    range.end <= range.start
+  ) {
+    throw new Error(
+      `Censor rule "${ruleIdentity(rule)}" returned an invalid match range [${range.start}, ${range.end}) for source length ${textLength}.`
+    );
+  }
+
+  const hasTargetStart = range.targetStart !== undefined;
+  const hasTargetEnd = range.targetEnd !== undefined;
+  if (hasTargetStart !== hasTargetEnd) {
+    throw new Error(
+      `Censor rule "${ruleIdentity(rule)}" must return targetStart and targetEnd together.`
+    );
+  }
+
+  if (!hasTargetStart || !hasTargetEnd) {
+    return {
+      start: range.start,
+      end: range.end,
+      targetStart: range.start,
+      targetEnd: range.end,
+    };
+  }
+
+  const targetStart = range.targetStart!;
+  const targetEnd = range.targetEnd!;
+  if (
+    !Number.isInteger(targetStart) ||
+    !Number.isInteger(targetEnd) ||
+    targetStart < range.start ||
+    targetEnd > range.end ||
+    targetEnd <= targetStart
+  ) {
+    throw new Error(
+      `Censor rule "${ruleIdentity(rule)}" returned an invalid target range [${targetStart}, ${targetEnd}) inside match [${range.start}, ${range.end}).`
+    );
+  }
+
+  return {
+    start: range.start,
+    end: range.end,
+    targetStart,
+    targetEnd,
+  };
+}
+
+function scanMatcherRule(text: string, rule: CensorMatcherRule): ScannedMatch[] {
+  const matches: ScannedMatch[] = [];
+
+  for (const rawRange of rule.matcher.find(text)) {
+    const range = validatedMatcherRange(text.length, rule, rawRange);
+    matches.push(
+      scannedMatchFromRange(
+        text,
+        rule,
+        range.start,
+        range.end,
+        range.targetStart,
+        range.targetEnd
+      )
+    );
+  }
+
+  return matches;
+}
+
+function scan(text: string, rules: readonly CompiledRule[]): ScannedMatch[] {
+  const matches = rules.flatMap(rule =>
+    isMatcherRule(rule)
+      ? scanMatcherRule(text, rule)
+      : scanRegexRule(text, rule)
+  );
 
   matches.sort(
     (left, right) =>
@@ -413,10 +552,13 @@ export function rulesFromPacks(
   ...packs: readonly CensorRulePack[]
 ): CensorRule[] {
   return packs.flatMap(pack =>
-    pack.rules.map(rule => ({
-      ...rule,
-      packId: pack.id,
-    }))
+    pack.rules.map(
+      rule =>
+        ({
+          ...rule,
+          packId: pack.id,
+        }) as CensorRule
+    )
   );
 }
 
@@ -424,10 +566,14 @@ export function createScrawlix({
   rules = [],
   coverage = 'middle',
 }: ScrawlixOptions = {}): ScrawlixEngine {
-  const compiledRules: CompiledRule[] = rules.map(rule => ({
-    ...rule,
-    pattern: compilePattern(rule.pattern),
-  }));
+  const compiledRules: CompiledRule[] = rules.map(rule =>
+    isMatcherRule(rule)
+      ? rule
+      : {
+          ...rule,
+          pattern: compilePattern(rule.pattern),
+        }
+  );
 
   return {
     find(text) {
