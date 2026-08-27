@@ -1,5 +1,5 @@
-import './popup.css';
 import './content.css';
+import './popup.css';
 import {
   effectiveEnabled,
   normalizeCustomWords,
