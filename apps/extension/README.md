@@ -75,7 +75,7 @@ The store-facing manifest requests no HTTP/HTTPS host permission at install time
 - allow the current HTTP/HTTPS origin
 - allow all HTTP and HTTPS websites
 
-A small Manifest V3 service worker keeps one dynamic content-script registration aligned with the origins Chrome currently grants to Scrawlix. Dynamic registration persists across browser sessions.
+A small Manifest V3 service worker keeps one dynamic content-script registration aligned with the origins Chrome currently grants to Scrawlix. Dynamic registration persists across browser sessions and runs at `document_start` so the page runtime can begin as soon as `<body>` appears instead of waiting until document idle/load time.
 
 Browser access and Scrawlix policy are separate. A site can be configured `on` while Chrome access is still missing; the popup reports that state directly instead of claiming censorship is already active.
 
@@ -97,12 +97,18 @@ A selection-only context-menu action, **Add “selection” to Scrawlix**, norma
 
 The content script:
 
-1. loads the English pack plus one compiled custom-word rule when custom terms exist
-2. creates one `@scrawlix/dom` controller when the effective site policy is enabled
-3. observes `document.body`
-4. decorates only Scrawlix-generated roots with extension presentation metadata
-5. listens for sync/local preference changes and reconciles the minimum required work
-6. accepts extension messages to reconcile, restore, or temporarily reveal the current page
+1. is registered at `document_start`
+2. attaches a cheap document/root lifecycle watcher and begins Scrawlix as soon as `<body>` exists
+3. loads the English pack plus one compiled custom-word rule when custom terms exist
+4. creates one `@scrawlix/dom` controller for the concrete current `document.body` when the effective site policy is enabled
+5. observes that body for ordinary SPA/content mutations and decorates only Scrawlix-generated roots with extension presentation metadata
+6. listens for sync/local preference changes and reconciles the minimum required work
+7. accepts extension messages to reconcile, restore, or temporarily reveal the current page
+8. watches direct `<html>` children so a wholesale `<body>` replacement tears down the detached session and starts a new controller on the replacement body
+
+Each extension-decorated DOM root gets `data-scrawlix-extension-owned`. If an SPA clones or moves a body containing copied Scrawlix wrappers, the replacement session unwraps only those marked roots back to their exact text content before matching the new body. This prevents copied wrappers from masquerading as live controller-owned output while leaving author-owned lookalike attributes alone.
+
+The long-lived lifecycle watcher observes only direct document / `<html>` child changes. Ordinary page mutations remain inside the DOM adapter's body-scoped `MutationObserver`; Scrawlix does not add a second permanent full-document subtree scan.
 
 Preference reconciliation is incremental:
 
@@ -157,4 +163,4 @@ See [`docs/extension-privacy.md`](../../docs/extension-privacy.md) for the curre
 - broad HTTP/HTTPS patterns remain optional instead of required host permissions
 - every directly referenced popup/background/options asset exists in `dist`
 
-Unit tests cover preference normalization/reconciliation, browser-access helpers including restore-before-revoke behavior, local-vs-sync storage, selection normalization, and legacy reveal migration. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration, real content script, temporary page reveal, native-tab-order click behavior, and Options custom-term round trip without weakening the shipping manifest.
+Unit tests cover preference normalization/reconciliation, browser-access helpers including restore-before-revoke behavior, local-vs-sync storage, selection normalization, and legacy reveal migration. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration, `document_start` runtime, native-tab-order click behavior, temporary page reveal, Options custom-term round trip, and complete-body replacement recovery without weakening the shipping manifest.
