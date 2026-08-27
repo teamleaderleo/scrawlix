@@ -3,7 +3,7 @@
   "name": "Scrawlix",
   "description": "Programmable censorship for the web.",
   "version": "0.0.0",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage", "activeTab", "scripting", "contextMenus"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "background": {
     "service_worker": "background.js"
@@ -11,5 +11,13 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "Scrawlix"
+  },
+  "commands": {
+    "temporary-reveal": {
+      "suggested_key": {
+        "default": "Alt+Shift+R"
+      },
+      "description": "Reveal Scrawlix-covered text on the current page for 10 seconds"
+    }
   }
 }
