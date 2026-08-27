@@ -118,7 +118,7 @@ describe('CensoredText per-match reveal', () => {
     expect(covers[1]!.dataset.scrawlixRevealed).toBe('true');
   });
 
-  it('provides keyboard controls without making the aria-hidden visual tree focusable', () => {
+  it('provides keyboard toggle controls without making the aria-hidden visual tree focusable', () => {
     const container = render(
       <CensoredText
         coverage="middle"
@@ -137,6 +137,7 @@ describe('CensoredText per-match reveal', () => {
     expect(visual.getAttribute('aria-hidden')).toBe('true');
     expect(covers[0]!.getAttribute('tabindex')).toBeNull();
     expect(controls).toHaveLength(2);
+    expect(controls[0]!.getAttribute('aria-pressed')).toBe('false');
 
     act(() => controls[0]!.dispatchEvent(new FocusEvent('focusin', { bubbles: true })));
     expect(covers[0]!.dataset.scrawlixFocused).toBe('true');
@@ -145,6 +146,7 @@ describe('CensoredText per-match reveal', () => {
     act(() => controls[0]!.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(covers[0]!.dataset.scrawlixRevealed).toBe('true');
     expect(covers[1]!.dataset.scrawlixRevealed).toBe('false');
+    expect(controls[0]!.getAttribute('aria-pressed')).toBe('true');
 
     act(() =>
       controls[0]!.dispatchEvent(
@@ -152,6 +154,7 @@ describe('CensoredText per-match reveal', () => {
       )
     );
     expect(covers[0]!.dataset.scrawlixRevealed).toBe('false');
+    expect(controls[0]!.getAttribute('aria-pressed')).toBe('false');
   });
 
   it('uses keyboard focus itself as the reveal trigger in focus mode', () => {
@@ -167,6 +170,7 @@ describe('CensoredText per-match reveal', () => {
     const controls = container.querySelectorAll<HTMLButtonElement>('[data-scrawlix-control]');
     const covers = container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]');
 
+    expect(controls[0]!.getAttribute('aria-pressed')).toBeNull();
     act(() => controls[1]!.dispatchEvent(new FocusEvent('focusin', { bubbles: true })));
     expect(covers[0]!.dataset.scrawlixRevealed).toBe('false');
     expect(covers[1]!.dataset.scrawlixRevealed).toBe('true');
