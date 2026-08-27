@@ -27,7 +27,7 @@ const scrawlix = createScrawlix({
 const segments = scrawlix.segment('what the fuck');
 ```
 
-The engine preserves the caller-owned source string. It reports matches and covered segments; rendering belongs to an adapter such as `@scrawlix/react`, `@scrawlix/rehype`, or `@scrawlix/dom`.
+The engine preserves the caller-owned source string. It reports matches and covered segments; rendering belongs to an adapter such as `@scrawlix/react`, `@scrawlix/rehype`, or `@scrawlix/dom`, or to a small application-owned renderer. Vue, Svelte, Solid, plain-DOM, and other consumers can start with [`docs/custom-renderers.md`](../../docs/custom-renderers.md) instead of waiting for another package.
 
 ## Custom terms
 
@@ -158,4 +158,4 @@ Profile names describe the matching path. Packs still own linguistic scope, revi
 
 Scrawlix deliberately has no built-in language or hidden profanity list. Callers select rules explicitly.
 
-See the repository README for framework quickstarts and `docs/language-packs.md` for pack authoring.
+See the repository README for framework quickstarts, [`docs/custom-renderers.md`](../../docs/custom-renderers.md) for framework-neutral rendering, and `docs/language-packs.md` for pack authoring.
