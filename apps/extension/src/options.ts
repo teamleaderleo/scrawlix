@@ -1,9 +1,13 @@
+import { censorRuleFromWords, createScrawlix } from '@scrawlix/core';
+import './content.css';
 import './options.css';
 import { MAX_CUSTOM_TERM_CODE_POINTS } from './actions';
 import {
   CUSTOM_WORDS_KEY,
   SITE_OVERRIDES_KEY,
   SYNC_SETTINGS_KEY,
+  coverageSelector,
+  maskFor,
   normalizeCustomWords,
   setSiteMode,
   type ExtensionAppearance,
@@ -19,6 +23,9 @@ import {
   saveSettings,
 } from './storage';
 
+const PREVIEW_TERM = 'Mothbit';
+const previewRule = censorRuleFromWords('options-preview', [PREVIEW_TERM]);
+
 function required<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
   if (!element) throw new Error(`Missing options element #${id}`);
@@ -32,6 +39,8 @@ const coverageSelect = required<HTMLSelectElement>('coverage');
 const revealSelect = required<HTMLSelectElement>('reveal');
 const settingsStatus = required<HTMLSpanElement>('settings-status');
 const versionLabel = required<HTMLSpanElement>('version');
+const previewStage = required<HTMLParagraphElement>('preview-stage');
+const previewCaption = required<HTMLParagraphElement>('preview-caption');
 
 const addTermsForm = required<HTMLFormElement>('add-terms-form');
 const newTermsInput = required<HTMLTextAreaElement>('new-terms');
@@ -59,12 +68,73 @@ function filterMatch(value: string, query: string) {
   return value.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase());
 }
 
+function previewInstruction(reveal: ExtensionReveal) {
+  switch (reveal) {
+    case 'hover':
+      return 'Hover the specimen to reveal it.';
+    case 'focus':
+      return 'Tab to the specimen to reveal it.';
+    case 'click':
+      return 'Click or press Enter on the specimen to toggle reveal.';
+    case 'never':
+      return 'The specimen stays covered.';
+  }
+}
+
+function togglePreview(root: HTMLElement) {
+  if (settings.reveal !== 'click') return;
+  root.dataset.scrawlixRevealed =
+    root.dataset.scrawlixRevealed === 'true' ? 'false' : 'true';
+}
+
+function renderPreview() {
+  const engine = createScrawlix({
+    rules: [previewRule],
+    coverage: coverageSelector(settings.coverage),
+  });
+  const root = document.createElement('span');
+  root.dataset.scrawlixDomRoot = '';
+  root.dataset.scrawlixAppearance = settings.appearance;
+  root.dataset.scrawlixReveal = settings.reveal;
+  root.dataset.scrawlixRevealed = 'false';
+  root.setAttribute('aria-hidden', 'true');
+
+  if (settings.reveal === 'focus' || settings.reveal === 'click') {
+    root.tabIndex = 0;
+  }
+
+  for (const segment of engine.segment(PREVIEW_TERM)) {
+    if (!segment.covered) {
+      root.append(document.createTextNode(segment.text));
+      continue;
+    }
+
+    const cover = document.createElement('span');
+    cover.dataset.scrawlixCover = '';
+    const mask = maskFor(segment.text, settings.appearance);
+    if (mask) cover.dataset.scrawlixMask = mask;
+    cover.textContent = segment.text;
+    root.append(cover);
+  }
+
+  root.addEventListener('click', () => togglePreview(root));
+  root.addEventListener('keydown', event => {
+    if (settings.reveal !== 'click' || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    togglePreview(root);
+  });
+
+  previewStage.replaceChildren(root);
+  previewCaption.textContent = `${settings.appearance} style · ${settings.coverage} coverage. ${previewInstruction(settings.reveal)}`;
+}
+
 function renderGeneral() {
   activeInput.checked = !settings.paused;
   defaultEnabledSelect.value = settings.enabled ? 'on' : 'off';
   appearanceSelect.value = settings.appearance;
   coverageSelect.value = settings.coverage;
   revealSelect.value = settings.reveal;
+  renderPreview();
 }
 
 function renderTerms() {
@@ -160,20 +230,36 @@ function humanAccessPattern(pattern: string) {
   return pattern.replace(/\/\*$/, '');
 }
 
+function accessDisplayEntries(origins: readonly string[]) {
+  const set = new Set(origins.filter(origin => /^https?:\/\//.test(origin)));
+  const entries: string[] = [];
+  const allHttp = set.delete('http://*/*');
+  const allHttps = set.delete('https://*/*');
+
+  if (allHttp && allHttps) entries.push('All HTTP and HTTPS websites');
+  else {
+    if (allHttp) entries.push('All HTTP websites');
+    if (allHttps) entries.push('All HTTPS websites');
+  }
+
+  entries.push(...[...set].sort().map(humanAccessPattern));
+  return entries;
+}
+
 async function renderAccess() {
   const permissions = await chrome.permissions.getAll();
-  const origins = [...new Set((permissions.origins ?? []).filter(origin => /^https?:\/\//.test(origin)))].sort();
+  const entries = accessDisplayEntries(permissions.origins ?? []);
 
-  accessCount.textContent = `${origins.length} ${origins.length === 1 ? 'grant' : 'grants'}`;
+  accessCount.textContent = `${entries.length} ${entries.length === 1 ? 'grant' : 'grants'}`;
   accessList.replaceChildren();
 
-  for (const origin of origins) {
+  for (const entry of entries) {
     const item = document.createElement('li');
-    item.textContent = humanAccessPattern(origin);
+    item.textContent = entry;
     accessList.append(item);
   }
 
-  accessEmpty.hidden = origins.length > 0;
+  accessEmpty.hidden = entries.length > 0;
 }
 
 async function persistSettings(next: SyncSettings) {
