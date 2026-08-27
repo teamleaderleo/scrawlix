@@ -7,10 +7,13 @@ import { englishStrongProfanityRules } from '../packages/en/dist/index.js';
 
 const KiB = 1024;
 const MiB = 1024 * KiB;
-const documentSizes = [10 * KiB, MiB, 10 * MiB];
-const ruleCounts = [5, 100, 1_000];
-const customTermCounts = [10, 1_000, 10_000];
-const iterations = Number(process.env.SCRAWLIX_BENCH_ITERATIONS ?? 3);
+const smoke = process.argv.includes('--smoke');
+const documentSizes = smoke ? [10 * KiB] : [10 * KiB, MiB, 10 * MiB];
+const ruleCounts = smoke ? [5] : [5, 100, 1_000];
+const customTermCounts = smoke ? [10] : [10, 1_000, 10_000];
+const iterations = smoke
+  ? 1
+  : Number(process.env.SCRAWLIX_BENCH_ITERATIONS ?? 3);
 
 function repeatToLength(seed, length) {
   if (length <= 0) return '';
@@ -113,7 +116,7 @@ function printRuleScaling() {
   for (const count of ruleCounts) {
     const rules = Array.from({ length: count }, (_, index) => ({
       id: `rule-${index}`,
-      pattern: new RegExp(`term${index}`, 'u'),
+      pattern: new RegExp(`\\bterm${index}\\b`, 'u'),
     }));
 
     const compiled = measure(`compile-rules-${count}`, () =>
@@ -175,8 +178,12 @@ function printCustomTermScaling() {
   }
 }
 
-console.log(`Scrawlix core benchmark — ${iterations} measured iteration(s), median reported`);
-console.log(`Node ${process.version}; gc=${typeof globalThis.gc === 'function' ? 'explicit' : 'automatic'}`);
+console.log(
+  `Scrawlix core benchmark — ${iterations} measured iteration(s), median reported${smoke ? ' [smoke]' : ''}`
+);
+console.log(
+  `Node ${process.version}; gc=${typeof globalThis.gc === 'function' ? 'explicit' : 'automatic'}`
+);
 printDocumentScaling();
 printRuleScaling();
 printCustomTermScaling();
