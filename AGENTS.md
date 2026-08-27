@@ -67,6 +67,8 @@ When intentionally changing dependencies, run the pinned pnpm install normally, 
 
 Repository CI uses Node 22 and frozen installs. The demo and extension builds are part of the workspace build. The packed-package smoke suite installs tarballs into consumers outside the workspace dependency graph, strictly typechecks Scrawlix declarations through React 18 and React 19, production-builds both majors, and production-builds the documented Next.js App Router client-wrapper path.
 
+Public package builds emit JavaScript and declaration source maps. Each package manifest deliberately includes only the implementation source files those maps target; source tests stay out of tarballs. When adding or splitting a public implementation entrypoint, update the package `files` list so every local `.js.map` / `.d.ts.map` source remains available after packing. `pnpm smoke:packages` parses the packed archives and fails on unresolved local map targets, path escapes, or packed `*.test.*` sources.
+
 The npm publication workflow uses Node 24 so its OIDC runner comfortably satisfies trusted-publishing runtime requirements. Published runtime compatibility and workspace-tooling expectations live in `docs/compatibility.md`. Release classification and public-contract rules live in `docs/versioning.md`.
 
 ## Invariants
@@ -187,6 +189,6 @@ Scrawlix is pre-release, so breaking changes are still possible. Use that freedo
 
 The documented package exports, rule ids, option defaults, adapter data attributes, ignore attributes, and React CSS/render attributes are public contracts. Keep application-only browser-extension state private unless a document explicitly promotes it to a public contract.
 
-Packed-package smoke tests are a release gate: external consumers must receive compiled JavaScript, declarations, CSS exports, and valid package metadata rather than workspace-only source imports. Every new public package belongs in `scripts/smoke-packages.mjs` and the relevant external consumer fixture.
+Packed-package smoke tests are a release gate: external consumers must receive compiled JavaScript, declarations, CSS exports, valid package metadata, and source-map targets that resolve inside the tarball. Every new public package belongs in `scripts/smoke-packages.mjs` and the relevant external consumer fixture.
 
 Human quickstarts live in the root/package READMEs. Agent quickstarts live in the demo `llms.txt`. Keep those surfaces synchronized whenever public names, defaults, package selection, required side-effect imports, or framework boundaries change.
