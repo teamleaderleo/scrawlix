@@ -23,7 +23,7 @@ const MAX_REVEAL_MS = 60_000;
 
 let observation: DomObservation | null = null;
 let presentationObserver: MutationObserver | null = null;
-let sessionBody: HTMLBodyElement | null = null;
+let sessionBody: HTMLElement | null = null;
 let activeState: ExtensionStateSnapshot | null = null;
 let restartGeneration = 0;
 let pageRevealTimer: number | null = null;
@@ -103,7 +103,7 @@ function decorateSubtree(node: Node, settings: SyncSettings) {
   }
 }
 
-function restoreCopiedExtensionRoots(body: HTMLBodyElement) {
+function restoreCopiedExtensionRoots(body: HTMLElement) {
   for (const root of Array.from(
     body.querySelectorAll<HTMLElement>(EXTENSION_ROOT_SELECTOR)
   )) {
@@ -111,7 +111,7 @@ function restoreCopiedExtensionRoots(body: HTMLBodyElement) {
   }
 }
 
-function startPresentationObserver(body: HTMLBodyElement) {
+function startPresentationObserver(body: HTMLElement) {
   const observer = new MutationObserver(records => {
     const settings = activeState?.settings;
     if (!settings) return;
@@ -135,7 +135,7 @@ function stopCurrentSession() {
   sessionBody = null;
 }
 
-function startSession(state: ExtensionStateSnapshot, body: HTMLBodyElement) {
+function startSession(state: ExtensionStateSnapshot, body: HTMLElement) {
   if (document.body !== body) return;
 
   // An SPA may clone or move an extension-decorated body. Those copied wrappers are
