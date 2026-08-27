@@ -79,6 +79,17 @@ assert.ok(
   )
 );
 
+const englishConfusable = obfuscatedEngine.find('motherfuсker')[0];
+assert.equal(englishConfusable?.text, 'motherfuсker');
+assert.equal(englishConfusable?.targetText, 'fuсk');
+assert.equal(englishConfusable?.targetStart, 6);
+assert.equal(englishConfusable?.targetEnd, 10);
+assert.ok(
+  englishObfuscatedProfanityCorpus.some(
+    testCase => testCase.id === 'obfuscated-confusable-fuck-mother-c'
+  )
+);
+
 const targetedEngine = createScrawlix({
   rules: [
     censorRuleFromTargetedObfuscatedTerms(

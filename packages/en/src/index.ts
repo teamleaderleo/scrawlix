@@ -4,8 +4,8 @@ import {
   type CensorRulePack,
   type CoverageSelector,
 } from '@scrawlix/core';
+import { censorRuleFromConfusableObfuscatedTerms } from '@scrawlix/core/confusable-obfuscated';
 import type { TargetedObfuscatedTerm } from '@scrawlix/core/targeted-obfuscated';
-import { censorRuleFromWidthObfuscatedTerms } from '@scrawlix/core/width-obfuscated';
 
 /**
  * Covers orthographic English vowels (a/e/i/o/u) inside the semantic target.
@@ -89,6 +89,20 @@ const englishObfuscatedWidthVariants = {
   y: ['ｙ'],
 } as const;
 
+/**
+ * Reviewed cross-script lookalikes observed in English-style evasions.
+ * This list is deliberately small; other Greek/Cyrillic/math lookalikes remain
+ * clean until they receive corpus evidence and explicit review.
+ */
+const englishObfuscatedConfusables = {
+  a: ['а'], // Cyrillic small a U+0430
+  c: ['с'], // Cyrillic small es U+0441
+  e: ['е'], // Cyrillic small ie U+0435
+  i: ['і'], // Cyrillic small Ukrainian i U+0456
+  o: ['о'], // Cyrillic small o U+043E
+  s: ['ѕ'], // Cyrillic small dze U+0455
+} as const;
+
 function targetedForms(
   target: string,
   forms: readonly string[]
@@ -143,76 +157,86 @@ const englishCuntForms = targetedForms('cunt', ['cunt', 'cunts']);
  * Conservative opt-in evasions mirroring the canonical pack's declared forms.
  *
  * Each candidate may use one reviewed substitution, one reviewed internal
- * separator/zero-width insertion, one excess repeated letter, or one reviewed
- * fullwidth ASCII grapheme. The combined budget remains one transform. Full
- * inflections/compounds are matched while coverage and target metadata stay
- * attached to the canonical profanity root.
+ * separator/zero-width insertion, one excess repeated letter, one reviewed
+ * fullwidth ASCII grapheme, or one reviewed Unicode confusable. The combined
+ * budget remains one transform. Full inflections/compounds are matched while
+ * coverage and target metadata stay attached to the canonical profanity root.
  */
 export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
-  censorRuleFromWidthObfuscatedTerms('fuck-obfuscated', englishFuckForms, {
+  censorRuleFromConfusableObfuscatedTerms('fuck-obfuscated', englishFuckForms, {
     substitutions: {
       u: ['*'],
       c: ['('],
     },
     widthVariants: englishObfuscatedWidthVariants,
+    confusables: englishObfuscatedConfusables,
     ignored: englishObfuscatedIgnored,
     maxSubstitutions: 1,
     maxIgnored: 1,
     maxRepetitions: 1,
     maxWidthVariants: 1,
+    maxConfusables: 1,
     maxChanges: 1,
   }),
-  censorRuleFromWidthObfuscatedTerms('shit-obfuscated', englishShitForms, {
+  censorRuleFromConfusableObfuscatedTerms('shit-obfuscated', englishShitForms, {
     substitutions: {
       s: ['$', '5'],
       i: ['1', '!', '*'],
       t: ['7'],
     },
     widthVariants: englishObfuscatedWidthVariants,
+    confusables: englishObfuscatedConfusables,
     ignored: englishObfuscatedIgnored,
     maxSubstitutions: 1,
     maxIgnored: 1,
     maxRepetitions: 1,
     maxWidthVariants: 1,
+    maxConfusables: 1,
     maxChanges: 1,
   }),
-  censorRuleFromWidthObfuscatedTerms('bitch-obfuscated', englishBitchForms, {
+  censorRuleFromConfusableObfuscatedTerms('bitch-obfuscated', englishBitchForms, {
     substitutions: {
       i: ['1', '!', '*'],
       t: ['7'],
     },
     widthVariants: englishObfuscatedWidthVariants,
+    confusables: englishObfuscatedConfusables,
     ignored: englishObfuscatedIgnored,
     maxSubstitutions: 1,
     maxIgnored: 1,
     maxRepetitions: 1,
     maxWidthVariants: 1,
+    maxConfusables: 1,
     maxChanges: 1,
   }),
-  censorRuleFromWidthObfuscatedTerms('asshole-obfuscated', englishAssholeForms, {
+  censorRuleFromConfusableObfuscatedTerms('asshole-obfuscated', englishAssholeForms, {
     substitutions: {
       a: ['@'],
       s: ['$', '5'],
       o: ['0'],
     },
     widthVariants: englishObfuscatedWidthVariants,
+    confusables: englishObfuscatedConfusables,
     ignored: englishObfuscatedIgnored,
     maxSubstitutions: 1,
     maxIgnored: 1,
     maxRepetitions: 1,
     maxWidthVariants: 1,
+    maxConfusables: 1,
     maxChanges: 1,
   }),
-  censorRuleFromWidthObfuscatedTerms('cunt-obfuscated', englishCuntForms, {
+  censorRuleFromConfusableObfuscatedTerms('cunt-obfuscated', englishCuntForms, {
     substitutions: {
       u: ['*'],
     },
     widthVariants: englishObfuscatedWidthVariants,
+    confusables: englishObfuscatedConfusables,
     ignored: englishObfuscatedIgnored,
     maxSubstitutions: 1,
     maxIgnored: 1,
     maxRepetitions: 1,
     maxWidthVariants: 1,
+    maxConfusables: 1,
     maxChanges: 1,
   }),
 ] as const;
