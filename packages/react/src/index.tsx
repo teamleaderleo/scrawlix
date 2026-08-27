@@ -1,5 +1,6 @@
 import {
   createScrawlix,
+  graphemeCount,
   type CensorRule,
   type CoverageSelector,
 } from '@scrawlix/core';
@@ -27,12 +28,13 @@ export type CensoredTextProps = {
 const GRAWLIX = '@#$%&!';
 
 function symbolsFor(text: string, appearance: ScrawlixAppearance) {
-  const characters = Array.from(text);
-  if (appearance === 'asterisk') return characters.map(() => '*').join('');
+  const length = graphemeCount(text);
+  if (appearance === 'asterisk') return '*'.repeat(length);
   if (appearance === 'grawlix') {
-    return characters
-      .map((_, index) => GRAWLIX[index % GRAWLIX.length])
-      .join('');
+    return Array.from(
+      { length },
+      (_, index) => GRAWLIX[index % GRAWLIX.length]
+    ).join('');
   }
   return text;
 }
