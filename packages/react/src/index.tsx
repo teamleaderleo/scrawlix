@@ -3,7 +3,12 @@ import {
   type CensorRule,
   type CoverageSelector,
 } from '@scrawlix/core';
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import {
+  useMemo,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+} from 'react';
 
 export type ScrawlixAppearance =
   | 'scrawl'
@@ -16,6 +21,16 @@ export type ScrawlixAppearance =
 
 export type ScrawlixReveal = 'hover' | 'focus' | 'click' | 'never';
 
+export type ScrawlixCustomProperty =
+  | '--scrawlix-ink'
+  | '--scrawlix-surface'
+  | '--scrawlix-bar-height'
+  | '--scrawlix-blur-radius'
+  | '--scrawlix-mosaic-cell';
+
+export type ScrawlixStyle = CSSProperties &
+  Partial<Record<ScrawlixCustomProperty, string | number>>;
+
 export type CensoredTextProps = {
   text: string;
   rules: readonly CensorRule[];
@@ -23,6 +38,7 @@ export type CensoredTextProps = {
   appearance?: ScrawlixAppearance;
   reveal?: ScrawlixReveal;
   className?: string;
+  style?: ScrawlixStyle;
   title?: string;
 };
 
@@ -57,6 +73,7 @@ export function CensoredText({
   appearance = 'scrawl',
   reveal = 'hover',
   className = '',
+  style,
   title = 'Censored text',
 }: CensoredTextProps) {
   const engine = useMemo(
@@ -86,6 +103,7 @@ export function CensoredText({
       data-scrawlix-appearance={appearance}
       data-scrawlix-reveal={reveal}
       data-scrawlix-revealed={revealed ? 'true' : 'false'}
+      style={style}
       tabIndex={interactive ? 0 : undefined}
       onClick={reveal === 'click' ? () => setRevealed(value => !value) : undefined}
       onKeyDown={onKeyDown}
