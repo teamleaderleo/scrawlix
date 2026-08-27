@@ -31,6 +31,7 @@ textarea {
 
 .masthead,
 .site-card,
+.access-card,
 .settings-grid,
 .custom-words,
 footer {
@@ -64,11 +65,13 @@ footer {
 .tagline,
 .eyebrow,
 .status-line,
+.access-status,
 .hint,
 footer,
 .switch-row span,
 .settings-grid label > span,
-.save-status {
+.save-status,
+.access-actions button {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -155,6 +158,54 @@ footer,
 
 .status-line[data-enabled='false']::before {
   content: '○ ';
+}
+
+.access-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 0 12px;
+}
+
+.access-status {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.35;
+  opacity: 0.72;
+}
+
+.access-actions {
+  display: grid;
+  gap: 5px;
+}
+
+.access-actions button {
+  min-height: 28px;
+  padding: 5px 7px;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(23, 21, 16, 0.42);
+  font-size: 8px;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+  cursor: pointer;
+}
+
+.access-actions button:hover,
+.access-actions button:focus-visible {
+  border-color: #171510;
+}
+
+.access-actions button:focus-visible {
+  outline: 1px solid #171510;
+  outline-offset: 1px;
+}
+
+.access-actions button:disabled {
+  cursor: default;
+  opacity: 0.48;
 }
 
 select,

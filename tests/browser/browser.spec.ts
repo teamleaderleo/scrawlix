@@ -1,7 +1,20 @@
 import { chromium, expect, test } from '@playwright/test';
+import { cpSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const extensionPath = resolve(process.cwd(), 'apps/extension/dist');
+
+function extensionWithPregrantedHosts(outputPath: string) {
+  cpSync(extensionPath, outputPath, { recursive: true });
+
+  const manifestPath = resolve(outputPath, 'manifest.json');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  manifest.host_permissions = manifest.optional_host_permissions ?? [];
+  delete manifest.optional_host_permissions;
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  return outputPath;
+}
 
 test('demo controls drive real rendered coverage and reveal state', async ({ page }) => {
   await page.goto('http://127.0.0.1:4173');
@@ -33,20 +46,35 @@ test('demo controls drive real rendered coverage and reveal state', async ({ pag
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test('built extension transforms initial and dynamic page text in Chromium', async ({}, testInfo) => {
+test('built extension registers granted hosts and transforms page text in Chromium', async ({}, testInfo) => {
+  const testExtensionPath = extensionWithPregrantedHosts(
+    testInfo.outputPath('extension-under-test')
+  );
   const context = await chromium.launchPersistentContext(
     testInfo.outputPath('extension-profile'),
     {
       channel: 'chromium',
       headless: true,
       args: [
-        `--disable-extensions-except=${extensionPath}`,
-        `--load-extension=${extensionPath}`,
+        `--disable-extensions-except=${testExtensionPath}`,
+        `--load-extension=${testExtensionPath}`,
       ],
     }
   );
 
   try {
+    const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
+    await expect
+      .poll(async () =>
+        worker.evaluate(async () => {
+          const scripts = await chrome.scripting.getRegisteredContentScripts({
+            ids: ['scrawlix-page'],
+          });
+          return scripts[0]?.matches?.sort() ?? [];
+        })
+      )
+      .toEqual(['http://*/*', 'https://*/*']);
+
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
 

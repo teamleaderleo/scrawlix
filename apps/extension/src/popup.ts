@@ -1,5 +1,15 @@
 import './popup.css';
 import {
+  ALL_HOST_PATTERNS,
+  activateTab,
+  deactivateTab,
+  hasAllHostsAccess,
+  hasPersistentAccess,
+  originPatternForUrl,
+  removeHostAccess,
+  requestHostAccess,
+} from './access';
+import {
   effectiveEnabled,
   normalizeCustomWords,
   setSiteMode,
@@ -23,6 +33,13 @@ function required<T extends HTMLElement>(id: string): T {
   return element as T;
 }
 
+type ActivePage = {
+  tabId: number;
+  url: string;
+  hostname: string;
+  originPattern: string;
+};
+
 const activeInput = required<HTMLInputElement>('active');
 const defaultEnabledSelect = required<HTMLSelectElement>('default-enabled');
 const siteModeSelect = required<HTMLSelectElement>('site-mode');
@@ -32,30 +49,38 @@ const revealSelect = required<HTMLSelectElement>('reveal');
 const customWordsInput = required<HTMLTextAreaElement>('custom-words');
 const siteHeading = required<HTMLHeadingElement>('site-heading');
 const effectiveStatus = required<HTMLParagraphElement>('effective-status');
+const accessStatus = required<HTMLParagraphElement>('access-status');
+const siteAccessButton = required<HTMLButtonElement>('site-access');
+const allSitesAccessButton = required<HTMLButtonElement>('all-sites-access');
 const settingsStatus = required<HTMLSpanElement>('settings-status');
 const saveStatus = required<HTMLSpanElement>('save-status');
 
 let settings: SyncSettings;
-let hostname: string | null = null;
+let page: ActivePage | null = null;
+let persistentAccess = false;
+let allHostsAccess = false;
 let wordSaveTimer: number | null = null;
 let settingsSaveQueue = Promise.resolve();
 
-async function currentHostname() {
+async function currentPage(): Promise<ActivePage | null> {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  const url = tabs[0]?.url;
-  if (!url) return null;
+  const tab = tabs[0];
+  if (tab?.id === undefined || !tab.url) return null;
 
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
-    return parsed.hostname.toLowerCase();
-  } catch {
-    return null;
-  }
+  const originPattern = originPatternForUrl(tab.url);
+  if (!originPattern) return null;
+
+  const parsed = new URL(tab.url);
+  return {
+    tabId: tab.id,
+    url: tab.url,
+    hostname: parsed.hostname.toLowerCase(),
+    originPattern,
+  };
 }
 
 function renderEffectiveStatus() {
-  if (!hostname) {
+  if (!page) {
     siteHeading.textContent = 'This page is unavailable';
     effectiveStatus.textContent = 'Scrawlix runs on ordinary HTTP and HTTPS pages.';
     effectiveStatus.dataset.enabled = 'false';
@@ -63,16 +88,46 @@ function renderEffectiveStatus() {
     return;
   }
 
-  siteHeading.textContent = hostname;
+  siteHeading.textContent = page.hostname;
   siteModeSelect.disabled = false;
-  siteModeSelect.value = siteModeFor(settings, hostname);
-  const enabledHere = effectiveEnabled(settings, hostname);
+  siteModeSelect.value = siteModeFor(settings, page.hostname);
+  const enabledHere = effectiveEnabled(settings, page.hostname);
+
   if (settings.paused) {
     effectiveStatus.textContent = 'paused everywhere';
+  } else if (enabledHere && !persistentAccess) {
+    effectiveStatus.textContent = 'ready here · browser access needed';
   } else {
     effectiveStatus.textContent = enabledHere ? 'censoring is on here' : 'censoring is off here';
   }
-  effectiveStatus.dataset.enabled = enabledHere ? 'true' : 'false';
+  effectiveStatus.dataset.enabled = enabledHere && persistentAccess ? 'true' : 'false';
+}
+
+function renderAccess() {
+  if (!page) {
+    accessStatus.textContent = 'Unavailable on this page.';
+    siteAccessButton.disabled = true;
+    allSitesAccessButton.disabled = false;
+    allSitesAccessButton.textContent = allHostsAccess
+      ? 'remove all-sites access'
+      : 'allow all websites';
+    return;
+  }
+
+  if (allHostsAccess) accessStatus.textContent = 'Allowed on all HTTP and HTTPS websites.';
+  else if (persistentAccess) accessStatus.textContent = 'Allowed on this site.';
+  else accessStatus.textContent = 'Ask first on this site.';
+
+  siteAccessButton.disabled = allHostsAccess;
+  siteAccessButton.textContent = allHostsAccess
+    ? 'included in all sites'
+    : persistentAccess
+      ? 'remove site access'
+      : 'allow this site';
+  allSitesAccessButton.disabled = false;
+  allSitesAccessButton.textContent = allHostsAccess
+    ? 'remove all-sites access'
+    : 'allow all websites';
 }
 
 function renderSettings() {
@@ -82,6 +137,21 @@ function renderSettings() {
   coverageSelect.value = settings.coverage;
   revealSelect.value = settings.reveal;
   renderEffectiveStatus();
+  renderAccess();
+}
+
+async function refreshAccess() {
+  const checks = [hasAllHostsAccess()];
+  if (page) checks.push(hasPersistentAccess(page.url));
+
+  const [all, current = false] = await Promise.all(checks);
+  allHostsAccess = all;
+  persistentAccess = current;
+  renderSettings();
+}
+
+async function ensureCurrentPageRuntime() {
+  if (page && persistentAccess) await activateTab(page.tabId);
 }
 
 async function persistSettings(next: SyncSettings) {
@@ -107,6 +177,7 @@ async function persistSettings(next: SyncSettings) {
 
   settingsSaveQueue = queued.catch(() => undefined);
   await queued.catch(() => undefined);
+  await ensureCurrentPageRuntime();
 }
 
 function wordsFromTextarea() {
@@ -123,6 +194,7 @@ async function persistWords() {
   try {
     await saveCustomWords(wordsFromTextarea());
     saveStatus.textContent = 'saved';
+    await ensureCurrentPageRuntime();
   } catch {
     saveStatus.textContent = 'save failed';
   }
@@ -143,9 +215,9 @@ defaultEnabledSelect.addEventListener('change', () => {
 });
 
 siteModeSelect.addEventListener('change', () => {
-  if (!hostname) return;
+  if (!page) return;
   void persistSettings(
-    setSiteMode(settings, hostname, siteModeSelect.value as SiteMode)
+    setSiteMode(settings, page.hostname, siteModeSelect.value as SiteMode)
   );
 });
 
@@ -170,19 +242,59 @@ revealSelect.addEventListener('change', () => {
   });
 });
 
+siteAccessButton.addEventListener('click', () => {
+  if (!page || allHostsAccess) return;
+
+  void (async () => {
+    accessStatus.textContent = persistentAccess ? 'removing access…' : 'requesting access…';
+    try {
+      if (persistentAccess) {
+        await deactivateTab(page.tabId);
+        await removeHostAccess([page.originPattern]);
+      } else {
+        const granted = await requestHostAccess([page.originPattern]);
+        if (granted) await activateTab(page.tabId);
+      }
+      await refreshAccess();
+    } catch {
+      accessStatus.textContent = 'Access change failed.';
+    }
+  })();
+});
+
+allSitesAccessButton.addEventListener('click', () => {
+  void (async () => {
+    accessStatus.textContent = allHostsAccess ? 'removing all-sites access…' : 'requesting all-sites access…';
+    try {
+      if (allHostsAccess) {
+        if (page) await deactivateTab(page.tabId);
+        await removeHostAccess(ALL_HOST_PATTERNS);
+        if (page && (await hasPersistentAccess(page.url))) await activateTab(page.tabId);
+      } else {
+        const granted = await requestHostAccess(ALL_HOST_PATTERNS);
+        if (granted && page) await activateTab(page.tabId);
+      }
+      await refreshAccess();
+    } catch {
+      accessStatus.textContent = 'Access change failed.';
+    }
+  })();
+});
+
 customWordsInput.addEventListener('input', scheduleWordSave);
 customWordsInput.addEventListener('change', () => void persistWords());
 
 async function initialize() {
-  const [state, activeHostname] = await Promise.all([
+  const [state, activePage] = await Promise.all([
     loadExtensionState(),
-    currentHostname(),
+    currentPage(),
   ]);
 
   settings = state.settings;
-  hostname = activeHostname;
+  page = activePage;
   customWordsInput.value = state.customWords.join('\n');
-  renderSettings();
+  await refreshAccess();
+  await ensureCurrentPageRuntime();
 }
 
 void initialize();

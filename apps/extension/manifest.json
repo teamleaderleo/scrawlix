@@ -3,18 +3,13 @@
   "name": "Scrawlix",
   "description": "Programmable censorship for the web.",
   "version": "0.0.0",
-  "permissions": ["storage", "activeTab"],
-  "host_permissions": ["http://*/*", "https://*/*"],
+  "permissions": ["storage", "activeTab", "scripting"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "Scrawlix"
-  },
-  "content_scripts": [
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
-      "css": ["content.css"],
-      "run_at": "document_idle"
-    }
-  ]
+  }
 }

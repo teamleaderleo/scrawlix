@@ -11,6 +11,7 @@ export type ExtensionAppearance =
 export type ExtensionCoverage = 'full' | 'tail' | 'middle' | 'inner' | 'vowel';
 export type ExtensionReveal = 'hover' | 'focus' | 'click' | 'never';
 export type SiteMode = 'inherit' | 'on' | 'off';
+export type SiteOverrides = Record<string, Exclude<SiteMode, 'inherit'>>;
 
 export type SyncSettings = {
   /** True master pause. When paused, no site override can enable Scrawlix. */
@@ -20,7 +21,8 @@ export type SyncSettings = {
   appearance: ExtensionAppearance;
   coverage: ExtensionCoverage;
   reveal: ExtensionReveal;
-  siteOverrides: Record<string, Exclude<SiteMode, 'inherit'>>;
+  /** Runtime-combined local site policy. This field is excluded from sync writes. */
+  siteOverrides: SiteOverrides;
 };
 
 export type ExtensionStateSnapshot = {
@@ -31,6 +33,7 @@ export type ExtensionStateSnapshot = {
 export type SessionAction = 'none' | 'start' | 'stop' | 'restart' | 'decorate';
 
 export const SYNC_SETTINGS_KEY = 'scrawlixSettings';
+export const SITE_OVERRIDES_KEY = 'scrawlixSiteOverrides';
 export const CUSTOM_WORDS_KEY = 'scrawlixCustomWords';
 
 export const DEFAULT_SETTINGS: SyncSettings = {
@@ -62,19 +65,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export function normalizeSettings(value: unknown): SyncSettings {
-  if (!isRecord(value)) return { ...DEFAULT_SETTINGS, siteOverrides: {} };
+export function normalizeSiteOverrides(value: unknown): SiteOverrides {
+  const siteOverrides: SiteOverrides = {};
+  if (!isRecord(value)) return siteOverrides;
 
-  const siteOverrides: SyncSettings['siteOverrides'] = {};
-  if (isRecord(value.siteOverrides)) {
-    for (const [hostname, mode] of Object.entries(value.siteOverrides)) {
-      const normalizedHostname = hostname.trim().toLowerCase();
-      if (!normalizedHostname) continue;
-      if (mode === 'on' || mode === 'off') {
-        siteOverrides[normalizedHostname] = mode;
-      }
+  for (const [hostname, mode] of Object.entries(value)) {
+    const normalizedHostname = hostname.trim().toLowerCase();
+    if (!normalizedHostname) continue;
+    if (mode === 'on' || mode === 'off') {
+      siteOverrides[normalizedHostname] = mode;
     }
   }
+
+  return siteOverrides;
+}
+
+export function normalizeSettings(value: unknown): SyncSettings {
+  if (!isRecord(value)) return { ...DEFAULT_SETTINGS, siteOverrides: {} };
 
   return {
     paused: typeof value.paused === 'boolean' ? value.paused : DEFAULT_SETTINGS.paused,
@@ -88,7 +95,7 @@ export function normalizeSettings(value: unknown): SyncSettings {
     reveal: REVEALS.has(value.reveal as ExtensionReveal)
       ? (value.reveal as ExtensionReveal)
       : DEFAULT_SETTINGS.reveal,
-    siteOverrides,
+    siteOverrides: normalizeSiteOverrides(value.siteOverrides),
   };
 }
 
