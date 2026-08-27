@@ -3,13 +3,9 @@ import {
   rulesFromPacks,
   type ScrawlixSegment,
 } from '@scrawlix/core';
+import { createCorpusRunner } from '@scrawlix/core/corpus';
 import { describe, expect, it } from 'vitest';
-import {
-  englishCleanCorpus,
-  englishObfuscatedCleanCorpus,
-  englishObfuscatedProfanityCorpus,
-  englishProfanityCorpus,
-} from './corpus';
+import { englishCorpus } from './corpus';
 import {
   englishObfuscatedStrongProfanityPack,
   englishObfuscatedStrongProfanityRules,
@@ -24,24 +20,6 @@ function marked(segments: readonly ScrawlixSegment[]) {
     .join('');
 }
 
-function expectedMatches(
-  engine: ReturnType<typeof createScrawlix>,
-  text: string,
-  profile: string
-) {
-  const found = engine.find(text);
-  expect(found.every(match => match.profile === profile)).toBe(true);
-  return found.map(match => ({
-    ruleId: match.ruleId,
-    text: match.text,
-    start: match.start,
-    end: match.end,
-    targetText: match.targetText,
-    targetStart: match.targetStart,
-    targetEnd: match.targetEnd,
-  }));
-}
-
 describe('@scrawlix/en', () => {
   const engine = createScrawlix({
     rules: englishStrongProfanityRules,
@@ -51,25 +29,13 @@ describe('@scrawlix/en', () => {
     rules: englishObfuscatedStrongProfanityRules,
     coverage: 'full',
   });
-
-  it.each(englishProfanityCorpus)('$id', corpusCase => {
-    expect(
-      expectedMatches(engine, corpusCase.text, corpusCase.profile)
-    ).toEqual(corpusCase.matches);
+  const runCorpusCase = createCorpusRunner({
+    canonical: engine,
+    obfuscated: obfuscatedEngine,
   });
 
-  it.each(englishCleanCorpus)('$id stays clean', corpusCase => {
-    expect(engine.find(corpusCase.text)).toEqual([]);
-  });
-
-  it.each(englishObfuscatedProfanityCorpus)('$id', corpusCase => {
-    expect(
-      expectedMatches(obfuscatedEngine, corpusCase.text, corpusCase.profile)
-    ).toEqual(corpusCase.matches);
-  });
-
-  it.each(englishObfuscatedCleanCorpus)('$id stays clean', corpusCase => {
-    expect(obfuscatedEngine.find(corpusCase.text)).toEqual([]);
+  it.each(englishCorpus)('$id', corpusCase => {
+    runCorpusCase(corpusCase);
   });
 
   it('covers only the semantic root inside obfuscated inflections and compounds', () => {
