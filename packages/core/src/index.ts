@@ -39,7 +39,7 @@ export type CensorRulePack = {
 export type WordBoundaryMode = 'word' | 'substring';
 
 export type ScrawlixMatch = {
-  id: string;
+  matchId: string;
   ruleId: string;
   text: string;
   start: number;
@@ -76,7 +76,7 @@ type CompiledRule = Omit<CensorRule, 'pattern'> & {
   pattern: RegExp;
 };
 
-type MatchWithoutId = Omit<ScrawlixMatch, 'id'>;
+type MatchWithoutId = Omit<ScrawlixMatch, 'matchId'>;
 
 type ScannedMatch = {
   match: MatchWithoutId;
@@ -266,7 +266,7 @@ function scan(text: string, rules: readonly CompiledRule[]): IdentifiedScannedMa
   return matches.map((scanned, index) => ({
     rule: scanned.rule,
     match: {
-      id: `m${index}`,
+      matchId: `m${index}`,
       ...scanned.match,
     },
   }));
@@ -302,7 +302,7 @@ function collectCoveredRanges(
         start: match.targetStart + relative.start,
         end: match.targetStart + relative.end,
         ruleIds: new Set([match.ruleId]),
-        matchIds: new Set([match.id]),
+        matchIds: new Set([match.matchId]),
       });
     }
   }
