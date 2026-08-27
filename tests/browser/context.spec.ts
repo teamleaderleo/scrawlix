@@ -20,9 +20,12 @@ test('demo controls context lab survives hostile inline hosts', async ({ page })
   ).toBe('#171512');
 
   const rtl = lab.locator('[data-context-case="rtl"] .context-rtl');
+  const rtlRoot = rtl.locator('[data-scrawlix-root]');
   await expect(rtl).toHaveAttribute('dir', 'rtl');
-  await expect(rtl).toHaveText('هذا shit يحدث');
-  await expect(rtl.locator('[data-scrawlix-cover]')).toHaveText('hi');
+  await expect(rtlRoot.locator('[data-scrawlix-a11y]')).toHaveText(
+    'هذا shit يحدث'
+  );
+  await expect(rtlRoot.locator('[data-scrawlix-cover]')).toHaveText('hi');
 
   const emoji = lab.locator('[data-context-case="emoji"]');
   await expect(emoji.locator('[data-scrawlix-cover]')).toHaveText(['uc', 'hi']);
