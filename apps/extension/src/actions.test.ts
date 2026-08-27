@@ -12,7 +12,7 @@ describe('extension interaction helpers', () => {
     expect(customTermFromSelection(42)).toBeNull();
   });
 
-  it('caps context-menu additions at 200 visible characters', () => {
+  it('caps context-menu additions at 200 Unicode code points', () => {
     expect(customTermFromSelection('x'.repeat(200))).toBe('x'.repeat(200));
     expect(customTermFromSelection('x'.repeat(201))).toBeNull();
   });
