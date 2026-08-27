@@ -236,10 +236,21 @@ export function CensoredText({
     setFocusedRevealId(null);
   }
 
+  function onControlClick(
+    event: MouseEvent<HTMLButtonElement>,
+    revealId: string
+  ) {
+    event.stopPropagation();
+    if (reveal === 'click') toggleRevealId(revealId);
+  }
+
   function onControlKeyDown(
     event: KeyboardEvent<HTMLButtonElement>,
     revealId: string
   ) {
+    if (event.key === 'Enter' || event.key === ' ' || event.key === 'Escape') {
+      event.stopPropagation();
+    }
     if (event.key !== 'Escape') return;
     event.preventDefault();
     setRevealIdsState(current => {
@@ -295,9 +306,7 @@ export function CensoredText({
                 data-scrawlix-reveal-id={revealId}
                 key={revealId}
                 onBlur={onControlBlur}
-                onClick={
-                  reveal === 'click' ? () => toggleRevealId(revealId) : undefined
-                }
+                onClick={event => onControlClick(event, revealId)}
                 onFocus={() => onControlFocus(revealId)}
                 onKeyDown={event => onControlKeyDown(event, revealId)}
                 type="button"
