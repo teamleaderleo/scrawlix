@@ -19,6 +19,19 @@ export function contentScriptMatches(origins: readonly string[]) {
   return [...new Set(origins.filter(origin => /^https?:\/\//.test(origin)))].sort();
 }
 
+function contentScriptRegistration(
+  matches: string[]
+): chrome.scripting.RegisteredContentScript {
+  return {
+    id: CONTENT_SCRIPT_ID,
+    matches,
+    js: ['content.js'],
+    css: ['content.css'],
+    runAt: 'document_idle',
+    persistAcrossSessions: true,
+  };
+}
+
 export async function hasPersistentAccess(url: string) {
   const origin = originPatternForUrl(url);
   if (!origin) return false;
@@ -43,26 +56,13 @@ export async function syncContentScriptRegistration() {
     return;
   }
 
+  const registration = contentScriptRegistration(matches);
   if (existing.length > 0) {
-    await chrome.scripting.updateContentScripts([
-      {
-        id: CONTENT_SCRIPT_ID,
-        matches,
-      },
-    ]);
+    await chrome.scripting.updateContentScripts([registration]);
     return;
   }
 
-  await chrome.scripting.registerContentScripts([
-    {
-      id: CONTENT_SCRIPT_ID,
-      matches,
-      js: ['content.js'],
-      css: ['content.css'],
-      runAt: 'document_idle',
-      persistAcrossSessions: true,
-    },
-  ]);
+  await chrome.scripting.registerContentScripts([registration]);
 }
 
 export async function requestHostAccess(origins: readonly string[]) {
