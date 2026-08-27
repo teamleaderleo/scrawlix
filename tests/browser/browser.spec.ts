@@ -27,6 +27,25 @@ async function launchExtensionContext(profilePath: string, unpackedPath: string)
   });
 }
 
+async function waitForPageRegistration(worker: import('@playwright/test').Worker) {
+  await expect
+    .poll(async () =>
+      worker.evaluate(async () => {
+        const scripts = await chrome.scripting.getRegisteredContentScripts({
+          ids: ['scrawlix-page'],
+        });
+        return {
+          matches: scripts[0]?.matches?.sort() ?? [],
+          runAt: scripts[0]?.runAt ?? null,
+        };
+      })
+    )
+    .toEqual({
+      matches: ['http://*/*', 'https://*/*'],
+      runAt: 'document_start',
+    });
+}
+
 test('demo controls drive real rendered coverage and reveal state', async ({ page }) => {
   await page.goto('http://127.0.0.1:4173');
 
@@ -68,22 +87,7 @@ test('built extension registers granted hosts and handles page interaction in Ch
 
   try {
     const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
-    await expect
-      .poll(async () =>
-        worker.evaluate(async () => {
-          const scripts = await chrome.scripting.getRegisteredContentScripts({
-            ids: ['scrawlix-page'],
-          });
-          return {
-            matches: scripts[0]?.matches?.sort() ?? [],
-            runAt: scripts[0]?.runAt ?? null,
-          };
-        })
-      )
-      .toEqual({
-        matches: ['http://*/*', 'https://*/*'],
-        runAt: 'document_start',
-      });
+    await waitForPageRegistration(worker);
 
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
@@ -237,6 +241,11 @@ test('built extension persists forced-host policy and treatment across browser r
     const worker =
       firstContext.serviceWorkers()[0] ??
       (await firstContext.waitForEvent('serviceworker'));
+    // This synthetic fresh profile starts with broad host access promoted into the test
+    // manifest. Wait for the worker to mirror those pre-granted patterns into the same
+    // dynamic registration production creates immediately after a runtime grant.
+    await waitForPageRegistration(worker);
+
     const page = firstContext.pages()[0] ?? (await firstContext.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
 
@@ -311,13 +320,16 @@ test('built extension persists forced-host policy and treatment across browser r
     await firstContext.close();
   }
 
-  // Relaunch Chromium against the exact same persistent profile: sync/local settings and
-  // dynamic registration must reconstruct the same effective page behavior.
+  // Relaunch Chromium against the exact same persistent profile. The persisted dynamic
+  // registration must be available before navigation, and sync/local state must restore
+  // the same effective page behavior.
   const secondContext = await launchExtensionContext(profilePath, testExtensionPath);
   try {
     const worker =
       secondContext.serviceWorkers()[0] ??
       (await secondContext.waitForEvent('serviceworker'));
+    await waitForPageRegistration(worker);
+
     const page = secondContext.pages()[0] ?? (await secondContext.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
 
