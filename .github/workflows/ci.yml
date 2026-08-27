@@ -24,6 +24,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Core benchmark harness smoke
+        run: pnpm bench:core:smoke >/dev/null
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium >/dev/null
       - name: Browser smoke — demo
