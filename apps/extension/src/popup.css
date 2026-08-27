@@ -31,6 +31,7 @@ textarea {
 
 .masthead,
 .site-card,
+.treatment-preview-card,
 .settings-grid,
 .custom-words,
 footer {
@@ -68,7 +69,8 @@ footer {
 footer,
 .switch-row span,
 .settings-grid label > span,
-#save-status {
+#save-status,
+.preview-meta span {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -142,6 +144,45 @@ footer,
 
 .status-line[data-enabled='false']::before {
   content: '○ ';
+}
+
+.treatment-preview-card {
+  padding: 12px 0 14px;
+}
+
+.preview-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+
+.preview-meta .eyebrow {
+  margin-bottom: 0;
+}
+
+.preview-meta span {
+  font-size: 7px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.38;
+}
+
+.treatment-preview {
+  --scrawlix-surface: #f8f3e7;
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 10px 12px;
+  border: 1px solid rgba(23, 21, 16, 0.52);
+  background: #f8f3e7;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 29px;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  white-space: nowrap;
 }
 
 select,
