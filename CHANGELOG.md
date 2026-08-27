@@ -13,6 +13,9 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added custom coverage callbacks and per-rule coverage overrides.
 - Added Unicode-aware custom term/phrase rules through `censorRuleFromTerms()` with explicit `word` and `substring` boundary modes.
 - Added rule-pack composition and caller-safe compiled RegExp handling.
+- Preserve source-pack provenance in composed rules, matches, and coverage callbacks.
+- Reject configured semantic target groups that are unavailable for a produced match instead of silently widening coverage.
+- Treat combining marks, Unicode connector punctuation, ZWNJ, and ZWJ as continuing word context for custom term/phrase boundaries.
 - Added deterministic source-preservation and cursor-state regressions.
 
 ### English pack
@@ -20,6 +23,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added `@scrawlix/en` with explicit English strong-profanity rules exported as `englishStrongProfanityRules` and `englishStrongProfanityPack`.
 - Added English-specific vowel coverage outside the neutral core.
 - Added positive and clean regression corpora, including false-positive traps.
+- Hardened English word edges around combining marks, connector punctuation, ZWNJ, and ZWJ.
 
 ### React
 
