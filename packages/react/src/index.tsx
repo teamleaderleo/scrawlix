@@ -52,18 +52,22 @@ type ScrawlixOwnedSpanProp =
   | 'title';
 
 type CallerSpanProps = Omit<SpanProps, ScrawlixOwnedSpanProp>;
-
-export type CensoredTextProps = CallerSpanProps & {
-  text: string;
-  rules: readonly CensorRule[];
-  coverage?: CoverageSelector;
-  appearance?: ScrawlixAppearance;
-  reveal?: ScrawlixReveal;
-  revealScope?: ScrawlixRevealScope;
-  className?: string;
-  style?: ScrawlixStyle;
-  title?: string;
+type ReservedScrawlixDataProps = {
+  [Key in `data-scrawlix-${string}`]?: never;
 };
+
+export type CensoredTextProps = CallerSpanProps &
+  ReservedScrawlixDataProps & {
+    text: string;
+    rules: readonly CensorRule[];
+    coverage?: CoverageSelector;
+    appearance?: ScrawlixAppearance;
+    reveal?: ScrawlixReveal;
+    revealScope?: ScrawlixRevealScope;
+    className?: string;
+    style?: ScrawlixStyle;
+    title?: string;
+  };
 
 type ComponentRevealState = {
   revision: object;
