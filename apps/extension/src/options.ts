@@ -9,19 +9,21 @@ import {
   SYNC_SETTINGS_KEY,
   coverageSelector,
   maskFor,
-  normalizeCustomWords,
-  setSiteMode,
   type ExtensionAppearance,
   type ExtensionCoverage,
   type ExtensionReveal,
   type SyncSettings,
 } from './config';
 import {
+  applySettingsMutation,
+  commitSettingsMutation,
+  type SettingsMutation,
+} from './settings-mutations';
+import {
   loadCustomWords,
   loadExtensionState,
   loadSettings,
   saveCustomWords,
-  saveSettings,
 } from './storage';
 
 const PREVIEW_TERM = 'Mothbit';
@@ -69,6 +71,7 @@ const accessActionStatus = required<HTMLParagraphElement>('access-action-status'
 let settings: SyncSettings;
 let customWords: string[] = [];
 let settingsSaveQueue = Promise.resolve();
+let settingsSaveGeneration = 0;
 let stateGeneration = 0;
 
 function filterMatch(value: string, query: string) {
@@ -103,9 +106,6 @@ function renderPreview() {
   root.dataset.scrawlixReveal = settings.reveal;
   root.dataset.scrawlixRevealed = 'false';
   root.setAttribute('aria-hidden', 'true');
-
-  // The preview is one intentional control in the extension UI, so click reveal
-  // keeps an ordinary keyboard path here even though arbitrary-page fragments do not.
   if (settings.reveal === 'click') root.tabIndex = 0;
 
   for (const segment of engine.segment(PREVIEW_TERM)) {
@@ -204,9 +204,11 @@ function renderSites() {
     }
     select.value = mode;
     select.addEventListener('change', () => {
-      void persistSettings(
-        setSiteMode(settings, hostname, select.value === 'on' ? 'on' : 'off')
-      );
+      void persistSettings({
+        type: 'site-mode',
+        hostname,
+        mode: select.value === 'on' ? 'on' : 'off',
+      });
     });
 
     const remove = document.createElement('button');
@@ -214,7 +216,7 @@ function renderSites() {
     remove.className = 'quiet-button';
     remove.textContent = 'use default';
     remove.addEventListener('click', () => {
-      void persistSettings(setSiteMode(settings, hostname, 'inherit'));
+      void persistSettings({ type: 'site-mode', hostname, mode: 'inherit' });
     });
 
     row.append(text, select, remove);
@@ -302,8 +304,9 @@ async function renderAccess() {
   accessEmpty.hidden = entries.length > 0;
 }
 
-async function persistSettings(next: SyncSettings) {
-  settings = next;
+async function persistSettings(mutation: SettingsMutation) {
+  const generation = ++settingsSaveGeneration;
+  settings = applySettingsMutation(settings, mutation);
   renderGeneral();
   renderSites();
   settingsStatus.textContent = 'saving…';
@@ -312,10 +315,15 @@ async function persistSettings(next: SyncSettings) {
     .catch(() => undefined)
     .then(async () => {
       try {
-        await saveSettings(next);
-        if (settings === next) settingsStatus.textContent = 'saved';
+        const committed = await commitSettingsMutation(mutation);
+        if (generation === settingsSaveGeneration) {
+          settings = committed;
+          renderGeneral();
+          renderSites();
+          settingsStatus.textContent = 'saved';
+        }
       } catch {
-        if (settings === next) {
+        if (generation === settingsSaveGeneration) {
           settings = await loadSettings();
           renderGeneral();
           renderSites();
@@ -349,25 +357,36 @@ async function removeCustomTerm(term: string) {
 }
 
 async function addCustomTerms() {
-  const candidates = normalizeCustomWords(newTermsInput.value.split('\n'));
+  const candidates = newTermsInput.value
+    .split('\n')
+    .map(term => term.trim())
+    .filter(Boolean);
   const accepted = candidates.filter(
     term => Array.from(term).length <= MAX_CUSTOM_TERM_CODE_POINTS
   );
   const rejected = candidates.length - accepted.length;
-  const next = normalizeCustomWords([...customWords, ...accepted]);
-  const added = next.length - customWords.length;
+  const seen = new Set(customWords.map(term => term.toLocaleLowerCase()));
+  const additions = accepted.filter(term => {
+    const key = term.toLocaleLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const next = [...customWords, ...additions];
 
   if (accepted.length === 0) {
-    customStatus.textContent = rejected > 0 ? 'Terms over the length limit were skipped.' : 'Enter a word or phrase first.';
+    customStatus.textContent = rejected > 0
+      ? 'Terms over the length limit were skipped.'
+      : 'Enter a word or phrase first.';
     return;
   }
 
   await persistCustomWords(
     next,
     rejected > 0
-      ? `Added ${added}; skipped ${rejected} over the length limit`
-      : added > 0
-        ? `Added ${added} ${added === 1 ? 'term' : 'terms'}`
+      ? `Added ${additions.length}; skipped ${rejected} over the length limit`
+      : additions.length > 0
+        ? `Added ${additions.length} ${additions.length === 1 ? 'term' : 'terms'}`
         : 'Those terms are already in your list'
   );
   newTermsInput.value = '';
@@ -387,31 +406,31 @@ async function reloadState() {
 }
 
 activeInput.addEventListener('change', () => {
-  void persistSettings({ ...settings, paused: !activeInput.checked });
+  void persistSettings({ type: 'paused', value: !activeInput.checked });
 });
 
 defaultEnabledSelect.addEventListener('change', () => {
-  void persistSettings({ ...settings, enabled: defaultEnabledSelect.value === 'on' });
+  void persistSettings({ type: 'enabled', value: defaultEnabledSelect.value === 'on' });
 });
 
 appearanceSelect.addEventListener('change', () => {
   void persistSettings({
-    ...settings,
-    appearance: appearanceSelect.value as ExtensionAppearance,
+    type: 'appearance',
+    value: appearanceSelect.value as ExtensionAppearance,
   });
 });
 
 coverageSelect.addEventListener('change', () => {
   void persistSettings({
-    ...settings,
-    coverage: coverageSelect.value as ExtensionCoverage,
+    type: 'coverage',
+    value: coverageSelect.value as ExtensionCoverage,
   });
 });
 
 revealSelect.addEventListener('change', () => {
   void persistSettings({
-    ...settings,
-    reveal: revealSelect.value as ExtensionReveal,
+    type: 'reveal',
+    value: revealSelect.value as ExtensionReveal,
   });
 });
 
