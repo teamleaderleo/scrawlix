@@ -3,7 +3,7 @@
 import { act, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CensoredText } from './index';
+import { AliasText, CensoredText } from './index';
 
 const rules = [
   {
@@ -156,5 +156,106 @@ describe('CensoredText', () => {
     expect(
       container.querySelector<HTMLElement>('[data-scrawlix-mask]')?.textContent
     ).toBe('@#$%&!');
+  });
+});
+
+describe('AliasText', () => {
+  const aliases = [
+    { term: 'Alice Chen', alias: 'Nina Mercer' },
+    { term: 'Project Velvet', alias: 'Project Lantern' },
+  ] as const;
+
+  it('renders ordinary text directly when no alias matches', () => {
+    const container = render(
+      <AliasText aliases={aliases} text="nothing private here" />
+    );
+
+    expect(container.textContent).toBe('nothing private here');
+    expect(container.querySelector('[data-scrawlix-alias-root]')).toBeNull();
+  });
+
+  it('uses one stable alias for repeated case-insensitive matches', () => {
+    const text =
+      'Alice Chen opened Project Velvet. alice chen closed it. Alice Chen left.';
+    const container = render(<AliasText aliases={aliases} text={text} />);
+    const root = container.querySelector<HTMLElement>('[data-scrawlix-alias-root]')!;
+    const values = [...root.querySelectorAll('[data-scrawlix-alias-value]')].map(
+      node => node.textContent
+    );
+    const sources = [...root.querySelectorAll('[data-scrawlix-source]')].map(
+      node => node.textContent
+    );
+
+    expect(values).toEqual([
+      'Nina Mercer',
+      'Project Lantern',
+      'Nina Mercer',
+      'Nina Mercer',
+    ]);
+    expect(sources).toEqual([
+      'Alice Chen',
+      'Project Velvet',
+      'alice chen',
+      'Alice Chen',
+    ]);
+    expect(root.querySelector('[data-scrawlix-a11y]')?.textContent).toBe(text);
+    expect(root.querySelector('[data-scrawlix-visual]')?.getAttribute('aria-hidden')).toBe(
+      'true'
+    );
+  });
+
+  it('prefers the longest alias when terms begin at the same source position', () => {
+    const container = render(
+      <AliasText
+        aliases={[
+          { term: 'Alice', alias: 'Nina' },
+          { term: 'Alice Chen', alias: 'Mara Vale' },
+        ]}
+        text="Alice Chen called Alice."
+      />
+    );
+    const values = [
+      ...container.querySelectorAll('[data-scrawlix-alias-value]'),
+    ].map(node => node.textContent);
+
+    expect(values).toEqual(['Mara Vale', 'Nina']);
+  });
+
+  it('can require case-sensitive aliases', () => {
+    const container = render(
+      <AliasText
+        aliases={aliases}
+        caseSensitive
+        text="Alice Chen met alice chen."
+      />
+    );
+
+    expect(container.querySelectorAll('[data-scrawlix-alias-value]')).toHaveLength(1);
+    expect(
+      container.querySelector<HTMLElement>('[data-scrawlix-alias-value]')?.textContent
+    ).toBe('Nina Mercer');
+  });
+
+  it('defaults to never reveal and can opt into click reveal', () => {
+    const passive = render(<AliasText aliases={aliases} text="Alice Chen" />);
+    const passiveRoot = passive.querySelector<HTMLElement>(
+      '[data-scrawlix-alias-root]'
+    )!;
+
+    expect(passiveRoot.dataset.reveal).toBe('never');
+    expect(passiveRoot.getAttribute('tabindex')).toBeNull();
+
+    const interactive = render(
+      <AliasText aliases={aliases} reveal="click" text="Alice Chen" />
+    );
+    const interactiveRoot = interactive.querySelector<HTMLElement>(
+      '[data-scrawlix-alias-root]'
+    )!;
+
+    expect(interactiveRoot.tabIndex).toBe(0);
+    act(() =>
+      interactiveRoot.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    );
+    expect(interactiveRoot.dataset.revealed).toBe('true');
   });
 });
