@@ -16,6 +16,7 @@ A change in one layer should rarely require logic in another.
 ## Workspace map
 
 - `packages/core` — language-neutral matching, segmentation, generic coverage, custom-term helpers
+- `packages/core/src/pack-authoring.ts` — opt-in manifest + lexicon + matching-profile authoring helpers, exported as `@scrawlix/core/pack-authoring`
 - `packages/en` — English strong-profanity rules, English-specific coverage helpers, English regression corpus
 - `packages/react` — React renderer and appearance/reveal behavior
 - `packages/rehype` — HAST/rehype transformer for syntax-tree prose
@@ -35,6 +36,8 @@ Use these names in code, docs, examples, and agent-generated changes:
 - `createScrawlix`
 - `censorRuleFromTerms`
 - `rulesFromPacks`
+- `defineLexiconPack`
+- `compileLexiconRules`
 - `englishStrongProfanityRules`
 - `englishStrongProfanityPack`
 - `englishVowelCoverage`
@@ -46,6 +49,8 @@ Use these names in code, docs, examples, and agent-generated changes:
 Core defaults to `coverage: 'full'`. React defaults to `appearance="scrawl"` and `reveal="never"`. Partial coverage and reveal behavior are deliberate caller choices.
 
 The reusable packages use named runtime exports as the canonical API. `@scrawlix/rehype` and `@scrawlix/dom` do not carry duplicate default exports.
+
+Focused core helpers may live on documented subpaths while their contracts are exercised. `@scrawlix/core/pack-authoring` is the data-first authoring path; ordinary matching imports remain on `@scrawlix/core`.
 
 Do not invent convenience packages, automatic English selection, compatibility aliases, or alternate spellings for the public API.
 
@@ -81,6 +86,16 @@ Do not add profanity lists, locale-specific morphology, or language-specific cha
 
 Generic coverage belongs in core. A behavior such as “cover English vowels” belongs in `@scrawlix/en`.
 
+### Keep authored packs data-first
+
+`@scrawlix/core/pack-authoring` compiles inspectable manifest/lexicon/profile data into the existing runtime `CensorRulePack` contract. Keep manifest metadata plain. Prefer explicit attested forms. Keep language-specific morphology generators inside the pack that understands them.
+
+A lexical form may name one unique semantic-target substring inside the full attested form. Reject ambiguous or grapheme-splitting targets instead of guessing. One lexical entry can participate in several matching profiles while retaining one stable semantic rule id; `match.profile` identifies the path.
+
+Canonical authoring profiles reuse current core boundary/normalization/case behavior. Aggressive authoring profiles reuse reviewed transform tables and explicit budgets from the bounded aggressive helpers. Do not create a second matching engine inside the authoring layer.
+
+Presentation recommendations in pack manifests are metadata hints. Core must not import React/extension presentation types or execute appearance/reveal policy.
+
 ### Require deliberate rule selection
 
 `createScrawlix()` with zero rules is a no-op. Adapters should receive rules explicitly. Avoid hidden language detection or surprise bundled moderation behavior.
@@ -96,6 +111,8 @@ The engine compiles its own RegExp copies. Never mutate a caller's `lastIndex`. 
 ### Keep semantic targets explicit
 
 When a larger match contains the meaningful censored core, use a named capture group and `target: { group: '...' }`. Coverage should operate on the target, not blindly on the full inflected or compound match.
+
+Data-authored packs can express the equivalent with a unique `target` substring on an attested lexical form.
 
 ### Treat accessibility as source truth
 
@@ -158,6 +175,8 @@ When a bug or rule change teaches a durable positive or false-positive example, 
 7. Document dialect/severity assumptions. Do not imply complete language coverage from a small pack.
 8. Give the package README an exact install command and canonical consumer snippet.
 
+For packs whose ordinary behavior fits explicit attested forms, prefer `defineLexiconPack()` and keep the manifest/lexicon/profile data inspectable. Use explicit rule collections or custom matchers when the behavior genuinely requires code. Carry positive and ordinary-text negative corpus cases for every aggressive transform class a pack enables.
+
 ## Adding a visual appearance
 
 1. Coordinate with the shared appearance contract tracked in issue #26.
@@ -188,5 +207,7 @@ Scrawlix is pre-release, so breaking changes are still possible. Use that freedo
 The documented package exports, rule ids, option defaults, adapter data attributes, ignore attributes, and React CSS/render attributes are public contracts. Keep application-only browser-extension state private unless a document explicitly promotes it to a public contract.
 
 Packed-package smoke tests are a release gate: external consumers must receive compiled JavaScript, declarations, CSS exports, and valid package metadata rather than workspace-only source imports. Every new public package belongs in `scripts/smoke-packages.mjs` and the relevant external consumer fixture.
+
+Every new public subpath must also be imported by at least one packed external consumer so tarball omissions are caught before release.
 
 Human quickstarts live in the root/package READMEs. Agent quickstarts live in the demo `llms.txt`. Keep those surfaces synchronized whenever public names, defaults, package selection, required side-effect imports, or framework boundaries change.

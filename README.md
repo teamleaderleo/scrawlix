@@ -19,6 +19,7 @@ The same word can become `████`, `f███`, `f██k`, `f█ck`, `f*
 | transform Markdown / HAST | `@scrawlix/rehype @scrawlix/en` | `rehypeScrawlix` |
 | transform an existing webpage / DOM | `@scrawlix/dom @scrawlix/en` | `createDomScrawlix` |
 | match/segment text or build your own renderer | `@scrawlix/core` plus rules | `createScrawlix` |
+| author a reviewable lexical rule pack | `@scrawlix/core` | `defineLexiconPack` from `@scrawlix/core/pack-authoring` |
 | use packaged English strong-profanity rules | `@scrawlix/en` | `englishStrongProfanityRules` |
 
 The five packages stay deliberately small: core contains no hidden language policy, and adapters receive rules explicitly.
@@ -186,7 +187,46 @@ The English package currently exports:
 - `englishVowelCoverage`
 - a regression corpus at `@scrawlix/en/corpus`
 
-Future language packs can carry their own rules, locale metadata, coverage helpers, and regression corpora. Consumers can combine packs with `rulesFromPacks(...)`. See [`docs/language-packs.md`](docs/language-packs.md).
+For reviewable lexical packs, use the opt-in authoring subpath:
+
+```ts
+import { rulesFromPacks } from '@scrawlix/core';
+import { defineLexiconPack } from '@scrawlix/core/pack-authoring';
+
+const exhibitPack = defineLexiconPack({
+  manifest: {
+    id: 'museum-exhibits',
+    version: '1.0.0',
+    name: 'Museum Exhibit Labels',
+    locale: 'en',
+    reviewStatus: 'reviewed',
+  },
+  matchingProfiles: [
+    { id: 'canonical', mode: 'canonical', boundary: 'unicode-word' },
+    {
+      id: 'aggressive',
+      mode: 'obfuscated',
+      substitutions: { a: ['@'] },
+      maxSubstitutions: 1,
+    },
+  ],
+  lexicon: [
+    {
+      id: 'blue-lantern',
+      lemma: 'Blue Lantern',
+      profiles: ['canonical', 'aggressive'],
+      forms: [
+        { text: 'Blue Lantern', kind: 'base' },
+        { text: 'Blue Lantern Annex', kind: 'compound', target: 'Blue Lantern' },
+      ],
+    },
+  ],
+});
+
+const rules = rulesFromPacks(exhibitPack);
+```
+
+`AuthoredRulePack` stays compatible with `CensorRulePack` while retaining its manifest, lexicon, and matching-profile metadata for apps that want to present pack details. One lexical entry can participate in canonical and reviewed aggressive profiles while retaining the same semantic rule id. See [`docs/language-packs.md`](docs/language-packs.md).
 
 ## Browser extension
 

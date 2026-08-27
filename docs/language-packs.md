@@ -36,6 +36,68 @@ const engine = createScrawlix({
 
 Scrawlix deliberately avoids automatic language detection. Applications know more about their content and can choose one pack, several packs, or caller-authored rules.
 
+## Manifest + lexicon authoring
+
+Reviewable lexical packs can use `@scrawlix/core/pack-authoring`. The authoring model is **manifest + lexicon + matching profiles + corpus**. The compiled result remains an ordinary `CensorRulePack`.
+
+```ts
+import { defineLexiconPack } from '@scrawlix/core/pack-authoring';
+
+export const exhibitPack = defineLexiconPack({
+  manifest: {
+    id: 'museum-exhibits',
+    version: '1.0.0',
+    name: 'Museum Exhibit Labels',
+    locale: 'en',
+    categories: ['exhibits'],
+    reviewStatus: 'reviewed',
+    attribution: [{ label: 'Example fixture', license: 'CC0-1.0' }],
+    recommended: { coverage: 'full', appearance: 'bar', reveal: 'never' },
+  },
+  matchingProfiles: [
+    { id: 'canonical', mode: 'canonical', boundary: 'unicode-word' },
+    {
+      id: 'aggressive',
+      mode: 'obfuscated',
+      boundary: 'unicode-word',
+      substitutions: { a: ['@'] },
+      maxSubstitutions: 1,
+    },
+  ],
+  defaultProfile: 'canonical',
+  lexicon: [
+    {
+      id: 'blue-lantern',
+      lemma: 'Blue Lantern',
+      profiles: ['canonical', 'aggressive'],
+      categories: ['exhibit-name'],
+      reviewStatus: 'reviewed',
+      provenance: { source: 'curated exhibit list' },
+      forms: [
+        { text: 'Blue Lantern', kind: 'base' },
+        {
+          text: 'Blue Lantern Annex',
+          kind: 'compound',
+          target: 'Blue Lantern',
+        },
+      ],
+    },
+  ],
+});
+```
+
+The manifest is plain app-facing data: id, version, human name/description, locale, categories/tags, review status, attribution, and optional presentation recommendations. Core treats `appearance` and `reveal` recommendation values as opaque adapter/application ids.
+
+Lexical entries use stable semantic ids and explicit attested forms. A form kind can be `base`, `inflection`, `derivation`, `compound`, `slang`, `dialect`, `spelling-variant`, or `phrase`. Entries may also record locale/register, provenance, review status, coarse pack-relative severity, descriptive categories, and a coverage override.
+
+A larger attested form can name one exact canonical `target` substring. The target must occur exactly once and align to extended-grapheme boundaries. This keeps compounds/inflections reviewable as data while preserving the semantic-target runtime contract.
+
+One semantic entry can select several matching profile ids. Canonical profiles delegate to `censorRuleFromTerms()` and can choose any current boundary strategy, normalization policy, and case policy. Aggressive profiles delegate to the bounded targeted-obfuscated helper and carry the same reviewed transform tables and explicit budgets described below. `match.profile` identifies which path produced a match while the stable lexical `ruleId` stays the same.
+
+Prefer explicit forms and a few evidence-backed profiles over a universal morphology DSL. Productive language-specific generators can still live inside the pack that understands them.
+
+`defineLexiconPack()` returns an `AuthoredRulePack`: an ordinary runtime pack plus the original manifest, lexicon, and profile definitions for apps that want to inspect/present metadata. A hosted registry or remote-code system is outside this contract.
+
 ## Canonical Unicode matching
 
 `censorRuleFromTerms()` normalizes both declared terms and an internal source shadow to NFC by default. Canonically equivalent spellings therefore match even when their UTF-16 lengths differ:
@@ -49,6 +111,8 @@ engine.find('cafe\u0301');
 ```
 
 The source string itself stays unchanged. Scrawlix builds the normalized shadow one extended grapheme at a time and maps every accepted shadow boundary back to the corresponding original-source boundary. `{ normalization: 'none' }` is available for rules that intentionally distinguish canonical forms.
+
+Canonical authored profiles reuse that execution path. Their semantic-target mapping likewise returns exact caller-source slices when an NFC form matches NFD input.
 
 Raw regex rules and custom matchers keep their own matching policy. Core validates the ranges they produce and throws when a full match or semantic target cuts through an extended grapheme cluster.
 
@@ -127,6 +191,8 @@ const rule = {
 ```
 
 Coverage runs against `core`, while `find()` still reports the full match and both full/target ranges. A declared target group is part of the rule contract: if a produced match cannot resolve that named group, Scrawlix throws a descriptive error instead of widening the target to the full match.
+
+Authored lexical forms offer the data equivalent with `{ text: 'full form', target: 'semantic root' }`. The compiler routes canonical and aggressive profiles through their existing source-mapped helpers.
 
 ## Custom matcher escape hatch
 
@@ -216,7 +282,7 @@ Add `--json` for machine-readable output. The diff joins cases by package plus s
 
 Pull-request CI runs the same command against the PR's exact base SHA and prints the report before the test suite. Checkout uses full git history so the comparison is reproducible from the workflow log.
 
-Useful corpora contain positive matches, semantic targets, casing and punctuation variants, compounds and inflections, false-positive traps, Unicode context, and dialect or severity cases when relevant. Every matcher expansion should ideally arrive with the newly caught form plus plausible clean neighbors that could regress.
+Useful corpora contain positive matches, semantic targets, casing and punctuation variants, compounds and inflections, false-positive traps, Unicode context, dialect or severity cases, and every aggressive transform class enabled by a pack. Every matcher expansion should ideally arrive with the newly caught form plus plausible clean neighbors that could regress.
 
 A corpus is evidence about expected behavior, not a claim of linguistic completeness. Pack docs should say which dialect, register, severity band, and edge cases the pack intentionally covers.
 
@@ -227,7 +293,7 @@ Prefer narrowly described packs over giant universal lists. Examples:
 - `en-strong-profanity`
 - `en-mild-profanity`
 - `ja-example-profanity`
-- an application-owned private-name pack
+- an application-owned name/phrase pack
 
 A caller can compose several packs. Smaller packs keep policy choices visible and make corpus regressions easier to understand.
 
@@ -236,11 +302,12 @@ A caller can compose several packs. Smaller packs keep policy choices visible an
 A publishable third-party pack should contain:
 
 1. a dependency on `@scrawlix/core`
-2. one or more named rule collections plus a `CensorRulePack` export
-3. locale and scope/severity notes
-4. positive and clean/false-positive regression data
-5. tests for semantic targets, casing, punctuation, compounds/inflections, Unicode context, known ambiguity, and every enabled obfuscation class
-6. explicit transform tables and budgets for any aggressive profile
-7. an ordinary package README with an install command and copy/paste consumer example
+2. an inspectable manifest with id/version/name/locale/scope plus review/provenance information
+3. reviewable lexical data through `defineLexiconPack()` when explicit attested forms fit the domain, and explicit rule code/custom matchers where they do not
+4. named matching profiles for boundary/normalization/case policy and any reviewed aggressive transform tables/budgets
+5. one or more `CensorRulePack` exports
+6. positive and clean/false-positive regression data
+7. tests for semantic targets, casing, punctuation, compounds/inflections, Unicode context, known ambiguity, and every enabled aggressive transform class
+8. an ordinary package README with an install command and copy/paste consumer example
 
-Keep pack-specific presentation and application state outside the pack. Matching policy should remain inspectable as ordinary code/data.
+Keep application state outside the pack. Presentation recommendations may travel as manifest metadata, while matching behavior stays inspectable as ordinary code/data.

@@ -30,6 +30,11 @@
       "types": "./dist/width-obfuscated.d.ts",
       "import": "./dist/width-obfuscated.js",
       "default": "./dist/width-obfuscated.js"
+    },
+    "./pack-authoring": {
+      "types": "./dist/pack-authoring.d.ts",
+      "import": "./dist/pack-authoring.js",
+      "default": "./dist/pack-authoring.js"
     }
   },
   "repository": {
