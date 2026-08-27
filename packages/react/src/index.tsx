@@ -129,6 +129,15 @@ function revealIdFromTarget(target: EventTarget | null) {
   );
 }
 
+function controlRevealIdFromTarget(target: EventTarget | null) {
+  if (!(target instanceof Element)) return null;
+  return (
+    target
+      .closest<HTMLElement>('[data-scrawlix-control][data-scrawlix-reveal-id]')
+      ?.getAttribute('data-scrawlix-reveal-id') ?? null
+  );
+}
+
 function hasSelectedText(root: HTMLElement) {
   const selection = root.ownerDocument.defaultView?.getSelection();
   if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
@@ -162,7 +171,9 @@ export const CensoredText = forwardRef<HTMLSpanElement, CensoredTextProps>(
       className,
       style,
       title,
+      onBlur: callerOnBlur,
       onClick: callerOnClick,
+      onFocus: callerOnFocus,
       onKeyDown: callerOnKeyDown,
       onMouseOver: callerOnMouseOver,
       onMouseLeave: callerOnMouseLeave,
@@ -218,7 +229,9 @@ export const CensoredText = forwardRef<HTMLSpanElement, CensoredTextProps>(
           className={className}
           style={style}
           title={title}
+          onBlur={callerOnBlur}
           onClick={callerOnClick}
+          onFocus={callerOnFocus}
           onKeyDown={callerOnKeyDown}
           onMouseLeave={callerOnMouseLeave}
           onMouseOver={callerOnMouseOver}
@@ -304,6 +317,29 @@ export const CensoredText = forwardRef<HTMLSpanElement, CensoredTextProps>(
       if (revealId) toggleRevealId(revealId);
     }
 
+    function onRootFocus(event: FocusEvent<HTMLSpanElement>) {
+      callerOnFocus?.(event);
+      if (event.defaultPrevented) return;
+      if (revealScope !== 'match' || reveal !== 'focus') return;
+      setFocusedRevealId(controlRevealIdFromTarget(event.target));
+    }
+
+    function onRootBlur(event: FocusEvent<HTMLSpanElement>) {
+      callerOnBlur?.(event);
+      if (event.defaultPrevented) return;
+      if (revealScope !== 'match' || reveal !== 'focus') return;
+
+      const next = event.relatedTarget;
+      if (
+        next instanceof HTMLElement &&
+        event.currentTarget.contains(next) &&
+        next.hasAttribute('data-scrawlix-control')
+      ) {
+        return;
+      }
+      setFocusedRevealId(null);
+    }
+
     function onRootMouseOver(event: MouseEvent<HTMLSpanElement>) {
       callerOnMouseOver?.(event);
       if (event.defaultPrevented) return;
@@ -317,21 +353,6 @@ export const CensoredText = forwardRef<HTMLSpanElement, CensoredTextProps>(
       if (revealScope === 'match' && reveal === 'hover') {
         setHoveredRevealId(null);
       }
-    }
-
-    function onControlFocus(revealId: string) {
-      setFocusedRevealId(revealId);
-    }
-
-    function onControlBlur(event: FocusEvent<HTMLButtonElement>) {
-      const next = event.relatedTarget;
-      if (
-        next instanceof HTMLElement &&
-        next.hasAttribute('data-scrawlix-control')
-      ) {
-        return;
-      }
-      setFocusedRevealId(null);
     }
 
     function onControlClick(
@@ -381,7 +402,17 @@ export const CensoredText = forwardRef<HTMLSpanElement, CensoredTextProps>(
         style={style}
         tabIndex={componentInteractive ? 0 : undefined}
         title={title}
+        onBlur={
+          callerOnBlur || (revealScope === 'match' && reveal === 'focus')
+            ? onRootBlur
+            : undefined
+        }
         onClick={callerOnClick || reveal === 'click' ? onRootClick : undefined}
+        onFocus={
+          callerOnFocus || (revealScope === 'match' && reveal === 'focus')
+            ? onRootFocus
+            : undefined
+        }
         onKeyDown={onRootKeyDown}
         onMouseLeave={
           callerOnMouseLeave || (revealScope === 'match' && reveal === 'hover')
@@ -407,9 +438,7 @@ export const CensoredText = forwardRef<HTMLSpanElement, CensoredTextProps>(
                   data-scrawlix-control
                   data-scrawlix-reveal-id={revealId}
                   key={revealId}
-                  onBlur={onControlBlur}
                   onClick={event => onControlClick(event, revealId)}
-                  onFocus={() => onControlFocus(revealId)}
                   onKeyDown={event => onControlKeyDown(event, revealId)}
                   type="button"
                 />
