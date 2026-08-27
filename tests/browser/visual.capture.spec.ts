@@ -1,10 +1,10 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const outputDir = resolve(process.cwd(), 'test-results/visual-candidates');
 
-async function openDemo(page: Parameters<typeof test>[0] extends never ? never : any) {
+async function openDemo(page: Page) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('http://127.0.0.1:4173');
   await page.evaluate(async () => {
