@@ -34,7 +34,31 @@
         </label>
       </section>
 
-      <section class="settings-grid" aria-label="Censor treatment">
+      <section class="profiles" aria-labelledby="profiles-heading">
+        <div class="section-label">
+          <div>
+            <p class="eyebrow">active setup</p>
+            <h2 id="profiles-heading">Profiles</h2>
+          </div>
+          <span id="local-save-status" aria-live="polite"></span>
+        </div>
+
+        <div class="profile-picker">
+          <label>
+            <span class="sr-only">Active profile</span>
+            <select id="profile"></select>
+          </label>
+          <button id="add-profile" type="button">new</button>
+          <button id="delete-profile" type="button">delete</button>
+        </div>
+
+        <label class="stacked-field">
+          <span>profile name</span>
+          <input id="profile-name" autocomplete="off" spellcheck="false" />
+        </label>
+      </section>
+
+      <section class="settings-grid" aria-label="Active profile treatment">
         <label>
           <span>appearance</span>
           <select id="appearance">
@@ -68,21 +92,16 @@
         </label>
       </section>
 
-      <section class="custom-words" aria-labelledby="custom-heading">
+      <section class="lenses" aria-labelledby="lenses-heading">
         <div class="section-label">
           <div>
-            <p class="eyebrow">your list</p>
-            <h2 id="custom-heading">Custom words & phrases</h2>
+            <p class="eyebrow">what gets caught</p>
+            <h2 id="lenses-heading">Lenses</h2>
           </div>
-          <span id="save-status" aria-live="polite"></span>
+          <button id="add-lens" type="button">+ lens</button>
         </div>
-        <textarea
-          id="custom-words"
-          rows="5"
-          placeholder="Project Velvet&#10;Mothbit&#10;spoiler phrase"
-          spellcheck="false"
-        ></textarea>
-        <p class="hint">One per line. Saved locally in this browser.</p>
+        <div id="lens-list" class="lens-list"></div>
+        <p class="hint">Tick the lenses this profile should use. Custom lens terms stay local to this browser.</p>
       </section>
 
       <footer>
