@@ -25,6 +25,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added `@scrawlix/en` with explicit English strong-profanity rules exported as `englishStrongProfanityRules` and `englishStrongProfanityPack`.
 - Added English-specific vowel coverage outside the neutral core.
 - Added positive and clean regression corpora, including false-positive traps.
+- Moved English corpus cases into typed JSON data with explicit profiles, tags, and exact full-match/semantic-target source offsets.
 - Hardened English word edges around combining marks, connector punctuation, ZWNJ, and ZWJ.
 
 ### React
@@ -61,6 +62,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 
 - Added compiled ESM/declaration artifacts for public packages.
 - Added external tarball consumer smoke tests as a CI release gate, with strict declaration checking and React 18/19 production builds.
+- Added shared JSON Schema validation plus semantic source-range checks for language-pack corpora through `pnpm validate:corpora`.
 - Added package-local READMEs for every public package, exact install commands, a top-level integration chooser, a docs index, React CSS troubleshooting, Next.js client-boundary guidance, and clearer source/accessibility notes.
 - Added explicit runtime compatibility and pre-1.0 versioning/public-contract policies.
 - Aligned `README.md`, `AGENTS.md`, `llms.txt`, demo, extension, tests, and smoke consumers on the canonical pre-release public names and conservative defaults.
