@@ -26,6 +26,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added `scrawl`, `bar`, `blur`, `asterisk`, and `grawlix` appearances.
 - Added `hover`, `focus`, `click`, and `never` reveal behavior.
 - Added keyboard reveal handling and a single-source accessibility contract with rendered regressions.
+- Added `AliasText` for stable term-to-alias presentation with longest-match selection and explicit reveal behavior.
 - Added the public CSS subpath export.
 
 ### Markdown
@@ -42,6 +43,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 ### Applications
 
 - Added an interactive editorial proof-sheet demo under `apps/demo`.
+- Added a Witness Protection specimen demonstrating stable aliases for names, companies, and project codenames.
 - Added a Vercel-ready static deployment configuration.
 - Added a Manifest V3 Chromium extension under `apps/extension` with global/site preferences, five appearances, coverage/reveal controls, and local custom terms.
 
