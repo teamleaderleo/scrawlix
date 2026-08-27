@@ -64,7 +64,7 @@ Current reveal modes: `never`, `hover`, `focus`, `click`.
 
 `@scrawlix/react/styles.css` is required for the built-in treatments and the visually-hidden accessibility copy. If text appears duplicated or visibly uncensored, check that import first.
 
-`CensoredText` is reversible presentation. It keeps one exact source copy available to assistive technology and marks the decorative visual tree `aria-hidden="true"`. Secrets or destructive redaction belong upstream; Scrawlix intentionally preserves caller-owned source text.
+`CensoredText` is reversible presentation. It keeps one exact source copy available to assistive technology and marks the decorative visual tree `aria-hidden="true"`. Secrets or destructive redaction belong upstream; Scrawlix intentionally preserves caller-owned source text. See [`docs/privacy-and-output.md`](docs/privacy-and-output.md) for presentation, screenshot, assistive-technology, and sanitized-export guarantees.
 
 ### Next.js App Router
 

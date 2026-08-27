@@ -60,6 +60,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added local extension lenses and named profiles, with per-profile treatment, legacy custom-term migration, semantic-session reuse, and atomic live-page profile switching.
 - Added a demo-local inverse-coverage / redaction-poetry experiment that preserves exact source text while selected terms survive the ink.
 - Added a fictional progress-aware spoiler pack demo where viewing progress activates only future-episode rules.
+- Added an output-semantics lab contrasting reversible pixel coverage, retained source/accessibility output, and a demo-local sanitized export string.
 
 ### Developer experience
 
@@ -67,6 +68,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added external tarball consumer smoke tests as a CI release gate, with strict declaration checking, React 18/19 production builds, and a Next.js 16 App Router production build using the documented client-wrapper boundary.
 - Added package-local READMEs for every public package, exact install commands, a top-level integration chooser, a docs index, React CSS troubleshooting, Next.js client-boundary guidance, and clearer source/accessibility notes.
 - Added explicit runtime compatibility and pre-1.0 versioning/public-contract policies.
+- Added explicit privacy/output vocabulary for visual covers, presentation/screenshot guarantees, assistive-tech concealment, and sanitized export.
 - Aligned `README.md`, `AGENTS.md`, `llms.txt`, demo, extension, tests, and smoke consumers on the canonical pre-release public names and conservative defaults.
 - Committed a pnpm 10.34.5 lockfile, pinned the workspace package manager, and switched CI to frozen installs.
 - Added a synchronized release-version gate plus a manual GitHub OIDC publication workflow with dry-run default, registry preflight checks, dependency-order publishing, provenance, and no long-lived npm write token.
