@@ -49,6 +49,49 @@ Use `{ boundary: 'substring' }` deliberately for packs/scripts where adjacent le
 
 Core requires `Intl.Segmenter` and exports `graphemeRanges()` so language-specific coverage helpers can share the same extended-grapheme boundaries as matching and segmentation.
 
+## Pack authoring
+
+Pack authors can opt into the separate authoring subpath:
+
+```ts
+import { createScrawlix, rulesFromPacks } from '@scrawlix/core';
+import { defineLexiconPack } from '@scrawlix/core/pack-authoring';
+
+const exhibitPack = defineLexiconPack({
+  manifest: {
+    id: 'museum-exhibits',
+    version: '1.0.0',
+    name: 'Museum Exhibit Labels',
+    locale: 'en',
+    categories: ['exhibits'],
+    reviewStatus: 'reviewed',
+    recommended: { coverage: 'full', appearance: 'bar', reveal: 'never' },
+  },
+  lexicon: [
+    {
+      id: 'blue-lantern',
+      lemma: 'Blue Lantern',
+      forms: [
+        { text: 'Blue Lantern', kind: 'base' },
+        {
+          text: 'Blue Lantern Annex',
+          kind: 'compound',
+          target: 'Blue Lantern',
+        },
+      ],
+    },
+  ],
+});
+
+const scrawlix = createScrawlix({ rules: rulesFromPacks(exhibitPack) });
+```
+
+The authoring model is **manifest + lexicon + matching profiles**. Manifest and lexical metadata stay inspectable as ordinary data; `defineLexiconPack()` compiles attested forms into the existing `CensorRulePack` runtime contract.
+
+A lexical form can name one exact semantic-target substring inside a larger attested form. The target must occur once and align to extended-grapheme boundaries. Named matching profiles let entries choose boundary, NFC normalization, and case-sensitivity policy without inventing a universal morphology language.
+
+`AuthoredRulePack` keeps the original manifest and lexicon beside its compiled rules, so applications can display pack name, version, locale, categories, review status, attribution, and presentation recommendations without bespoke metadata wiring. Presentation recommendation strings are hints for adapters/apps; core does not interpret appearance or reveal ids.
+
 ## Public concepts
 
 - **matching** finds a term or phrase
