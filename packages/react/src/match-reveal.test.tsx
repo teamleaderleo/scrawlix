@@ -18,6 +18,7 @@ function render(element: ReactElement) {
 }
 
 afterEach(() => {
+  window.getSelection()?.removeAllRanges();
   while (mountedRoots.length > 0) {
     const mounted = mountedRoots.pop()!;
     act(() => mounted.root.unmount());
@@ -92,6 +93,36 @@ describe('CensoredText per-match reveal', () => {
     act(() => covers[1]!.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(covers[0]!.dataset.scrawlixRevealed).toBe('true');
     expect(covers[1]!.dataset.scrawlixRevealed).toBe('true');
+  });
+
+  it('keeps revealed text open while the user has selected it', () => {
+    const container = render(
+      <CensoredText
+        coverage="middle"
+        reveal="click"
+        revealScope="match"
+        rules={rules}
+        text="fuck"
+      />
+    );
+    const cover = container.querySelector<HTMLElement>('[data-scrawlix-cover]')!;
+
+    act(() => cover.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(cover.dataset.scrawlixRevealed).toBe('true');
+
+    const selection = window.getSelection()!;
+    const range = document.createRange();
+    range.selectNodeContents(cover);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    expect(selection.isCollapsed).toBe(false);
+
+    act(() => cover.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(cover.dataset.scrawlixRevealed).toBe('true');
+
+    selection.removeAllRanges();
+    act(() => cover.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(cover.dataset.scrawlixRevealed).toBe('false');
   });
 
   it('reveals every disjoint coverage island from the same match together', () => {
