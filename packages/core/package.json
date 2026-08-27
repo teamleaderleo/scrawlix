@@ -13,7 +13,8 @@
     "src/targeted-obfuscated.ts",
     "src/repeated-obfuscated.ts",
     "src/width-obfuscated.ts",
-    "src/confusable-obfuscated.ts"
+    "src/confusable-obfuscated.ts",
+    "src/corpus.ts"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -42,6 +43,11 @@
       "types": "./dist/confusable-obfuscated.d.ts",
       "import": "./dist/confusable-obfuscated.js",
       "default": "./dist/confusable-obfuscated.js"
+    },
+    "./corpus": {
+      "types": "./dist/corpus.d.ts",
+      "import": "./dist/corpus.js",
+      "default": "./dist/corpus.js"
     }
   },
   "repository": {
