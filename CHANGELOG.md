@@ -53,6 +53,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added an interactive editorial proof-sheet demo under `apps/demo`.
 - Added a Vercel-ready static deployment configuration.
 - Added a Manifest V3 Chromium extension under `apps/extension` with global/site preferences, five appearances, coverage/reveal controls, and local custom terms.
+- Added local extension lenses and named profiles, with per-profile treatment, legacy custom-term migration, and atomic live-page profile switching.
 
 ### Developer experience
 
