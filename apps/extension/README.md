@@ -120,6 +120,18 @@ Preference reconciliation is incremental:
 
 The DOM adapter watches mutation roots instead of rescanning the complete document after every page update.
 
+## Coverage boundaries
+
+The first store-facing browser contract covers the **top document only**. Dynamic registration sets `allFrames: false` and `matchOriginAsFallback: false` explicitly.
+
+That means:
+
+- text inside child iframes is outside current Scrawlix coverage, including same-origin frames
+- related `about:`, `data:`, `blob:`, and `filesystem:` frames do not inherit coverage from a matching initiator
+- text inside open or closed shadow roots is outside current Scrawlix coverage
+
+Chrome can technically inject Scrawlix into matching child frames, and its `chrome.dom` API can even expose closed shadow roots to extensions. Those capabilities carry additional permission, popup-status, reveal, CSS-isolation, restoration, and compatibility implications. Scrawlix leaves them outside the first release contract until those behaviors have dedicated fixtures and a clear user-facing model. See issue #122.
+
 ## Presentation
 
 `content.css` implements the extension's five appearances:
@@ -146,7 +158,7 @@ The manifest uses:
 - `contextMenus` — add selected page text to the local custom-term list after the user chooses the Scrawlix menu action
 - optional HTTP/HTTPS host access — granted at runtime by the user
 
-The extension has no Scrawlix-operated network dependency and sends no browsing or page text to a Scrawlix server. Matching happens inside the page's content-script context using bundled Scrawlix packages.
+The extension has no Scrawlix-operated network dependency and sends no browsing or page text to a Scrawlix server. Matching happens inside the top page's content-script context using bundled Scrawlix packages.
 
 See [`docs/extension-privacy.md`](../../docs/extension-privacy.md) for the current store-facing privacy statement.
 
@@ -163,4 +175,4 @@ See [`docs/extension-privacy.md`](../../docs/extension-privacy.md) for the curre
 - broad HTTP/HTTPS patterns remain optional instead of required host permissions
 - every directly referenced popup/background/options asset exists in `dist`
 
-Unit tests cover preference normalization/reconciliation, browser-access helpers including restore-before-revoke behavior, local-vs-sync storage, selection normalization, and legacy reveal migration. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration, `document_start` runtime, native-tab-order click behavior, temporary page reveal, Options custom-term round trip, and complete-body replacement recovery without weakening the shipping manifest.
+Unit tests cover preference normalization/reconciliation, browser-access helpers including restore-before-revoke behavior and the top-frame registration contract, local-vs-sync storage, selection normalization, and legacy reveal migration. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration, `document_start` runtime, native-tab-order click behavior, temporary page reveal, Options custom-term round trip, and complete-body replacement recovery without weakening the shipping manifest.
