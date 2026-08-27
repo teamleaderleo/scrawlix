@@ -21,6 +21,10 @@ export default defineConfig({
         replacement: workspaceFile('../../packages/en/src/index.ts'),
       },
       {
+        find: '@scrawlix/core/width-obfuscated',
+        replacement: workspaceFile('../../packages/core/src/width-obfuscated.ts'),
+      },
+      {
         find: '@scrawlix/core/repeated-obfuscated',
         replacement: workspaceFile(
           '../../packages/core/src/repeated-obfuscated.ts'

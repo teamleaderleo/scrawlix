@@ -1,0 +1,59 @@
+[
+  {
+    "id": "obfuscated-width-clean-two-widths",
+    "text": "ｆｕck",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "width-variant", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-width-clean-width-plus-substitution",
+    "text": "ｆ*ck",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "width-variant", "substitution", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-width-clean-width-plus-repeat",
+    "text": "ｆuuck",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "width-variant", "repetition", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-width-clean-width-plus-separator",
+    "text": "ｆu-ck",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "width-variant", "punctuation-insertion", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-width-clean-fuckery-boundary",
+    "text": "ｆuckery",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "width-variant", "word-boundary"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-width-clean-country",
+    "text": "cｕntry",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "width-variant", "word-boundary", "ordinary-word"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-width-clean-asshole-under-run",
+    "text": "aｓhole",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "width-variant", "canonical-double"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-width-clean-circled-f",
+    "text": "ⓕuck",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "compatibility-character"],
+    "note": "General NFKC compatibility characters stay outside the reviewed fullwidth ASCII class.",
+    "matches": []
+  }
+]
