@@ -154,18 +154,19 @@ describe('CensoredText', () => {
   });
 
   it('cycles grawlix symbols by covered grapheme count', () => {
-    const fullRule = [{ id: 'whole', pattern: /abcdef/giu }] as const;
+    const graphemeText = 'e\u0301❤️👍🏽🇺🇸👨‍👩‍👧‍👦';
+    const fullRule = [{ id: 'whole', pattern: /.+/u }] as const;
     const container = render(
       <CensoredText
         appearance="grawlix"
         coverage="full"
         rules={fullRule}
-        text="abcdef"
+        text={graphemeText}
       />
     );
 
     expect(
       container.querySelector<HTMLElement>('[data-scrawlix-mask]')?.textContent
-    ).toBe('@#$%&!');
+    ).toBe('@#$%&');
   });
 });
