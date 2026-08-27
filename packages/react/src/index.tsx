@@ -29,7 +29,7 @@ export type ScrawlixCustomProperty =
   | '--scrawlix-mosaic-cell';
 
 export type ScrawlixStyle = CSSProperties &
-  Partial<Record<ScrawlixCustomProperty, string | number>>;
+  Partial<Record<ScrawlixCustomProperty, string>>;
 
 export type CensoredTextProps = {
   text: string;
