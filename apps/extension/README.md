@@ -31,7 +31,8 @@ To try it locally in Chromium:
 
 Small preferences live in `chrome.storage.sync`:
 
-- global enabled state
+- master paused state
+- default site enabled state
 - appearance
 - coverage
 - reveal mode
@@ -39,23 +40,27 @@ Small preferences live in `chrome.storage.sync`:
 
 Custom words and phrases live in `chrome.storage.local`. They can grow independently of the small synced preference object and stay local to the browser profile.
 
+The popup separates the master state from site policy. **Active** means site policy is allowed to apply; pausing Scrawlix disables it everywhere until the user resumes it. The default-site setting controls hosts without an explicit override.
+
 The popup exposes a tri-state site mode:
 
-- **follow global** — no hostname entry is stored
-- **always on** — hostname explicitly overrides the global switch
-- **always off** — hostname explicitly overrides the global switch
+- **default** — no hostname entry is stored; use the default-site setting
+- **always on** — hostname explicitly overrides the default-site setting
+- **always off** — hostname explicitly overrides the default-site setting
 
-Storage changes are observed by the content script. A preference change tears down the current DOM observation with `observation.restore()`, restoring exact source text before a new configured session begins.
+The master pause always wins over site policy, including an **always on** hostname.
+
+Storage changes are observed by the content script and reconciled with the minimum page work. Appearance/reveal changes redecorate existing Scrawlix roots in place. Policy changes that leave the current page's effective enabled state unchanged are page no-ops. Coverage or custom-term changes restore exact source text with `observation.restore()` before a newly configured controller starts.
 
 ## Page lifecycle
 
 The content script:
 
 1. loads the English pack plus one compiled custom-word rule when custom terms exist
-2. creates one `@scrawlix/dom` controller for the current settings
+2. creates one `@scrawlix/dom` controller for the current settings when the page is effectively enabled
 3. observes `document.body`
 4. decorates only Scrawlix-generated roots with extension presentation metadata
-5. listens for storage changes and restarts atomically
+5. listens for storage changes and chooses among no-op, redecorate, stop, start, or atomic controller restart
 
 The DOM adapter watches mutation roots rather than rescanning the document after every page update.
 
@@ -95,4 +100,4 @@ Broad HTTP/HTTPS host access is a meaningful permission and should remain explic
 - `popup.html` exists
 - every JS/CSS/popup path referenced by the manifest exists in `dist`
 
-Pure preference/mask behavior is covered by `src/config.test.ts`; broader extension/browser E2E coverage can grow after the first unpacked build is exercised manually.
+Pure preference/mask behavior is covered by `src/config.test.ts`. The workspace browser smoke suite loads the built MV3 extension in real Chromium and covers initial/dynamic transformation plus key native-page exclusions; storage/popup policy E2E coverage continues under the browser-hardening work.
