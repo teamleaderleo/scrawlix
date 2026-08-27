@@ -77,11 +77,13 @@ The rehype adapter emits spans with `data-scrawlix-cover` and `data-scrawlix-rul
 
 The DOM adapter transforms only matching text nodes, marks controller output with `data-scrawlix-dom-root`, skips editable/form/code/non-HTML regions by default, observes only mutation roots delivered by MutationObserver, and can restore exact controller-owned source strings.
 
+React and the extension share namespaced presentation metadata: `data-scrawlix-root`, `data-scrawlix-appearance`, `data-scrawlix-reveal`, `data-scrawlix-revealed`, `data-scrawlix-cover`, `data-scrawlix-rules`, and optional `data-scrawlix-mask`.
+
 Core is deliberately language-neutral. Select language/rule packs explicitly. Custom names, spoilers, and phrases can be supplied with `censorRuleFromWords()`.
 
 Generic coverage presets: full, tail, middle, inner.
 English-specific helper: englishVowelCoverage.
-React appearances: scrawl, bar, blur, asterisk, grawlix.
+React appearances: scrawl, bar, blur, whiteout, mosaic, asterisk, grawlix.
 React reveal modes: hover, focus, click, never.
 
 Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md

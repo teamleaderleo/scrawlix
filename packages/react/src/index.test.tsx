@@ -57,12 +57,12 @@ describe('CensoredText', () => {
     const covers = visual.querySelectorAll('[data-scrawlix-cover]');
 
     expect(root.getAttribute('aria-label')).toBeNull();
+    expect(root.dataset.scrawlixAppearance).toBe('bar');
     expect(accessible.textContent).toBe(text);
     expect(accessible.getAttribute('aria-hidden')).toBeNull();
     expect(visual.getAttribute('aria-hidden')).toBe('true');
     expect(covers).toHaveLength(1);
-    expect(covers[0]?.getAttribute('data-rules')).toBe('fuck');
-    expect(covers[0]?.getAttribute('data-appearance')).toBe('bar');
+    expect(covers[0]?.getAttribute('data-scrawlix-rules')).toBe('fuck');
   });
 
   it('keeps hover and never reveal passive in the tab order', () => {
@@ -73,8 +73,8 @@ describe('CensoredText', () => {
       const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
 
       expect(root.getAttribute('tabindex')).toBeNull();
-      expect(root.dataset.reveal).toBe(reveal);
-      expect(root.dataset.revealed).toBe('false');
+      expect(root.dataset.scrawlixReveal).toBe(reveal);
+      expect(root.dataset.scrawlixRevealed).toBe('false');
     }
   });
 
@@ -86,7 +86,7 @@ describe('CensoredText', () => {
 
     expect(root.tabIndex).toBe(0);
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(root.dataset.revealed).toBe('false');
+    expect(root.dataset.scrawlixRevealed).toBe('false');
   });
 
   it('toggles click reveal with pointer activation', () => {
@@ -96,13 +96,13 @@ describe('CensoredText', () => {
     const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
 
     expect(root.tabIndex).toBe(0);
-    expect(root.dataset.revealed).toBe('false');
+    expect(root.dataset.scrawlixRevealed).toBe('false');
 
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(root.dataset.revealed).toBe('true');
+    expect(root.dataset.scrawlixRevealed).toBe('true');
 
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(root.dataset.revealed).toBe('false');
+    expect(root.dataset.scrawlixRevealed).toBe('false');
   });
 
   it.each(['Enter', ' '])('toggles click reveal with %j', key => {
@@ -121,10 +121,10 @@ describe('CensoredText', () => {
       )
     );
 
-    expect(root.dataset.revealed).toBe('true');
+    expect(root.dataset.scrawlixRevealed).toBe('true');
   });
 
-  it('renders symbol masks while retaining the exact covered source substring', () => {
+  it('paints symbol masks over the exact covered source substring', () => {
     const container = render(
       <CensoredText
         appearance="asterisk"
@@ -135,11 +135,9 @@ describe('CensoredText', () => {
     );
 
     const cover = container.querySelector<HTMLElement>('[data-scrawlix-cover]')!;
-    const mask = cover.querySelector<HTMLElement>('[data-scrawlix-mask]')!;
-    const source = cover.querySelector<HTMLElement>('[data-scrawlix-source]')!;
 
-    expect(mask.textContent).toBe('**');
-    expect(source.textContent).toBe('uc');
+    expect(cover.dataset.scrawlixMask).toBe('**');
+    expect(cover.textContent).toBe('uc');
   });
 
   it('cycles grawlix symbols by covered grapheme count', () => {
@@ -154,7 +152,24 @@ describe('CensoredText', () => {
     );
 
     expect(
-      container.querySelector<HTMLElement>('[data-scrawlix-mask]')?.textContent
+      container.querySelector<HTMLElement>('[data-scrawlix-cover]')?.dataset
+        .scrawlixMask
     ).toBe('@#$%&!');
+  });
+
+  it('treats emoji sequences as single grapheme clusters in symbol masks', () => {
+    const fullRule = [{ id: 'emoji', pattern: /👩🏽‍💻x/gu }] as const;
+    const container = render(
+      <CensoredText
+        appearance="asterisk"
+        coverage="full"
+        rules={fullRule}
+        text="👩🏽‍💻x"
+      />
+    );
+
+    const cover = container.querySelector<HTMLElement>('[data-scrawlix-cover]')!;
+    expect(cover.dataset.scrawlixMask).toBe('**');
+    expect(cover.textContent).toBe('👩🏽‍💻x');
   });
 });

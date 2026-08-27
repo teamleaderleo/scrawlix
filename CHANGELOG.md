@@ -23,9 +23,11 @@ Scrawlix is in pre-release development. Until the first package version is chose
 ### React
 
 - Added `@scrawlix/react` and `CensoredText`.
-- Added `scrawl`, `bar`, `blur`, `asterisk`, and `grawlix` appearances.
+- Added `scrawl`, `bar`, `blur`, `whiteout`, `mosaic`, `asterisk`, and `grawlix` appearances.
 - Added `hover`, `focus`, `click`, and `never` reveal behavior.
 - Added keyboard reveal handling and a single-source accessibility contract with rendered regressions.
+- Standardized namespaced presentation attributes and kept symbol-mask source text in-flow across reveal states.
+- Added grapheme-aware asterisk/grawlix masks and configurable appearance CSS custom properties.
 - Added the public CSS subpath export.
 
 ### Markdown
@@ -43,10 +45,12 @@ Scrawlix is in pre-release development. Until the first package version is chose
 
 - Added an interactive editorial proof-sheet demo under `apps/demo`.
 - Added a Vercel-ready static deployment configuration.
-- Added a Manifest V3 Chromium extension under `apps/extension` with global/site preferences, five appearances, coverage/reveal controls, and local custom terms.
+- Added a Manifest V3 Chromium extension under `apps/extension` with global/site preferences, seven appearances, coverage/reveal controls, and local custom terms.
+- Aligned React and extension presentation attributes and appearance CSS behavior.
 
 ### Developer experience
 
 - Added compiled ESM/declaration artifacts for public packages.
 - Added an external tarball consumer smoke test as a CI release gate.
 - Added `AGENTS.md`, `llms.txt`, language-pack docs, DOM lifecycle docs, extension docs, and the first-release runbook.
+- Extended browser smoke coverage for the shared presentation contract and reveal-width stability.

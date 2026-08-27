@@ -10,21 +10,33 @@ test('demo controls drive real rendered coverage and reveal state', async ({ pag
   const firstCover = proof.locator('[data-scrawlix-cover]').first();
 
   await expect(proof).toBeVisible();
-  await expect(firstCover).toHaveAttribute('data-appearance', 'scrawl');
+  await expect(proof).toHaveAttribute('data-scrawlix-appearance', 'scrawl');
   await expect(firstCover).toHaveText('uc');
 
   await page.getByRole('button', { name: 'bar', exact: true }).click();
-  await expect(firstCover).toHaveAttribute('data-appearance', 'bar');
+  await expect(proof).toHaveAttribute('data-scrawlix-appearance', 'bar');
 
   await page.getByRole('button', { name: 'full', exact: true }).click();
   await expect(firstCover).toHaveText('fuck');
 
-  await page.getByRole('button', { name: 'click', exact: true }).click();
-  await expect(proof).toHaveAttribute('data-reveal', 'click');
-  await expect(proof).toHaveAttribute('data-revealed', 'false');
+  for (const appearance of ['whiteout', 'mosaic', 'asterisk'] as const) {
+    await page.getByRole('button', { name: appearance, exact: true }).click();
+    await expect(proof).toHaveAttribute('data-scrawlix-appearance', appearance);
+  }
 
+  await page.getByRole('button', { name: 'click', exact: true }).click();
+  await expect(proof).toHaveAttribute('data-scrawlix-reveal', 'click');
+  await expect(proof).toHaveAttribute('data-scrawlix-revealed', 'false');
+
+  const beforeRevealBox = await firstCover.boundingBox();
   await proof.click();
-  await expect(proof).toHaveAttribute('data-revealed', 'true');
+  await expect(proof).toHaveAttribute('data-scrawlix-revealed', 'true');
+  const afterRevealBox = await firstCover.boundingBox();
+
+  if (!beforeRevealBox || !afterRevealBox) {
+    throw new Error('Expected the first covered segment to have a layout box.');
+  }
+  expect(Math.abs(beforeRevealBox.width - afterRevealBox.width)).toBeLessThan(0.5);
 
   await page.setViewportSize({ width: 390, height: 844 });
   const overflow = await page.evaluate(
@@ -50,9 +62,10 @@ test('built extension transforms initial and dynamic page text in Chromium', asy
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
 
-    await expect(
-      page.locator('#initial [data-scrawlix-dom-root]')
-    ).toHaveCount(1);
+    const initialRoot = page.locator('#initial [data-scrawlix-dom-root]');
+    await expect(initialRoot).toHaveCount(1);
+    await expect(initialRoot).toHaveAttribute('data-scrawlix-root', '');
+    await expect(initialRoot).toHaveAttribute('data-scrawlix-appearance', 'scrawl');
     await expect(
       page.locator('#initial [data-scrawlix-cover]')
     ).toHaveText('uc');

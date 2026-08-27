@@ -30,6 +30,20 @@ describe('extension settings', () => {
     });
   });
 
+  it('accepts the full appearance set', () => {
+    for (const appearance of [
+      'scrawl',
+      'bar',
+      'blur',
+      'whiteout',
+      'mosaic',
+      'asterisk',
+      'grawlix',
+    ] as const) {
+      expect(normalizeSettings({ appearance }).appearance).toBe(appearance);
+    }
+  });
+
   it('lets explicit site modes override the global switch', () => {
     const disabled = { ...DEFAULT_SETTINGS, enabled: false };
     const forcedOn = setSiteMode(disabled, 'example.com', 'on');
@@ -62,7 +76,9 @@ describe('extension settings', () => {
   it('generates symbol masks without rewriting source text', () => {
     expect(maskFor('fuck', 'asterisk')).toBe('****');
     expect(maskFor('abcdef', 'grawlix')).toBe('@#$%&!');
-    expect(maskFor('🔥x', 'asterisk')).toBe('**');
+    expect(maskFor('👩🏽‍💻x', 'asterisk')).toBe('**');
     expect(maskFor('fuck', 'bar')).toBe('');
+    expect(maskFor('fuck', 'whiteout')).toBe('');
+    expect(maskFor('fuck', 'mosaic')).toBe('');
   });
 });

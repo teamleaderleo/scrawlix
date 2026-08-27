@@ -24,6 +24,10 @@ body {
   background-size: 100% 28px;
 }
 
+[data-scrawlix-root] {
+  --scrawlix-surface: #fffdf7;
+}
+
 button,
 textarea {
   font: inherit;
@@ -276,7 +280,7 @@ main {
 
 .specimen-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   border: 1px solid #171512;
 }
 
@@ -459,6 +463,16 @@ footer a {
     border-bottom: 1px solid #171512;
   }
 
+  .specimen-card:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .specimen-card:last-child {
+    grid-column: 1 / -1;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
   .semantic-grid {
     grid-template-columns: 1fr;
   }
@@ -513,7 +527,9 @@ footer a {
   }
 
   .specimen-card,
+  .specimen-card:nth-child(2n),
   .specimen-card:last-child {
+    grid-column: auto;
     border-right: 0;
     border-bottom: 1px solid #171512;
   }
@@ -528,5 +544,11 @@ footer a {
 
   footer span:nth-child(2) {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }

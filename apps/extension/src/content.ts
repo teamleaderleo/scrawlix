@@ -29,6 +29,7 @@ function canOwnInteraction(root: HTMLElement) {
 }
 
 function decorateGeneratedRoot(root: HTMLElement, settings: SyncSettings) {
+  root.setAttribute('data-scrawlix-root', '');
   root.dataset.scrawlixAppearance = settings.appearance;
   root.dataset.scrawlixReveal = settings.reveal;
   root.dataset.scrawlixRevealed = 'false';
