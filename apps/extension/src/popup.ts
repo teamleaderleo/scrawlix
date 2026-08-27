@@ -294,8 +294,14 @@ allSitesAccessButton.addEventListener('click', () => {
 });
 
 openOptionsButton.addEventListener('click', () => {
-  void chrome.runtime.openOptionsPage();
-  window.close();
+  void (async () => {
+    try {
+      await chrome.runtime.openOptionsPage();
+      window.close();
+    } catch {
+      settingsStatus.textContent = 'could not open settings';
+    }
+  })();
 });
 
 async function initialize() {
