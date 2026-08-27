@@ -144,6 +144,62 @@ Rules can carry an optional `profile` string. `find()` exposes it as `match.prof
 
 Profile names describe the matching path. Packs still own linguistic scope, reviewed transform tables, budgets, and regression negatives.
 
+## Pack authoring
+
+Pack authors can opt into `@scrawlix/core/pack-authoring` when explicit lexical data can describe the pack:
+
+```ts
+import { createScrawlix, rulesFromPacks } from '@scrawlix/core';
+import { defineLexiconPack } from '@scrawlix/core/pack-authoring';
+
+const exhibitPack = defineLexiconPack({
+  manifest: {
+    id: 'museum-exhibits',
+    version: '1.0.0',
+    name: 'Museum Exhibit Labels',
+    locale: 'en',
+    categories: ['exhibits'],
+    reviewStatus: 'reviewed',
+    recommended: { coverage: 'full', appearance: 'bar', reveal: 'never' },
+  },
+  matchingProfiles: [
+    { id: 'canonical', mode: 'canonical', boundary: 'unicode-word' },
+    {
+      id: 'aggressive',
+      mode: 'obfuscated',
+      boundary: 'unicode-word',
+      substitutions: { a: ['@'] },
+      maxSubstitutions: 1,
+    },
+  ],
+  lexicon: [
+    {
+      id: 'blue-lantern',
+      lemma: 'Blue Lantern',
+      profiles: ['canonical', 'aggressive'],
+      forms: [
+        { text: 'Blue Lantern', kind: 'base' },
+        {
+          text: 'Blue Lantern Annex',
+          kind: 'compound',
+          target: 'Blue Lantern',
+        },
+      ],
+    },
+  ],
+});
+
+const engine = createScrawlix({ rules: rulesFromPacks(exhibitPack) });
+```
+
+The authoring model is **manifest + lexicon + matching profiles**. `defineLexiconPack()` compiles those values into the same runtime helpers described above: canonical profiles delegate to `censorRuleFromTerms()`, aggressive profiles delegate to the targeted obfuscated helper, and the stable lexical id is reused across emitted profiles.
+
+A lexical form can name one exact semantic-target substring inside a larger attested form. The target must occur once and align to extended-grapheme boundaries. One lexical entry may opt into several named profiles, so canonical and reviewed aggressive matching share a single semantic row instead of duplicating the lexicon.
+
+`AuthoredRulePack` keeps the original manifest, lexicon, and profile definitions beside its ordinary `CensorRulePack` fields. Applications can display pack name, version, locale, categories, review status, attribution, and presentation recommendations without bespoke metadata wiring. Presentation recommendation strings are hints for adapters/apps; core does not interpret appearance or reveal ids.
+
+Prefer explicit attested forms by default. Language-specific generators remain appropriate inside the pack that understands the productive paradigm; the authoring helper deliberately avoids a universal affix/morphology DSL.
+
 ## Public concepts
 
 - **matching** finds a term or phrase
@@ -154,6 +210,7 @@ Profile names describe the matching path. Packs still own linguistic scope, revi
 - literal/custom-term matching defaults to NFC canonical equivalence and `profile: 'canonical'`
 - bounded aggressive term matching is opt-in through `censorRuleFromObfuscatedTerms()`
 - targeted aggressive matching can preserve a smaller semantic root through `@scrawlix/core/targeted-obfuscated`
+- data-authored packs can compile manifest/lexicon/profile data through `@scrawlix/core/pack-authoring`
 - every exposed match, target, and covered segment respects extended-grapheme boundaries
 
 Scrawlix deliberately has no built-in language or hidden profanity list. Callers select rules explicitly.
