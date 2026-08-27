@@ -124,11 +124,31 @@ test('built extension registers granted hosts and handles page interaction in Ch
       .toBeNull();
     await expect(initialRoot).toHaveCount(1);
 
+    // Click reveal stays pointer-local without inserting arbitrary text into tab order.
+    await worker.evaluate(async () => {
+      await chrome.storage.sync.set({
+        scrawlixSettings: {
+          paused: false,
+          enabled: true,
+          appearance: 'scrawl',
+          coverage: 'middle',
+          reveal: 'click',
+        },
+      });
+    });
+    await expect(initialRoot).toHaveAttribute('data-scrawlix-reveal', 'click');
+    await expect(page.locator('[data-scrawlix-dom-root][tabindex]')).toHaveCount(0);
+    await initialRoot.click();
+    await expect(initialRoot).toHaveAttribute('data-scrawlix-revealed', 'true');
+    await initialRoot.click();
+    await expect(initialRoot).toHaveAttribute('data-scrawlix-revealed', 'false');
+
     // Full-tab Options uses the real engine for its specimen and edits the live custom list.
     const optionsUrl = await worker.evaluate(() => chrome.runtime.getURL('options.html'));
     const options = await context.newPage();
     await options.goto(optionsUrl);
     await expect(options.getByRole('heading', { name: 'Custom terms' })).toBeVisible();
+    await expect(options.locator('#reveal')).toHaveValue('click');
     await expect(
       options.locator('#preview-stage [data-scrawlix-cover]')
     ).toHaveText('othb');
@@ -150,6 +170,7 @@ test('built extension registers granted hosts and handles page interaction in Ch
     await expect(
       page.locator('#custom-term-copy [data-scrawlix-cover]')
     ).toHaveText('othb');
+    await expect(page.locator('[data-scrawlix-dom-root][tabindex]')).toHaveCount(0);
 
     await options.getByRole('button', { name: 'Remove Mothbit' }).click();
     await expect(options.locator('#term-list')).not.toContainText('Mothbit');
@@ -159,6 +180,7 @@ test('built extension registers granted hosts and handles page interaction in Ch
     ).toHaveCount(0);
     await options.close();
 
+    // Native controls remain native under click reveal; Scrawlix does not intercept the link.
     await page.locator('#native-link').click();
     await expect(page).toHaveURL('http://127.0.0.1:4174/clicked.html');
     await expect(page.locator('#clicked')).toHaveText('native link worked');
