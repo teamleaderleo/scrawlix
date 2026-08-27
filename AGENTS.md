@@ -95,13 +95,13 @@ Presentation remains above the DOM adapter. Keep black bars, blur, grawlix masks
 
 `apps/extension` owns `chrome.storage`, hostname overrides, popup UI, manifest permissions, and injected presentation. Do not move those concerns into reusable packages.
 
-Small global preferences belong in `storage.sync`; custom terms currently live in `storage.local`. Host overrides are sparse tri-state policy: absence means inherit, explicit values are `on` or `off`. The master pause is independent from the default site-enabled policy and must win over every host override.
+Small general preferences belong in `storage.sync`; custom terms and hostname overrides belong in `storage.local`. Host overrides are sparse tri-state policy: absence means inherit, explicit values are `on` or `off`. The master pause is independent from the default site-enabled policy and must win over every host override.
 
 Storage changes should perform the minimum page work. Policy changes that leave the current page's effective state unchanged are no-ops; appearance/reveal changes may redecorate owned roots in place. When coverage or custom terms require a new controller, use `DomObservation.restore()` before the replacement controller starts so teardown/reconfigure remains atomic and exact source text returns first.
 
 Extension reveal interaction must avoid stealing native page controls. Generated roots inside links, buttons, inputs, or similar controls stay outside the extension's own focus/click-toggle path.
 
-Broad HTTP/HTTPS host access is a deliberate development choice for persistent automatic per-site behavior. Treat permission minimization as a store-release requirement and document any permission change alongside its UX tradeoff.
+HTTP/HTTPS host access is optional and user-granted. Keep dynamic content-script registration aligned with Chrome's currently granted origin patterns, and keep browser access separate from Scrawlix site policy in both code and UI. Removing access from the extension UI should restore the current page session immediately. Any permission expansion is a browser-product and store-review change that must include its UX and privacy rationale.
 
 ### Add corpus cases for learned linguistic behavior
 
