@@ -63,14 +63,32 @@ if (
   throw new Error('Scrawlix DOM package smoke assertion failed.');
 }
 
+const copyRef = React.createRef<HTMLSpanElement>();
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
+    <span id="consumer-hint">consumer metadata survives</span>
     <CensoredText
+      ref={copyRef}
+      id="consumer-copy"
+      data-consumer="packed-tarball"
+      aria-describedby="consumer-hint"
       appearance="scrawl"
       coverage="middle"
-      reveal="hover"
+      reveal="click"
+      revealScope="match"
       rules={englishProfanityRules}
+      style={{
+        '--scrawlix-ink': 'currentColor',
+        '--scrawlix-surface': 'Canvas',
+        '--scrawlix-bar-height': '0.72em',
+        '--scrawlix-blur-radius': '0.17em',
+        '--scrawlix-mosaic-cell': '0.3em',
+      }}
       text="well, fuck"
+      onClick={() => {
+        void copyRef.current?.dataset.scrawlixReveal;
+      }}
     />
   </React.StrictMode>
 );
