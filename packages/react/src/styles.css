@@ -8,7 +8,8 @@
   --scrawlix-mosaic-cell: 0.3em;
 }
 
-[data-scrawlix-a11y] {
+[data-scrawlix-a11y],
+[data-scrawlix-control] {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -21,9 +22,19 @@
   border: 0;
 }
 
+[data-scrawlix-controls] {
+  display: contents;
+}
+
 [data-scrawlix-root]:focus-visible {
   outline: 1px solid currentColor;
   outline-offset: 0.2em;
+  border-radius: 0.12em;
+}
+
+[data-scrawlix-root] [data-scrawlix-cover][data-scrawlix-focused='true'] {
+  outline: 1px solid currentColor;
+  outline-offset: 0.16em;
   border-radius: 0.12em;
 }
 
@@ -112,10 +123,14 @@
   transition: opacity 140ms ease;
 }
 
-[data-scrawlix-root][data-scrawlix-reveal='hover']:hover [data-scrawlix-cover],
-[data-scrawlix-root][data-scrawlix-reveal='focus']:focus [data-scrawlix-cover],
-[data-scrawlix-root][data-scrawlix-reveal='click'][data-scrawlix-revealed='true']
-  [data-scrawlix-cover] {
+[data-scrawlix-root][data-scrawlix-reveal-scope='component'][data-scrawlix-reveal='hover']:hover
+  [data-scrawlix-cover],
+[data-scrawlix-root][data-scrawlix-reveal-scope='component'][data-scrawlix-reveal='focus']:focus
+  [data-scrawlix-cover],
+[data-scrawlix-root][data-scrawlix-reveal-scope='component'][data-scrawlix-reveal='click'][data-scrawlix-revealed='true']
+  [data-scrawlix-cover],
+[data-scrawlix-root][data-scrawlix-reveal-scope='match']
+  [data-scrawlix-cover][data-scrawlix-revealed='true'] {
   -webkit-text-fill-color: currentColor;
   background: transparent;
   box-shadow: none;
@@ -124,12 +139,14 @@
   user-select: text;
 }
 
-[data-scrawlix-root][data-scrawlix-reveal='hover']:hover
+[data-scrawlix-root][data-scrawlix-reveal-scope='component'][data-scrawlix-reveal='hover']:hover
   [data-scrawlix-cover][data-scrawlix-mask]::after,
-[data-scrawlix-root][data-scrawlix-reveal='focus']:focus
+[data-scrawlix-root][data-scrawlix-reveal-scope='component'][data-scrawlix-reveal='focus']:focus
   [data-scrawlix-cover][data-scrawlix-mask]::after,
-[data-scrawlix-root][data-scrawlix-reveal='click'][data-scrawlix-revealed='true']
-  [data-scrawlix-cover][data-scrawlix-mask]::after {
+[data-scrawlix-root][data-scrawlix-reveal-scope='component'][data-scrawlix-reveal='click'][data-scrawlix-revealed='true']
+  [data-scrawlix-cover][data-scrawlix-mask]::after,
+[data-scrawlix-root][data-scrawlix-reveal-scope='match']
+  [data-scrawlix-cover][data-scrawlix-revealed='true'][data-scrawlix-mask]::after {
   opacity: 0;
 }
 
