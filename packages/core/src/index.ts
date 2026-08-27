@@ -119,7 +119,7 @@ function advanceStringIndex(value: string, index: number, unicode: boolean) {
   return index + 2;
 }
 
-function graphemeRanges(value: string): RelativeRange[] {
+export function graphemeRanges(value: string): RelativeRange[] {
   if (!value) return [];
 
   if (graphemeSegmenter) {
@@ -136,6 +136,10 @@ function graphemeRanges(value: string): RelativeRange[] {
     cursor += character.length;
   }
   return ranges;
+}
+
+export function graphemeCount(value: string) {
+  return graphemeRanges(value).length;
 }
 
 function fullRange(value: string): RelativeRange[] {
