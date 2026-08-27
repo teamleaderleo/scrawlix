@@ -6,7 +6,9 @@ type Store = Record<string, unknown>;
 
 function storageArea(store: Store) {
   return {
-    get: vi.fn(async (key: string) => ({ [key]: store[key] })),
+    get: vi.fn(async (key: string) =>
+      Object.prototype.hasOwnProperty.call(store, key) ? { [key]: store[key] } : {}
+    ),
     set: vi.fn(async (value: Store) => {
       Object.assign(store, value);
     }),
@@ -90,6 +92,33 @@ describe('extension storage split', () => {
       appearance: 'bar',
       coverage: 'full',
       reveal: 'never',
+    });
+  });
+
+  it('preserves an intentionally empty local override map during migration', async () => {
+    const syncStore: Store = {
+      [SYNC_SETTINGS_KEY]: {
+        ...DEFAULT_SETTINGS,
+        siteOverrides: { 'legacy.example': 'on' },
+      },
+    };
+    const localStore: Store = { [SITE_OVERRIDES_KEY]: {} };
+    vi.stubGlobal('chrome', {
+      storage: {
+        sync: storageArea(syncStore),
+        local: storageArea(localStore),
+      },
+    });
+
+    await migrateSiteOverridesToLocal();
+
+    expect(localStore[SITE_OVERRIDES_KEY]).toEqual({});
+    expect(syncStore[SYNC_SETTINGS_KEY]).toEqual({
+      paused: false,
+      enabled: true,
+      appearance: 'scrawl',
+      coverage: 'middle',
+      reveal: 'hover',
     });
   });
 });
