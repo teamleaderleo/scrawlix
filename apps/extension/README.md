@@ -61,15 +61,21 @@ The DOM adapter watches mutation roots rather than rescanning the document after
 
 ## Presentation
 
-`content.css` implements the extension's five appearances:
+`content.css` implements the extension's seven appearances:
 
 - scrawl
 - bar
 - blur
+- whiteout
+- mosaic
 - asterisk
 - grawlix
 
-Asterisk/grawlix masks are presentation metadata on generated cover spans. The source substring remains the actual DOM text underneath.
+Generated page wrappers keep their `data-scrawlix-dom-root` ownership marker and also receive the shared `data-scrawlix-root`, `data-scrawlix-appearance`, `data-scrawlix-reveal`, and `data-scrawlix-revealed` presentation attributes used by the React adapter.
+
+Asterisk/grawlix masks live in `data-scrawlix-mask` metadata on generated cover spans. The exact covered substring remains the in-flow DOM text underneath, so reveal preserves its layout width. Symbol counts follow Unicode grapheme clusters when `Intl.Segmenter` is available.
+
+Appearance CSS can be tuned per page with `--scrawlix-ink`, `--scrawlix-surface`, `--scrawlix-bar-height`, `--scrawlix-blur-radius`, and `--scrawlix-mosaic-cell`.
 
 Hover is the default reveal mode. Focus/click reveal makes a generated wrapper keyboard-focusable only when the wrapper is outside links, buttons, inputs, and other native interactive controls. Scrawlix avoids stealing those controls' interaction semantics.
 
