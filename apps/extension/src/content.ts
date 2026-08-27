@@ -3,15 +3,20 @@ import { createDomScrawlix, type DomObservation } from '@scrawlix/dom';
 import { englishStrongProfanityRules } from '@scrawlix/en';
 import {
   CUSTOM_WORDS_KEY,
+  LOCAL_STATE_KEY,
   SYNC_SETTINGS_KEY,
+  activeProfile,
   coverageSelector,
   effectiveEnabled,
   maskFor,
-  type SyncSettings,
+  profileTerms,
+  profileUsesEnglishProfanity,
+  type ExtensionProfile,
 } from './config';
 import {
   canReuseSemanticSession,
   presentationSettingsChanged,
+  type ExtensionSessionState,
 } from './session';
 import { loadExtensionState } from './storage';
 
@@ -20,10 +25,9 @@ const INTERACTIVE_ANCESTOR =
 
 let observation: DomObservation | null = null;
 let presentationObserver: MutationObserver | null = null;
-let activeSettings: SyncSettings | null = null;
+let activeState: ExtensionSessionState | null = null;
 let activeBody: HTMLElement | null = null;
 let restartGeneration = 0;
-let semanticDirty = false;
 
 function customRule(customTerms: readonly string[]): CensorRule[] {
   if (customTerms.length === 0) return [];
@@ -34,12 +38,12 @@ function canOwnInteraction(root: HTMLElement) {
   return root.closest(INTERACTIVE_ANCESTOR) === null;
 }
 
-function decorateGeneratedRoot(root: HTMLElement, settings: SyncSettings) {
-  root.dataset.scrawlixAppearance = settings.appearance;
-  root.dataset.scrawlixReveal = settings.reveal;
+function decorateGeneratedRoot(root: HTMLElement, profile: ExtensionProfile) {
+  root.dataset.scrawlixAppearance = profile.appearance;
+  root.dataset.scrawlixReveal = profile.reveal;
   root.dataset.scrawlixRevealed = 'false';
 
-  const interactiveReveal = settings.reveal === 'focus' || settings.reveal === 'click';
+  const interactiveReveal = profile.reveal === 'focus' || profile.reveal === 'click';
   if (interactiveReveal && canOwnInteraction(root)) {
     root.tabIndex = 0;
   } else {
@@ -49,31 +53,31 @@ function decorateGeneratedRoot(root: HTMLElement, settings: SyncSettings) {
   for (const cover of Array.from(
     root.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')
   )) {
-    const mask = maskFor(cover.textContent ?? '', settings.appearance);
+    const mask = maskFor(cover.textContent ?? '', profile.appearance);
     if (mask) cover.dataset.scrawlixMask = mask;
     else delete cover.dataset.scrawlixMask;
   }
 }
 
-function decorateSubtree(node: Node, settings: SyncSettings) {
+function decorateSubtree(node: Node, profile: ExtensionProfile) {
   if (!(node instanceof Element)) return;
 
   if (node.matches('[data-scrawlix-dom-root]')) {
-    decorateGeneratedRoot(node as HTMLElement, settings);
+    decorateGeneratedRoot(node as HTMLElement, profile);
   }
 
   for (const root of Array.from(
     node.querySelectorAll<HTMLElement>('[data-scrawlix-dom-root]')
   )) {
-    decorateGeneratedRoot(root, settings);
+    decorateGeneratedRoot(root, profile);
   }
 }
 
-function startPresentationObserver(root: HTMLElement, settings: SyncSettings) {
+function startPresentationObserver(root: HTMLElement, profile: ExtensionProfile) {
   const observer = new MutationObserver(records => {
     for (const record of records) {
       for (const added of Array.from(record.addedNodes)) {
-        decorateSubtree(added, settings);
+        decorateSubtree(added, profile);
       }
     }
   });
@@ -82,11 +86,11 @@ function startPresentationObserver(root: HTMLElement, settings: SyncSettings) {
   presentationObserver = observer;
 }
 
-function refreshPresentation(root: HTMLElement, settings: SyncSettings) {
+function refreshPresentation(root: HTMLElement, profile: ExtensionProfile) {
   presentationObserver?.disconnect();
   presentationObserver = null;
-  decorateSubtree(root, settings);
-  startPresentationObserver(root, settings);
+  decorateSubtree(root, profile);
+  startPresentationObserver(root, profile);
 }
 
 function stopCurrentSession() {
@@ -94,7 +98,7 @@ function stopCurrentSession() {
   presentationObserver = null;
   observation?.restore();
   observation = null;
-  activeSettings = null;
+  activeState = null;
   activeBody = null;
 }
 
@@ -105,40 +109,45 @@ async function restart() {
 
   const hostname = location.hostname.toLowerCase();
   const body = document.body;
-  const previousSettings = activeSettings;
+  const previousState = activeState;
 
   if (
     body &&
     observation &&
-    previousSettings &&
+    previousState &&
     activeBody === body &&
-    !semanticDirty &&
-    canReuseSemanticSession(previousSettings, state.settings, hostname)
+    canReuseSemanticSession(previousState, state, hostname)
   ) {
-    if (presentationSettingsChanged(previousSettings, state.settings)) {
-      refreshPresentation(body, state.settings);
+    if (presentationSettingsChanged(previousState, state)) {
+      refreshPresentation(body, activeProfile(state.localState));
     }
-    activeSettings = state.settings;
+    activeState = state;
     return;
   }
 
   stopCurrentSession();
 
-  if (!body || !effectiveEnabled(state.settings, hostname)) {
-    semanticDirty = false;
-    return;
-  }
+  if (!body || !effectiveEnabled(state.settings, hostname)) return;
+
+  const profile = activeProfile(state.localState);
+  const rules: CensorRule[] = [
+    ...(profileUsesEnglishProfanity(state.localState)
+      ? englishStrongProfanityRules
+      : []),
+    ...customRule(profileTerms(state.localState)),
+  ];
+
+  if (rules.length === 0) return;
 
   const controller = createDomScrawlix({
-    rules: [...englishStrongProfanityRules, ...customRule(state.customWords)],
-    coverage: coverageSelector(state.settings.coverage),
+    rules,
+    coverage: coverageSelector(profile.coverage),
   });
 
-  activeSettings = state.settings;
+  activeState = state;
   activeBody = body;
   observation = controller.observe(body);
-  refreshPresentation(body, state.settings);
-  semanticDirty = false;
+  refreshPresentation(body, profile);
 }
 
 function clickRootFromEvent(event: Event) {
@@ -172,9 +181,10 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   const relevantSync =
     areaName === 'sync' && Object.prototype.hasOwnProperty.call(changes, SYNC_SETTINGS_KEY);
   const relevantLocal =
-    areaName === 'local' && Object.prototype.hasOwnProperty.call(changes, CUSTOM_WORDS_KEY);
+    areaName === 'local' &&
+    (Object.prototype.hasOwnProperty.call(changes, LOCAL_STATE_KEY) ||
+      Object.prototype.hasOwnProperty.call(changes, CUSTOM_WORDS_KEY));
 
-  if (relevantLocal) semanticDirty = true;
   if (relevantSync || relevantLocal) void restart();
 });
 

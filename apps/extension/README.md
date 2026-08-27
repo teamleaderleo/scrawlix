@@ -27,35 +27,65 @@ To try it locally in Chromium:
 3. choose **Load unpacked**
 4. select `apps/extension/dist`
 
-## Preferences
+## Lenses and profiles
 
-Small preferences live in `chrome.storage.sync`:
+The popup separates **what should be caught** from **how the current setup should look**.
+
+A **lens** is a user-facing purpose. The extension always offers a built-in English **Profanity** lens, and users can add local term lenses such as:
+
+- Client privacy
+- Project codenames
+- Spoilers
+- Classroom
+- Stream safety
+
+A **profile** combines any number of lenses with appearance, coverage, and reveal choices. Examples:
+
+- **Everyday** — profanity + spoilers, scrawl appearance, hover reveal
+- **Presentation** — client privacy + codenames, full bars, never reveal
+- **Stream** — private terms + profanity, full coverage, never reveal
+
+Switching the active profile is one popup selection. The content script restores controller-owned source text before starting the newly selected profile, so turning one lens off cannot leave stale generated spans behind.
+
+Custom lenses can be created, renamed, edited, removed, and enabled independently in each profile. Profile creation clones the current profile as a useful starting point.
+
+## Storage and migration
+
+Small cross-browser preferences remain in `chrome.storage.sync`:
 
 - global enabled state
-- appearance
-- coverage
-- reveal mode
 - sparse hostname overrides (`on` / `off`)
+- legacy appearance / coverage / reveal values, retained as migration seeds
 
-Custom words and phrases live in `chrome.storage.local`. They can grow independently of the small synced preference object and stay local to the browser profile.
+Lens/profile state lives in `chrome.storage.local`:
 
-The popup exposes a tri-state site mode:
+- custom lens names and terms
+- profile definitions
+- active profile id
+- per-profile appearance / coverage / reveal
+
+Keeping the active profile local avoids syncing an id to another browser profile that may have a different set of local lenses and profiles.
+
+On first load after upgrading from the single-list model, Scrawlix creates an **Everyday** profile from the previous treatment settings. Existing custom words become a local **My terms** lens and remain active alongside the built-in Profanity lens. The old custom-word key remains readable for that migration path.
+
+The popup still exposes a tri-state site mode:
 
 - **follow global** — no hostname entry is stored
 - **always on** — hostname explicitly overrides the global switch
 - **always off** — hostname explicitly overrides the global switch
 
-Storage changes are observed by the content script. A preference change tears down the current DOM observation with `observation.restore()`, restoring exact source text before a new configured session begins.
+Storage changes are observed by the content script. A settings, lens, or profile change tears down the current DOM observation with `observation.restore()`, restoring exact source text before a new configured session begins.
 
 ## Page lifecycle
 
 The content script:
 
-1. loads the English pack plus one compiled custom-word rule when custom terms exist
-2. creates one `@scrawlix/dom` controller for the current settings
-3. observes `document.body`
-4. decorates only Scrawlix-generated roots with extension presentation metadata
-5. listens for storage changes and restarts atomically
+1. loads the active local profile
+2. composes rules from every lens enabled in that profile
+3. creates one `@scrawlix/dom` controller using the profile coverage setting
+4. observes `document.body`
+5. decorates only Scrawlix-generated roots using the profile appearance/reveal settings
+6. listens for sync/local storage changes and restarts atomically
 
 The DOM adapter watches mutation roots rather than rescanning the document after every page update.
 
@@ -71,13 +101,13 @@ The DOM adapter watches mutation roots rather than rescanning the document after
 
 Asterisk/grawlix masks are presentation metadata on generated cover spans. The source substring remains the actual DOM text underneath.
 
-Hover is the default reveal mode. Focus/click reveal makes a generated wrapper keyboard-focusable only when the wrapper is outside links, buttons, inputs, and other native interactive controls. Scrawlix avoids stealing those controls' interaction semantics.
+Hover is the default reveal mode for migrated/default profiles. Focus/click reveal makes a generated wrapper keyboard-focusable only when the wrapper is outside links, buttons, inputs, and other native interactive controls. Scrawlix avoids stealing those controls' interaction semantics.
 
 ## Permissions
 
 The development manifest requests:
 
-- `storage` — persist preferences
+- `storage` — persist preferences, lenses, and profiles
 - `activeTab` — let the popup identify the current HTTP/HTTPS hostname after the user opens it
 - host access to HTTP and HTTPS pages — run the content script automatically on pages where Scrawlix may be enabled
 
@@ -95,4 +125,4 @@ Broad HTTP/HTTPS host access is a meaningful permission and should remain explic
 - `popup.html` exists
 - every JS/CSS/popup path referenced by the manifest exists in `dist`
 
-Pure preference/mask behavior is covered by `src/config.test.ts`; broader extension/browser E2E coverage can grow after the first unpacked build is exercised manually.
+`src/config.test.ts` covers preference, migration, lens, profile, coverage, and mask behavior. The browser smoke opens the built extension in Chromium; profile coverage also opens the real popup, creates local lenses/profile state, and verifies that an already-open page restores and re-renders when the active profile changes.
