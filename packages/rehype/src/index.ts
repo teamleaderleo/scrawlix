@@ -31,6 +31,11 @@ type PreparedOptions = {
   shouldSkip?: (element: Element) => boolean;
 };
 
+type TraversalFrame = {
+  parent: HastParent;
+  index: number;
+};
+
 function isText(node: RootContent): node is Text {
   return node.type === 'text';
 }
@@ -79,23 +84,34 @@ function replacementNodes(value: string, options: PreparedOptions): RootContent[
 }
 
 function transformParent(parent: HastParent, options: PreparedOptions) {
-  // Text and element replacements are valid children of both Root and Element.
-  const children = parent.children as RootContent[];
+  const stack: TraversalFrame[] = [{ parent, index: 0 }];
 
-  for (let index = 0; index < children.length; index += 1) {
-    const child = children[index]!;
+  while (stack.length > 0) {
+    const frame = stack.at(-1)!;
+    const children = frame.parent.children as RootContent[];
 
-    if (isText(child)) {
-      const replacements = replacementNodes(child.value, options);
-      if (!replacements) continue;
-
-      children.splice(index, 1, ...replacements);
-      index += replacements.length - 1;
+    if (frame.index >= children.length) {
+      stack.pop();
       continue;
     }
 
+    const child = children[frame.index]!;
+
+    if (isText(child)) {
+      const replacements = replacementNodes(child.value, options);
+      if (!replacements) {
+        frame.index += 1;
+        continue;
+      }
+
+      children.splice(frame.index, 1, ...replacements);
+      frame.index += replacements.length;
+      continue;
+    }
+
+    frame.index += 1;
     if (isElement(child) && !shouldSkipElement(child, options)) {
-      transformParent(child, options);
+      stack.push({ parent: child, index: 0 });
     }
   }
 }
