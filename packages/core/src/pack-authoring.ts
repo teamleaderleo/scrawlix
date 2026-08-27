@@ -141,6 +141,10 @@ function validateManifest(manifest: RulePackManifest): RulePackManifest {
   const id = requiredText(manifest.id, 'Pack manifest id');
   const version = requiredText(manifest.version, 'Pack manifest version');
   const name = requiredText(manifest.name, 'Pack manifest name');
+  const locale =
+    typeof manifest.locale === 'string'
+      ? manifest.locale.trim() || undefined
+      : uniqueStrings(manifest.locale);
 
   return {
     ...manifest,
@@ -150,11 +154,7 @@ function validateManifest(manifest: RulePackManifest): RulePackManifest {
     ...(manifest.description?.trim()
       ? { description: manifest.description.trim() }
       : {}),
-    ...(Array.isArray(manifest.locale)
-      ? { locale: uniqueStrings(manifest.locale) }
-      : manifest.locale?.trim()
-        ? { locale: manifest.locale.trim() }
-        : {}),
+    ...(locale ? { locale } : {}),
     ...(manifest.categories
       ? { categories: uniqueStrings(manifest.categories) }
       : {}),
@@ -265,7 +265,9 @@ function prepareForm(
   const normalizedTarget = normalizeValue(target, profile.normalization);
   const first = normalizedText.indexOf(normalizedTarget);
   const second =
-    first < 0 ? -1 : normalizedText.indexOf(normalizedTarget, first + normalizedTarget.length);
+    first < 0
+      ? -1
+      : normalizedText.indexOf(normalizedTarget, first + normalizedTarget.length);
   if (first < 0) {
     throw new Error(
       `Target "${target}" is absent from lexical form "${text}" for entry "${entry.id}".`
@@ -384,7 +386,9 @@ export function compileLexiconRules(
     const profileId = entry.profile?.trim() || profiles.defaultProfile;
     const profile = profiles.byId.get(profileId);
     if (!profile) {
-      throw new Error(`Lexical entry "${id}" references unknown matching profile "${profileId}".`);
+      throw new Error(
+        `Lexical entry "${id}" references unknown matching profile "${profileId}".`
+      );
     }
 
     const forms = entry.forms.map(form => prepareForm(form, entry, profile));
