@@ -55,6 +55,17 @@ assert.equal(obfuscatedCompound?.targetText, 'fuck');
 assert.equal(obfuscatedCompound?.targetStart, 7);
 assert.equal(obfuscatedCompound?.targetEnd, 11);
 
+const englishRepeated = obfuscatedEngine.find('shittting')[0];
+assert.equal(englishRepeated?.text, 'shittting');
+assert.equal(englishRepeated?.targetText, 'shit');
+assert.equal(englishRepeated?.targetStart, 0);
+assert.equal(englishRepeated?.targetEnd, 4);
+assert.ok(
+  englishObfuscatedProfanityCorpus.some(
+    testCase => testCase.id === 'obfuscated-repeat-shit-inflection-t'
+  )
+);
+
 const targetedEngine = createScrawlix({
   rules: [
     censorRuleFromTargetedObfuscatedTerms(

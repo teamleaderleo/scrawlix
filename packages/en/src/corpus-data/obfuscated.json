@@ -322,5 +322,142 @@
         "targetEnd": 4
       }
     ]
+  },
+  {
+    "id": "obfuscated-repeat-fuck-u",
+    "text": "fuuck",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "repetition"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "fuuck",
+        "start": 0,
+        "end": 5,
+        "targetText": "fuuck",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-repeat-fuck-inflection-k",
+    "text": "fuckking",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "repetition", "inflection", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "fuckking",
+        "start": 0,
+        "end": 8,
+        "targetText": "fuckk",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-repeat-fuck-compound-u",
+    "text": "motherfuucker",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "repetition", "compound", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "motherfuucker",
+        "start": 0,
+        "end": 13,
+        "targetText": "fuuck",
+        "targetStart": 6,
+        "targetEnd": 11
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-repeat-shit-i",
+    "text": "shiit",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "repetition"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "shiit",
+        "start": 0,
+        "end": 5,
+        "targetText": "shiit",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-repeat-shit-inflection-t",
+    "text": "shittting",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "repetition", "inflection", "semantic-target"],
+    "note": "The extra t attaches to the final canonical t in shitting, outside the shit semantic target.",
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "shittting",
+        "start": 0,
+        "end": 9,
+        "targetText": "shit",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-repeat-bitch-plural-t",
+    "text": "bittches",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "repetition", "plural", "inflection", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "bitch-obfuscated",
+        "text": "bittches",
+        "start": 0,
+        "end": 8,
+        "targetText": "bittch",
+        "targetStart": 0,
+        "targetEnd": 6
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-repeat-asshole-canonical-double",
+    "text": "assshole",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "repetition", "canonical-double"],
+    "matches": [
+      {
+        "ruleId": "asshole-obfuscated",
+        "text": "assshole",
+        "start": 0,
+        "end": 8,
+        "targetText": "assshole",
+        "targetStart": 0,
+        "targetEnd": 8
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-repeat-cunt-n",
+    "text": "cunnt",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "repetition"],
+    "matches": [
+      {
+        "ruleId": "cunt-obfuscated",
+        "text": "cunnt",
+        "start": 0,
+        "end": 5,
+        "targetText": "cunnt",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
   }
 ]
