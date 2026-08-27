@@ -1,0 +1,74 @@
+[
+  {
+    "id": "obfuscated-confusable-clean-plus-width",
+    "text": "fuсｋ",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "confusable", "width-variant", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-confusable-clean-plus-substitution",
+    "text": "ѕh1t",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "confusable", "substitution", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-confusable-clean-plus-repeat",
+    "text": "ѕhhit",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "confusable", "repetition", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-confusable-clean-plus-separator",
+    "text": "ѕh-it",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "confusable", "punctuation-insertion", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-confusable-clean-two-confusables",
+    "text": "аsshоle",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "confusable", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-confusable-clean-fuckery-boundary",
+    "text": "fuсkery",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "confusable", "word-boundary"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-confusable-clean-country",
+    "text": "сountry",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "confusable", "ordinary-word", "cyrillic"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-confusable-clean-shirt",
+    "text": "ѕhirt",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "confusable", "ordinary-word", "cyrillic"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-confusable-clean-greek-omicron",
+    "text": "asshοle",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "confusable", "unreviewed-lookalike", "greek"],
+    "note": "Greek omicron remains clean because only reviewed Cyrillic o is enabled for canonical o.",
+    "matches": []
+  },
+  {
+    "id": "obfuscated-confusable-clean-greek-lunate-sigma",
+    "text": "fuϲk",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "confusable", "unreviewed-lookalike", "greek"],
+    "note": "A visually similar unreviewed Greek character does not inherit the reviewed Cyrillic-c mapping.",
+    "matches": []
+  }
+]
