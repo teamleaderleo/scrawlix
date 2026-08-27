@@ -14,6 +14,8 @@ const appearances: readonly ScrawlixAppearance[] = [
   'scrawl',
   'bar',
   'blur',
+  'whiteout',
+  'mosaic',
   'asterisk',
   'grawlix',
 ];
@@ -177,7 +179,7 @@ export function App() {
       <section className="specimen-section" aria-labelledby="specimen-title">
         <div className="section-heading">
           <p className="eyebrow">02 / specimen sheet</p>
-          <h2 id="specimen-title">Five ways to lose your fucking vowels.</h2>
+          <h2 id="specimen-title">Seven ways to damage the same word.</h2>
           <p>
             Same matcher. Same coverage rule. Different presentation. Swap the visual
             treatment without teaching your text parser anything new.
