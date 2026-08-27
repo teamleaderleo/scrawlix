@@ -9,14 +9,15 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added language-neutral `@scrawlix/core` matching and segmentation.
 - Added semantic target ranges for inflected/compound matches.
 - Added positional coverage presets: `full`, `tail`, `middle`, and `inner`.
+- Made `full` the conservative default coverage when rules are supplied.
 - Added custom coverage callbacks and per-rule coverage overrides.
-- Added Unicode-aware custom word/phrase rules with explicit `word` and `substring` boundary modes.
+- Added Unicode-aware custom term/phrase rules through `censorRuleFromTerms()` with explicit `word` and `substring` boundary modes.
 - Added rule-pack composition and caller-safe compiled RegExp handling.
 - Added deterministic source-preservation and cursor-state regressions.
 
 ### English pack
 
-- Added `@scrawlix/en` with explicit English strong-profanity rules.
+- Added `@scrawlix/en` with explicit English strong-profanity rules exported as `englishStrongProfanityRules` and `englishStrongProfanityPack`.
 - Added English-specific vowel coverage outside the neutral core.
 - Added positive and clean regression corpora, including false-positive traps.
 
@@ -25,6 +26,8 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added `@scrawlix/react` and `CensoredText`.
 - Added `scrawl`, `bar`, `blur`, `asterisk`, and `grawlix` appearances.
 - Added `hover`, `focus`, `click`, and `never` reveal behavior.
+- Made `reveal="never"` the first-use default while keeping `scrawl` as the default appearance.
+- Added a React Client Component boundary for hook-based reveal behavior.
 - Added keyboard reveal handling and a single-source accessibility contract with rendered regressions.
 - Added the public CSS subpath export.
 
@@ -48,5 +51,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 ### Developer experience
 
 - Added compiled ESM/declaration artifacts for public packages.
-- Added an external tarball consumer smoke test as a CI release gate.
-- Added `AGENTS.md`, `llms.txt`, language-pack docs, DOM lifecycle docs, extension docs, and the first-release runbook.
+- Added an external tarball consumer smoke test as a CI release gate and enabled strict checking of published declaration dependencies in that consumer.
+- Added package-local READMEs for every public package, exact install commands, a top-level integration chooser, a docs index, React CSS troubleshooting, Next.js client-boundary guidance, and clearer source/accessibility notes.
+- Aligned `README.md`, `AGENTS.md`, `llms.txt`, demo, extension, tests, and smoke consumers on the canonical pre-release public names and conservative defaults.
+- Added `docs/releasing.md`, language-pack docs, DOM lifecycle docs, extension docs, and the first-release runbook.
