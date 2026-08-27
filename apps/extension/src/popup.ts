@@ -48,6 +48,7 @@ let settings: SyncSettings;
 let localState: ExtensionLocalState;
 let hostname: string | null = null;
 let localSaveChain = Promise.resolve();
+let localSaveTimer: number | null = null;
 
 async function currentHostname() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -80,7 +81,7 @@ function renderEffectiveStatus() {
   siteModeSelect.value = siteModeFor(settings, hostname);
   const enabledHere = effectiveEnabled(settings, hostname);
   const profile = activeProfile(localState);
-  effectiveStatus.textContent = `${enabledHere ? 'censoring is on here' : 'censoring is off here'} · ${profile.name}`;
+  effectiveStatus.textContent = `${enabledHere ? 'censoring is on here' : 'censoring is off here'} · ${profile.name || 'Untitled profile'}`;
   effectiveStatus.dataset.enabled = enabledHere ? 'true' : 'false';
 }
 
@@ -91,7 +92,7 @@ function renderProfiles() {
   for (const candidate of localState.profiles) {
     const option = document.createElement('option');
     option.value = candidate.id;
-    option.textContent = candidate.name;
+    option.textContent = candidate.name || 'Untitled profile';
     profileSelect.append(option);
   }
 
@@ -124,7 +125,7 @@ function removeLens(state: ExtensionLocalState, lensId: string): ExtensionLocalS
   };
 }
 
-function lensToggle(lens: ExtensionLens, profile: ExtensionProfile) {
+function createLensToggle(lens: ExtensionLens, profile: ExtensionProfile) {
   const label = document.createElement('label');
   label.className = 'lens-toggle';
 
@@ -145,7 +146,7 @@ function lensToggle(lens: ExtensionLens, profile: ExtensionProfile) {
   marker.textContent = checkbox.checked ? 'on' : 'off';
 
   label.append(checkbox, marker);
-  return label;
+  return { checkbox, label };
 }
 
 function renderLenses() {
@@ -159,7 +160,8 @@ function renderLenses() {
 
     const header = document.createElement('div');
     header.className = 'lens-card-header';
-    header.append(lensToggle(lens, profile));
+    const toggle = createLensToggle(lens, profile);
+    header.append(toggle.label);
 
     if (lens.id === ENGLISH_PROFANITY_LENS_ID) {
       const title = document.createElement('div');
@@ -176,12 +178,27 @@ function renderLenses() {
       nameInput.className = 'lens-name';
       nameInput.value = lens.name;
       nameInput.setAttribute('aria-label', 'Lens name');
+
+      const termsInput = document.createElement('textarea');
+      termsInput.rows = 3;
+      termsInput.value = lens.terms.join('\n');
+      termsInput.placeholder = 'Project Velvet\nClient Name\nspoiler phrase';
+      termsInput.spellcheck = false;
+      termsInput.setAttribute('aria-label', `${lens.name} terms`);
+
       nameInput.addEventListener('input', () => {
         const next = replaceLens(localState, lens.id, { name: nameInput.value });
-        localState = next;
-        checkboxOptionLabel(lens.id, nameInput.value);
-        void persistLocal(next, false);
+        toggle.checkbox.setAttribute(
+          'aria-label',
+          `Use ${nameInput.value || 'Untitled lens'} in ${activeProfile(next).name}`
+        );
+        termsInput.setAttribute(
+          'aria-label',
+          `${nameInput.value || 'Untitled lens'} terms`
+        );
+        scheduleLocal(next);
       });
+      nameInput.addEventListener('change', () => void persistLocal(localState, false));
 
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
@@ -191,41 +208,22 @@ function renderLenses() {
         void persistLocal(removeLens(localState, lens.id));
       });
 
+      termsInput.addEventListener('input', () => {
+        scheduleLocal(
+          replaceLens(localState, lens.id, {
+            terms: normalizeCustomWords(termsInput.value.split('\n')),
+          })
+        );
+      });
+      termsInput.addEventListener('change', () => void persistLocal(localState, false));
+
       header.prepend(nameInput);
       header.append(deleteButton);
-
-      const termsInput = document.createElement('textarea');
-      termsInput.rows = 3;
-      termsInput.value = lens.terms.join('\n');
-      termsInput.placeholder = 'Project Velvet\nClient Name\nspoiler phrase';
-      termsInput.spellcheck = false;
-      termsInput.setAttribute('aria-label', `${lens.name} terms`);
-      termsInput.addEventListener('input', () => {
-        const next = replaceLens(localState, lens.id, {
-          terms: normalizeCustomWords(termsInput.value.split('\n')),
-        });
-        localState = next;
-        void persistLocal(next, false);
-      });
-
       card.append(header, termsInput);
     }
 
     lensList.append(card);
   }
-}
-
-function checkboxOptionLabel(lensId: string, name: string) {
-  const checkbox = lensList.querySelector<HTMLInputElement>(
-    `input[type="checkbox"][aria-label*="${CSS.escape(lensId)}"]`
-  );
-  void checkbox;
-  const profile = activeProfile(localState);
-  const lens = localState.lenses.find(candidate => candidate.id === lensId);
-  if (!lens) return;
-  const toggle = Array.from(lensList.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))
-    .find(candidate => candidate.getAttribute('aria-label')?.includes(lens.name));
-  if (toggle) toggle.setAttribute('aria-label', `Use ${name} in ${profile.name}`);
 }
 
 function renderLocalState() {
@@ -249,12 +247,8 @@ async function persistSettings(next: SyncSettings) {
   await saveSettings(settings);
 }
 
-function persistLocal(next: ExtensionLocalState, rerender = true) {
-  localState = next;
-  if (rerender) renderLocalState();
+function enqueueLocalWrite(snapshot: ExtensionLocalState) {
   localSaveStatus.textContent = 'saving…';
-  const snapshot = next;
-
   localSaveChain = localSaveChain
     .then(() => saveLocalState(snapshot))
     .then(() => {
@@ -263,8 +257,27 @@ function persistLocal(next: ExtensionLocalState, rerender = true) {
     .catch(() => {
       localSaveStatus.textContent = 'save failed';
     });
-
   return localSaveChain;
+}
+
+function persistLocal(next: ExtensionLocalState, rerender = true) {
+  if (localSaveTimer !== null) {
+    window.clearTimeout(localSaveTimer);
+    localSaveTimer = null;
+  }
+  localState = next;
+  if (rerender) renderLocalState();
+  return enqueueLocalWrite(next);
+}
+
+function scheduleLocal(next: ExtensionLocalState) {
+  localState = next;
+  localSaveStatus.textContent = 'editing';
+  if (localSaveTimer !== null) window.clearTimeout(localSaveTimer);
+  localSaveTimer = window.setTimeout(() => {
+    localSaveTimer = null;
+    void enqueueLocalWrite(localState);
+  }, 250);
 }
 
 enabledInput.addEventListener('change', () => {
@@ -284,14 +297,15 @@ profileSelect.addEventListener('change', () => {
 
 profileNameInput.addEventListener('input', () => {
   const next = updateActiveProfile(localState, { name: profileNameInput.value });
-  localState = next;
   const option = Array.from(profileSelect.options).find(
     candidate => candidate.value === activeProfile(next).id
   );
   if (option) option.textContent = profileNameInput.value || 'Untitled profile';
+  localState = next;
   renderEffectiveStatus();
-  void persistLocal(next, false);
+  scheduleLocal(next);
 });
+profileNameInput.addEventListener('change', () => void persistLocal(localState, false));
 
 addProfileButton.addEventListener('click', () => {
   const source = activeProfile(localState);
@@ -359,6 +373,13 @@ addLensButton.addEventListener('click', () => {
     { lensIds: [...profile.lensIds, lens.id] }
   );
   void persistLocal(next);
+});
+
+window.addEventListener('pagehide', () => {
+  if (localSaveTimer === null) return;
+  window.clearTimeout(localSaveTimer);
+  localSaveTimer = null;
+  void enqueueLocalWrite(localState);
 });
 
 async function initialize() {
