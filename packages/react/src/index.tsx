@@ -9,6 +9,8 @@ export type ScrawlixAppearance =
   | 'scrawl'
   | 'bar'
   | 'blur'
+  | 'whiteout'
+  | 'mosaic'
   | 'asterisk'
   | 'grawlix';
 
@@ -25,16 +27,27 @@ export type CensoredTextProps = {
 };
 
 const GRAWLIX = '@#$%&!';
+const graphemeSegmenter =
+  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    : null;
 
-function symbolsFor(text: string, appearance: ScrawlixAppearance) {
-  const characters = Array.from(text);
-  if (appearance === 'asterisk') return characters.map(() => '*').join('');
+function graphemesFor(text: string) {
+  if (graphemeSegmenter) {
+    return [...graphemeSegmenter.segment(text)].map(part => part.segment);
+  }
+  return Array.from(text);
+}
+
+function maskFor(text: string, appearance: ScrawlixAppearance) {
+  const graphemes = graphemesFor(text);
+  if (appearance === 'asterisk') return graphemes.map(() => '*').join('');
   if (appearance === 'grawlix') {
-    return characters
+    return graphemes
       .map((_, index) => GRAWLIX[index % GRAWLIX.length])
       .join('');
   }
-  return text;
+  return '';
 }
 
 export function CensoredText({
@@ -70,8 +83,9 @@ export function CensoredText({
     <span
       className={className}
       data-scrawlix-root
-      data-reveal={reveal}
-      data-revealed={revealed ? 'true' : 'false'}
+      data-scrawlix-appearance={appearance}
+      data-scrawlix-reveal={reveal}
+      data-scrawlix-revealed={revealed ? 'true' : 'false'}
       tabIndex={interactive ? 0 : undefined}
       onClick={reveal === 'click' ? () => setRevealed(value => !value) : undefined}
       onKeyDown={onKeyDown}
@@ -83,27 +97,17 @@ export function CensoredText({
             return <span key={`${index}-${segment.text}`}>{segment.text}</span>;
           }
 
-          const symbolAppearance =
-            appearance === 'asterisk' || appearance === 'grawlix';
+          const mask = maskFor(segment.text, appearance);
 
           return (
             <span
               data-scrawlix-cover
-              data-appearance={appearance}
-              data-rules={segment.ruleIds.join(',')}
+              data-scrawlix-mask={mask || undefined}
+              data-scrawlix-rules={segment.ruleIds.join(',')}
               key={`${index}-${segment.text}`}
               title={title}
             >
-              {symbolAppearance ? (
-                <>
-                  <span data-scrawlix-mask>
-                    {symbolsFor(segment.text, appearance)}
-                  </span>
-                  <span data-scrawlix-source>{segment.text}</span>
-                </>
-              ) : (
-                segment.text
-              )}
+              {segment.text}
             </span>
           );
         })}
