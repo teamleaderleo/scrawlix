@@ -36,6 +36,64 @@ const engine = createScrawlix({
 
 Scrawlix deliberately avoids automatic language detection. Applications know more about their content and can choose one pack, several packs, or caller-authored rules.
 
+## Manifest + lexicon authoring
+
+Ordinary packs with reviewable lexical data can use the optional `@scrawlix/core/pack-authoring` subpath. The authoring model is **manifest + lexicon + matching profiles + corpus**. The runtime engine still receives ordinary `CensorRulePack` rules.
+
+```ts
+import { defineLexiconPack } from '@scrawlix/core/pack-authoring';
+
+export const exhibitPack = defineLexiconPack({
+  manifest: {
+    id: 'museum-exhibits',
+    version: '1.0.0',
+    name: 'Museum Exhibit Labels',
+    locale: 'en',
+    categories: ['exhibits'],
+    reviewStatus: 'reviewed',
+    attribution: [{ label: 'Example fixture', license: 'CC0-1.0' }],
+    recommended: { coverage: 'full', appearance: 'bar', reveal: 'never' },
+  },
+  matchingProfiles: [
+    { id: 'canonical', boundary: 'word', normalization: 'NFC' },
+    {
+      id: 'exact-case',
+      boundary: 'word',
+      normalization: 'NFC',
+      caseSensitive: true,
+    },
+  ],
+  defaultProfile: 'canonical',
+  lexicon: [
+    {
+      id: 'blue-lantern',
+      lemma: 'Blue Lantern',
+      categories: ['exhibit-name'],
+      reviewStatus: 'reviewed',
+      provenance: { source: 'curated exhibit list' },
+      forms: [
+        { text: 'Blue Lantern', kind: 'base' },
+        {
+          text: 'Blue Lantern Annex',
+          kind: 'compound',
+          target: 'Blue Lantern',
+        },
+      ],
+    },
+  ],
+});
+```
+
+The manifest is plain app-facing data: id, version, human name/description, locale, categories/tags, review status, attribution, and optional presentation recommendations. Core treats `appearance` and `reveal` recommendation values as opaque adapter/application ids.
+
+Lexical entries use stable semantic ids and explicit attested forms. A form kind can be `base`, `inflection`, `derivation`, `compound`, `slang`, `dialect`, `spelling-variant`, or `phrase`. Entries may also record locale/register, provenance, review status, coarse pack-relative severity, descriptive categories, and a coverage override.
+
+A larger attested form can name one exact `target` substring. The target must occur exactly once and align to extended-grapheme boundaries. This keeps forms like compounds reviewable as data while preserving the existing semantic-target runtime contract.
+
+Named matching profiles carry boundary, normalization, and case-sensitivity policy. Entries can select a profile by id. Prefer explicit forms and a few evidence-backed profiles over a universal morphology DSL. Productive language-specific generators can still live inside the pack that understands them.
+
+`defineLexiconPack()` returns an `AuthoredRulePack`: it is structurally an ordinary `CensorRulePack`, plus the original manifest, lexicon, and matching-profile data for apps that want to present pack information. No registry or hosted marketplace is involved.
+
 ## Canonical Unicode matching
 
 `censorRuleFromTerms()` normalizes both declared terms and an internal source shadow to NFC by default. Canonically equivalent spellings therefore match even when their UTF-16 lengths differ:
@@ -49,6 +107,8 @@ engine.find('cafe\u0301');
 ```
 
 The source string itself stays unchanged. Scrawlix builds the normalized shadow one extended grapheme at a time and maps every accepted shadow boundary back to the corresponding original-source boundary. `{ normalization: 'none' }` is available for rules that intentionally distinguish canonical forms.
+
+Lexicon packs use the same NFC/source-mapping principle in their canonical matching profiles, including semantic targets inside larger forms.
 
 Raw regex rules and custom matchers keep their own matching policy. Core validates the ranges they produce and throws when a full match or semantic target cuts through an extended grapheme cluster.
 
@@ -83,6 +143,8 @@ const rule = {
 ```
 
 Coverage runs against `core`, while `find()` still reports the full match and both full/target ranges. A declared target group is part of the rule contract: if a produced match cannot resolve that named group, Scrawlix throws a descriptive error instead of widening the target to the full match.
+
+Lexicon authoring offers the data equivalent through `{ text: 'larger form', target: 'term' }` when an explicit attested form is enough.
 
 ## Custom matcher escape hatch
 
@@ -165,7 +227,7 @@ Prefer narrowly described packs over giant universal lists. Examples:
 - `en-strong-profanity`
 - `en-mild-profanity`
 - `ja-example-profanity`
-- an application-owned private-name pack
+- an application-owned name/phrase pack
 
 A caller can compose several packs. Smaller packs keep policy choices visible and make corpus regressions easier to understand.
 
@@ -174,10 +236,12 @@ A caller can compose several packs. Smaller packs keep policy choices visible an
 A publishable third-party pack should contain:
 
 1. a dependency on `@scrawlix/core`
-2. one or more named rule collections plus a `CensorRulePack` export
-3. locale and scope/severity notes
-4. positive and clean/false-positive regression data
-5. tests for semantic targets, casing, punctuation, compounds/inflections, Unicode context, and known ambiguity
-6. an ordinary package README with an install command and copy/paste consumer example
+2. an inspectable manifest with id/version/name/locale/scope and review/provenance information
+3. reviewable lexical data and/or explicit rule collections
+4. named matching profiles when entries need different boundary/normalization/case policy
+5. one or more `CensorRulePack` exports, commonly produced with `defineLexiconPack()`
+6. positive and clean/false-positive regression data
+7. tests for semantic targets, casing, punctuation, compounds/inflections, Unicode context, and known ambiguity
+8. an ordinary package README with an install command and copy/paste consumer example
 
-Keep pack-specific presentation and application state outside the pack. Matching policy should remain inspectable as ordinary code/data.
+Keep application state outside the pack. Presentation recommendations may travel as metadata, while matching behavior stays inspectable as ordinary code/data.
