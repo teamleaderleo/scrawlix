@@ -53,7 +53,11 @@ test('classifies behavioral and metadata corpus deltas', () => {
     corpusCase({ id: 'becomes-match' }),
     corpusCase({ id: 'becomes-clean', matches: [match()] }),
     corpusCase({ id: 'target-change', matches: [match()] }),
-    corpusCase({ id: 'match-change', matches: [match()] }),
+    corpusCase({
+      id: 'match-change',
+      text: 'bad!',
+      matches: [match({ targetText: 'bad', targetStart: 0, targetEnd: 3 })],
+    }),
     corpusCase({ id: 'metadata', matches: [match()] }),
     corpusCase({ id: 'removed', matches: [match()] }),
   ]);
@@ -66,8 +70,17 @@ test('classifies behavioral and metadata corpus deltas', () => {
     }),
     corpusCase({
       id: 'match-change',
-      text: 'x bad',
-      matches: [match({ start: 2, end: 5, targetStart: 2, targetEnd: 5 })],
+      text: 'bad!',
+      matches: [
+        match({
+          text: 'bad!',
+          start: 0,
+          end: 4,
+          targetText: 'bad',
+          targetStart: 0,
+          targetEnd: 3,
+        }),
+      ],
     }),
     corpusCase({ id: 'metadata', tags: ['unicode'], matches: [match()] }),
     corpusCase({ id: 'added-positive', matches: [match()] }),
