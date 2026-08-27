@@ -1,0 +1,165 @@
+.context-lab-section {
+  padding: 86px 0;
+  border-bottom: 1px solid #171512;
+}
+
+.context-heading code {
+  border-bottom: 1px solid currentColor;
+  font-size: 0.82em;
+}
+
+.context-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid #171512;
+  background: #fbf8f0;
+}
+
+.context-card {
+  min-width: 0;
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 16px;
+  border-right: 1px solid #171512;
+  border-bottom: 1px solid #171512;
+}
+
+.context-card:nth-child(4n) {
+  border-right: 0;
+}
+
+.context-card:nth-last-child(-n + 4) {
+  border-bottom: 0;
+}
+
+.context-card > header {
+  padding-bottom: 9px;
+  border-bottom: 1px solid currentColor;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.context-copy {
+  margin: 0;
+  min-width: 0;
+}
+
+.context-serif {
+  margin: auto 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(24px, 2.1vw, 34px);
+  line-height: 1.12;
+}
+
+.context-mono {
+  margin: auto 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: clamp(14px, 1.25vw, 19px);
+  line-height: 1.45;
+}
+
+.context-display {
+  margin: auto 0;
+  font-family: Arial Black, Impact, ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(26px, 2.2vw, 36px);
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+}
+
+.context-link {
+  margin: auto 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(20px, 1.8vw, 28px);
+  line-height: 1.15;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.12em;
+}
+
+.context-card-dark {
+  color: #f2eee5;
+  background: #171512;
+}
+
+.context-card-dark [data-scrawlix-root] {
+  --scrawlix-surface: #171512;
+}
+
+.context-dark {
+  margin: auto 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(22px, 2vw, 32px);
+  line-height: 1.08;
+}
+
+.context-narrow {
+  width: 8.5em;
+  margin: auto;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 20px;
+  line-height: 1.12;
+}
+
+.context-emoji {
+  margin: auto 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(23px, 2vw, 32px);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.context-rtl {
+  margin: auto 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(25px, 2.1vw, 34px);
+  line-height: 1.18;
+}
+
+@media (max-width: 1000px) {
+  .context-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .context-card,
+  .context-card:nth-child(4n),
+  .context-card:nth-last-child(-n + 4) {
+    border-right: 1px solid #171512;
+    border-bottom: 1px solid #171512;
+  }
+
+  .context-card:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .context-card:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .context-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .context-card,
+  .context-card:nth-child(2n),
+  .context-card:nth-child(4n),
+  .context-card:nth-last-child(-n + 4),
+  .context-card:nth-last-child(-n + 2) {
+    border-right: 0;
+    border-bottom: 1px solid #171512;
+  }
+
+  .context-card:last-child {
+    border-bottom: 0;
+  }
+
+  .context-narrow {
+    margin-inline: 0;
+  }
+}

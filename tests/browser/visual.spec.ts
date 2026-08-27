@@ -29,6 +29,13 @@ test('curated Scrawlix visual regressions', async ({ page }) => {
     animations: 'disabled',
   });
 
+  const contextLab = page.locator('.context-lab-section');
+  await expect(contextLab).toBeVisible();
+  await pinToWholeCssPixels(contextLab);
+  await expect(contextLab).toHaveScreenshot('context-lab-desktop.png', {
+    animations: 'disabled',
+  });
+
   const xraySection = page.locator('.xray-section');
   await expect(xraySection).toBeVisible();
   await pinToWholeCssPixels(xraySection);
