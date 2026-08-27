@@ -2,19 +2,26 @@
 
 `@scrawlix/dom` applies Scrawlix to text nodes in an existing webpage. It is intended for browser extensions, enhancement scripts, and other environments where the page did not render through Scrawlix itself.
 
+## Install
+
+```sh
+npm install @scrawlix/dom @scrawlix/en
+```
+
 ## Apply once
 
 ```ts
 import { createDomScrawlix } from '@scrawlix/dom';
-import { englishProfanityRules } from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
 
 const censor = createDomScrawlix({
-  rules: englishProfanityRules,
-  coverage: 'middle',
+  rules: englishStrongProfanityRules,
 });
 
 censor.apply(document.body);
 ```
+
+Core coverage defaults to `full`. Pass another `coverage` selector explicitly when the page should use partial coverage.
 
 Only text nodes containing covered ranges are replaced. Each transformed text node gets one `data-scrawlix-dom-root` wrapper. Covered fragments inside it carry `data-scrawlix-cover` and `data-scrawlix-rules`; their text content remains the original source substring.
 
