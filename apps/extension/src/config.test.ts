@@ -59,10 +59,11 @@ describe('extension settings', () => {
     expect(coverageSelector('middle')).toBe('middle');
   });
 
-  it('generates symbol masks without rewriting source text', () => {
+  it('generates symbol masks by grapheme count without rewriting source text', () => {
     expect(maskFor('fuck', 'asterisk')).toBe('****');
     expect(maskFor('abcdef', 'grawlix')).toBe('@#$%&!');
-    expect(maskFor('🔥x', 'asterisk')).toBe('**');
+    expect(maskFor('e\u0301❤️👍🏽🇺🇸👨‍👩‍👧‍👦', 'asterisk')).toBe('*****');
+    expect(maskFor('e\u0301❤️👍🏽🇺🇸👨‍👩‍👧‍👦', 'grawlix')).toBe('@#$%&');
     expect(maskFor('fuck', 'bar')).toBe('');
   });
 });
