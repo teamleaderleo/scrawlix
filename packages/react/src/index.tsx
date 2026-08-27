@@ -4,6 +4,7 @@ import {
   type CoverageSelector,
 } from '@scrawlix/core';
 import {
+  useEffect,
   useMemo,
   useState,
   type FocusEvent,
@@ -99,6 +100,13 @@ export function CensoredText({
   );
   const [hoveredRevealId, setHoveredRevealId] = useState<string | null>(null);
   const [focusedRevealId, setFocusedRevealId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setComponentRevealed(false);
+    setRevealedIds(new Set());
+    setHoveredRevealId(null);
+    setFocusedRevealId(null);
+  }, [engine, text, reveal, revealScope]);
 
   if (!hasCoveredText) return <>{text}</>;
 
