@@ -21,6 +21,9 @@
       "@scrawlix/core/width-obfuscated": [
         "packages/core/src/width-obfuscated.ts"
       ],
+      "@scrawlix/core/confusable-obfuscated": [
+        "packages/core/src/confusable-obfuscated.ts"
+      ],
       "@scrawlix/en": ["packages/en/src/index.ts"],
       "@scrawlix/en/corpus": ["packages/en/src/corpus.ts"],
       "@scrawlix/react": ["packages/react/src/index.tsx"],

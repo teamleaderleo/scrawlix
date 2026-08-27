@@ -30,6 +30,11 @@
       "types": "./dist/width-obfuscated.d.ts",
       "import": "./dist/width-obfuscated.js",
       "default": "./dist/width-obfuscated.js"
+    },
+    "./confusable-obfuscated": {
+      "types": "./dist/confusable-obfuscated.d.ts",
+      "import": "./dist/confusable-obfuscated.js",
+      "default": "./dist/confusable-obfuscated.js"
     }
   },
   "repository": {
