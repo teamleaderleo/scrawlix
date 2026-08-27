@@ -17,6 +17,11 @@
       "types": "./dist/targeted-obfuscated.d.ts",
       "import": "./dist/targeted-obfuscated.js",
       "default": "./dist/targeted-obfuscated.js"
+    },
+    "./repeated-obfuscated": {
+      "types": "./dist/repeated-obfuscated.d.ts",
+      "import": "./dist/repeated-obfuscated.js",
+      "default": "./dist/repeated-obfuscated.js"
     }
   },
   "repository": {
