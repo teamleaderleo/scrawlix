@@ -105,7 +105,7 @@ test('classifies behavioral and metadata corpus deltas', () => {
   assert.deepEqual(diff.addedClean.map(item => item.key), ['example:added-clean']);
   assert.deepEqual(diff.removed.map(item => item.key), ['example:removed']);
   assert.deepEqual(diff.metadataOnly.map(item => item.key), ['example:metadata']);
-  assert.equal(corpusDiffCount(diff), 7);
+  assert.equal(corpusDiffCount(diff), 8);
 
   const output = formatCorpusDiff(diff, { baseLabel: 'main', headLabel: 'HEAD' });
   assert.match(output, /Corpus diff: main → HEAD/);
