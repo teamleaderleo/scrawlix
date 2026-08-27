@@ -179,10 +179,10 @@ describe('AliasText', () => {
       'Alice Chen opened Project Velvet. alice chen closed it. Alice Chen left.';
     const container = render(<AliasText aliases={aliases} text={text} />);
     const root = container.querySelector<HTMLElement>('[data-scrawlix-alias-root]')!;
-    const values = [...root.querySelectorAll('[data-scrawlix-alias-value]')].map(
-      node => node.textContent
-    );
-    const sources = [...root.querySelectorAll('[data-scrawlix-source]')].map(
+    const values = Array.from(
+      root.querySelectorAll('[data-scrawlix-alias-value]')
+    ).map(node => node.textContent);
+    const sources = Array.from(root.querySelectorAll('[data-scrawlix-source]')).map(
       node => node.textContent
     );
 
@@ -214,9 +214,9 @@ describe('AliasText', () => {
         text="Alice Chen called Alice."
       />
     );
-    const values = [
-      ...container.querySelectorAll('[data-scrawlix-alias-value]'),
-    ].map(node => node.textContent);
+    const values = Array.from(
+      container.querySelectorAll('[data-scrawlix-alias-value]')
+    ).map(node => node.textContent);
 
     expect(values).toEqual(['Mara Vale', 'Nina']);
   });
