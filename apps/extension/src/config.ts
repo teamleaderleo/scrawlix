@@ -46,6 +46,17 @@ const COVERAGES = new Set<ExtensionCoverage>([
   'vowel',
 ]);
 const REVEALS = new Set<ExtensionReveal>(['hover', 'focus', 'click', 'never']);
+const graphemeSegmenter =
+  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    : null;
+
+function graphemeCount(value: string) {
+  if (graphemeSegmenter) {
+    return [...graphemeSegmenter.segment(value)].length;
+  }
+  return Array.from(value).length;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -132,7 +143,7 @@ export function coverageSelector(coverage: ExtensionCoverage): CoverageSelector 
 }
 
 export function maskFor(text: string, appearance: ExtensionAppearance) {
-  const length = Array.from(text).length;
+  const length = graphemeCount(text);
   if (appearance === 'asterisk') return '*'.repeat(length);
   if (appearance === 'grawlix') {
     const symbols = '@#$%&!';
