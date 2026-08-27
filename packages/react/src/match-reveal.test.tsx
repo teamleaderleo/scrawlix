@@ -47,6 +47,32 @@ describe('CensoredText per-match reveal', () => {
     expect(covers[1]!.dataset.scrawlixRevealId).toBe('m1');
   });
 
+  it('reveals only the hovered match', () => {
+    const container = render(
+      <CensoredText
+        coverage="middle"
+        reveal="hover"
+        revealScope="match"
+        rules={rules}
+        text="fuck and fuck"
+      />
+    );
+    const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    const covers = container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]');
+
+    act(() => covers[0]!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })));
+    expect(covers[0]!.dataset.scrawlixRevealed).toBe('true');
+    expect(covers[1]!.dataset.scrawlixRevealed).toBe('false');
+
+    act(() => covers[1]!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })));
+    expect(covers[0]!.dataset.scrawlixRevealed).toBe('false');
+    expect(covers[1]!.dataset.scrawlixRevealed).toBe('true');
+
+    act(() => root.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })));
+    expect(covers[0]!.dataset.scrawlixRevealed).toBe('false');
+    expect(covers[1]!.dataset.scrawlixRevealed).toBe('false');
+  });
+
   it('toggles one matched term without revealing its neighbor', () => {
     const container = render(
       <CensoredText
@@ -83,7 +109,6 @@ describe('CensoredText per-match reveal', () => {
     );
     const covers = container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]');
 
-    // Touching coverage ranges stay as separate visual islands, but share one match id.
     expect(covers).toHaveLength(2);
     expect(covers[0]!.dataset.scrawlixRevealId).toBe('m0');
     expect(covers[1]!.dataset.scrawlixRevealId).toBe('m0');
