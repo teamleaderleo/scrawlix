@@ -8,9 +8,11 @@ test('demo controls drive real rendered coverage and reveal state', async ({ pag
 
   const proof = page.locator('.proof-output [data-scrawlix-root]');
   const firstCover = proof.locator('[data-scrawlix-cover]').first();
+  const secondCover = proof.locator('[data-scrawlix-cover]').nth(1);
 
   await expect(proof).toBeVisible();
   await expect(proof).toHaveAttribute('data-scrawlix-appearance', 'scrawl');
+  await expect(proof).toHaveAttribute('data-scrawlix-reveal-scope', 'match');
   await expect(firstCover).toHaveText('uc');
 
   await page.getByRole('button', { name: 'bar', exact: true }).click();
@@ -27,16 +29,26 @@ test('demo controls drive real rendered coverage and reveal state', async ({ pag
   await page.getByRole('button', { name: 'click', exact: true }).click();
   await expect(proof).toHaveAttribute('data-scrawlix-reveal', 'click');
   await expect(proof).toHaveAttribute('data-scrawlix-revealed', 'false');
+  await expect(firstCover).toHaveAttribute('data-scrawlix-revealed', 'false');
+  await expect(secondCover).toHaveAttribute('data-scrawlix-revealed', 'false');
 
   const beforeRevealBox = await firstCover.boundingBox();
-  await proof.click();
-  await expect(proof).toHaveAttribute('data-scrawlix-revealed', 'true');
+  await firstCover.click();
+  await expect(firstCover).toHaveAttribute('data-scrawlix-revealed', 'true');
+  await expect(secondCover).toHaveAttribute('data-scrawlix-revealed', 'false');
+  await expect(proof).toHaveAttribute('data-scrawlix-revealed', 'false');
   const afterRevealBox = await firstCover.boundingBox();
 
   if (!beforeRevealBox || !afterRevealBox) {
     throw new Error('Expected the first covered segment to have a layout box.');
   }
   expect(Math.abs(beforeRevealBox.width - afterRevealBox.width)).toBeLessThan(0.5);
+
+  await page.getByRole('button', { name: 'component', exact: true }).click();
+  await expect(proof).toHaveAttribute('data-scrawlix-reveal-scope', 'component');
+  await expect(proof).toHaveAttribute('data-scrawlix-revealed', 'false');
+  await proof.click();
+  await expect(proof).toHaveAttribute('data-scrawlix-revealed', 'true');
 
   await page.setViewportSize({ width: 390, height: 844 });
   const overflow = await page.evaluate(
