@@ -37,6 +37,23 @@ assert.ok(
   )
 );
 
+const obfuscatedInflection = obfuscatedEngine.find('f*cking')[0];
+assert.equal(obfuscatedInflection?.text, 'f*cking');
+assert.equal(obfuscatedInflection?.targetText, 'f*ck');
+assert.equal(obfuscatedInflection?.targetStart, 0);
+assert.equal(obfuscatedInflection?.targetEnd, 4);
+assert.ok(
+  englishObfuscatedProfanityCorpus.some(
+    testCase => testCase.id === 'obfuscated-fuck-ing-star'
+  )
+);
+
+const obfuscatedCompound = obfuscatedEngine.find('mother-fucker')[0];
+assert.equal(obfuscatedCompound?.text, 'mother-fucker');
+assert.equal(obfuscatedCompound?.targetText, 'fuck');
+assert.equal(obfuscatedCompound?.targetStart, 7);
+assert.equal(obfuscatedCompound?.targetEnd, 11);
+
 const targetedEngine = createScrawlix({
   rules: [
     censorRuleFromTargetedObfuscatedTerms(
