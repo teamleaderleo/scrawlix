@@ -86,6 +86,10 @@ describe('@scrawlix/en', () => {
     expect(marked(obfuscatedEngine.segment('fuckｉng motherｆucker'))).toBe(
       '[fuck]ｉng mother[ｆuck]er'
     );
+    expect(marked(obfuscatedEngine.segment('fuckіng motherfuсker'))).toBe(
+      '[fuck]іng mother[fuсk]er'
+    );
+    expect(marked(obfuscatedEngine.segment('asshоles'))).toBe('[asshоle]s');
   });
 
   it('exports composable canonical and opt-in obfuscated packs', () => {
