@@ -55,7 +55,7 @@ Future packs may need richer tokenization than either mode. Add that capability 
 
 ## Semantic targets
 
-A rule can match a larger inflection or compound while identifying the semantic core with a named capture group:
+A regex rule can match a larger inflection or compound while identifying the semantic core with a named capture group:
 
 ```ts
 const rule = {
@@ -66,6 +66,37 @@ const rule = {
 ```
 
 Coverage runs against `core`, while `find()` still reports the full match and both full/target ranges. A declared target group is part of the rule contract: if a produced match cannot resolve that named group, Scrawlix throws a descriptive error instead of widening the target to the full match.
+
+## Custom matcher escape hatch
+
+Regex remains the compact path for ordinary rules. A pack that needs normalization, locale-specific segmentation, a trie, or another matching algorithm can provide a custom matcher instead:
+
+```ts
+import type { CensorRule } from '@scrawlix/core';
+
+const rule: CensorRule = {
+  id: 'example-custom',
+  matcher: {
+    *find(text) {
+      const start = text.indexOf('prefixtermsuffix');
+      if (start < 0) return;
+
+      yield {
+        start,
+        end: start + 'prefixtermsuffix'.length,
+        targetStart: start + 'prefix'.length,
+        targetEnd: start + 'prefixterm'.length,
+      };
+    },
+  },
+};
+```
+
+Matcher ranges are UTF-16 offsets into the exact original JavaScript source string. `start`/`end` identify the complete match. `targetStart`/`targetEnd` are optional; omit both to make the complete match the semantic target.
+
+Custom matchers may build normalized or otherwise transformed shadow text internally, but they remain responsible for mapping a detected span back to exact original-source offsets before yielding it. Core validates matcher output and rejects empty, out-of-bounds, partial-target, or target-outside-match ranges rather than clamping them.
+
+Keep language-specific matching algorithms in their language packs. The custom matcher seam exists so core can execute source-ranged results without learning a language's morphology, segmentation, normalization, or evasion conventions.
 
 ## Coverage helpers
 
