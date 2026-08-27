@@ -2,7 +2,7 @@ import { createScrawlix } from '@scrawlix/core';
 import { createDomScrawlix } from '@scrawlix/dom';
 import { englishProfanityRules } from '@scrawlix/en';
 import { transformHast } from '@scrawlix/rehype';
-import { CensoredText } from '@scrawlix/react';
+import { AliasText, CensoredText } from '@scrawlix/react';
 import '@scrawlix/react/styles.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -65,12 +65,20 @@ if (
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <CensoredText
-      appearance="scrawl"
-      coverage="middle"
-      reveal="hover"
-      rules={englishProfanityRules}
-      text="well, fuck"
-    />
+    <p>
+      <CensoredText
+        appearance="scrawl"
+        coverage="middle"
+        reveal="hover"
+        rules={englishProfanityRules}
+        text="well, fuck"
+      />
+    </p>
+    <p>
+      <AliasText
+        aliases={[{ term: 'Project Velvet', alias: 'Project Lantern' }]}
+        text="Project Velvet ships Friday"
+      />
+    </p>
   </React.StrictMode>
 );
