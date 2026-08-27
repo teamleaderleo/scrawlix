@@ -7,7 +7,10 @@
     "node": ">=18"
   },
   "sideEffects": ["./dist/styles.css"],
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "src/index.tsx"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

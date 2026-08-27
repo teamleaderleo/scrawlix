@@ -40,7 +40,7 @@ pnpm build
 pnpm smoke:packages
 ```
 
-The packed-package smoke test is a hard release gate. It packs every public package, installs those tarballs into consumers outside the pnpm workspace, typechecks published declarations through React 18 and React 19 consumers, production-builds both React majors, and production-builds the documented Next.js App Router integration.
+The packed-package smoke test is a hard release gate. It packs every public package, validates every emitted JS/declaration map against the actual tarball contents, rejects packed source tests, installs those tarballs into consumers outside the pnpm workspace, typechecks published declarations through React 18 and React 19 consumers, production-builds both React majors, and production-builds the documented Next.js App Router integration.
 
 Confirm the real Chromium demo/extension smoke tests have also passed in CI on the exact release commit.
 
@@ -82,11 +82,12 @@ Review the file list reported by every dry run. Verify:
 
 - JS entry points exist
 - declaration entry points exist
-- source/declaration maps point somewhere useful
+- every local JS/declaration source-map target exists in the tarball (the package smoke enforces this)
+- curated implementation sources are present while `*.test.*` sources are absent
 - `@scrawlix/en/corpus` exists
 - `@scrawlix/react/styles.css` exists
 - each package README is included
-- tests, workspace fixtures, demo files, and extension files are absent from package tarballs
+- workspace fixtures, demo files, and extension files are absent from package tarballs
 - workspace dependency specs are converted into publishable registry ranges by pnpm
 
 ## 3. Verify registry identity before any write

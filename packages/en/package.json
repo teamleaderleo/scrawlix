@@ -7,7 +7,12 @@
     "node": ">=18"
   },
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "src/index.ts",
+    "src/corpus.ts",
+    "src/corpus-data"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
