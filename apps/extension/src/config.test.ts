@@ -1,13 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_SETTINGS,
+  ENGLISH_PROFANITY_LENS_ID,
+  activeProfile,
   coverageSelector,
+  createDefaultLocalState,
   effectiveEnabled,
   maskFor,
   normalizeCustomWords,
+  normalizeLocalState,
   normalizeSettings,
+  profileTerms,
+  profileUsesEnglishProfanity,
+  setActiveProfile,
   setSiteMode,
   siteModeFor,
+  updateActiveProfile,
 } from './config';
 
 describe('extension settings', () => {
@@ -52,6 +60,107 @@ describe('extension settings', () => {
     expect(
       normalizeCustomWords([' Velvet ', 'velvet', '', 42, 'Mothbit', 'MOTHBIT'])
     ).toEqual(['Velvet', 'Mothbit']);
+  });
+
+  it('migrates the old treatment and custom-word bucket into an Everyday profile', () => {
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      appearance: 'bar' as const,
+      coverage: 'full' as const,
+      reveal: 'click' as const,
+    };
+    const state = createDefaultLocalState(settings, [' Project Velvet ', 'velvet']);
+    const profile = activeProfile(state);
+
+    expect(profile).toMatchObject({
+      name: 'Everyday',
+      appearance: 'bar',
+      coverage: 'full',
+      reveal: 'click',
+    });
+    expect(profile.lensIds).toEqual([
+      ENGLISH_PROFANITY_LENS_ID,
+      'lens:my-terms',
+    ]);
+    expect(profileTerms(state)).toEqual(['Project Velvet', 'velvet']);
+    expect(profileUsesEnglishProfanity(state)).toBe(true);
+  });
+
+  it('normalizes local lenses and profiles while dropping missing lens references', () => {
+    const state = normalizeLocalState({
+      lenses: [
+        {
+          id: 'private',
+          name: ' Client privacy ',
+          kind: 'terms',
+          terms: [' Alice ', 'alice', 'Project Velvet'],
+        },
+        {
+          id: ENGLISH_PROFANITY_LENS_ID,
+          name: 'fake built in',
+          kind: 'terms',
+          terms: ['nope'],
+        },
+      ],
+      profiles: [
+        {
+          id: 'presentation',
+          name: ' Presentation ',
+          lensIds: ['private', 'missing', 'private'],
+          appearance: 'blur',
+          coverage: 'full',
+          reveal: 'never',
+        },
+      ],
+      activeProfileId: 'missing',
+    });
+
+    expect(state.lenses).toEqual([
+      {
+        id: ENGLISH_PROFANITY_LENS_ID,
+        name: 'Profanity',
+        kind: 'english-profanity',
+        terms: [],
+      },
+      {
+        id: 'private',
+        name: 'Client privacy',
+        kind: 'terms',
+        terms: ['Alice', 'Project Velvet'],
+      },
+    ]);
+    expect(activeProfile(state)).toEqual({
+      id: 'presentation',
+      name: 'Presentation',
+      lensIds: ['private'],
+      appearance: 'blur',
+      coverage: 'full',
+      reveal: 'never',
+    });
+    expect(profileTerms(state)).toEqual(['Alice', 'Project Velvet']);
+    expect(profileUsesEnglishProfanity(state)).toBe(false);
+  });
+
+  it('switches profiles and updates only the active profile', () => {
+    const initial = createDefaultLocalState();
+    const second = {
+      id: 'profile:presentation',
+      name: 'Presentation',
+      lensIds: [],
+      appearance: 'bar' as const,
+      coverage: 'full' as const,
+      reveal: 'never' as const,
+    };
+    const withSecond = {
+      ...initial,
+      profiles: [...initial.profiles, second],
+    };
+    const switched = setActiveProfile(withSecond, second.id);
+    const updated = updateActiveProfile(switched, { reveal: 'click' });
+
+    expect(activeProfile(updated).name).toBe('Presentation');
+    expect(activeProfile(updated).reveal).toBe('click');
+    expect(updated.profiles[0]?.reveal).toBe('hover');
   });
 
   it('maps the vowel setting to the English coverage helper', () => {
