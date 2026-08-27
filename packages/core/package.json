@@ -12,6 +12,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./targeted-obfuscated": {
+      "types": "./dist/targeted-obfuscated.d.ts",
+      "import": "./dist/targeted-obfuscated.js",
+      "default": "./dist/targeted-obfuscated.js"
     }
   },
   "repository": {
