@@ -34,6 +34,26 @@ import '@scrawlix/react/styles.css';
 
 React defaults: `coverage="full"`, `appearance="scrawl"`, `reveal="never"`. Add partial coverage or reveal props only when the application asks for them. The stylesheet import is required for built-in appearances and the visually-hidden accessibility copy. `CensoredText` preserves one exact source copy for assistive technology; it is reversible presentation, not destructive redaction.
 
+Next.js App Router rule:
+- `CensoredText` is a Client Component.
+- Scrawlix rules contain `RegExp` values and coverage selectors can be functions. Do not pass rule packs from a Server Component into `CensoredText` props.
+- Create a small application-owned `'use client'` wrapper that imports both the selected rule pack and `CensoredText`; let Server Components pass only serializable values such as `text`.
+- Import `@scrawlix/react/styles.css` from the root layout/global CSS path.
+- The packed-package smoke suite production-builds this exact App Router pattern.
+
+Canonical App Router wrapper:
+
+```tsx
+'use client';
+
+import { englishStrongProfanityRules } from '@scrawlix/en';
+import { CensoredText } from '@scrawlix/react';
+
+export function ScrawlixText({ text }: { text: string }) {
+  return <CensoredText text={text} rules={englishStrongProfanityRules} />;
+}
+```
+
 Core install:
 
 ```sh
@@ -99,6 +119,8 @@ The browser extension keeps browser state outside reusable packages. Global trea
 
 Use only documented public package exports. Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md
 Docs index: https://github.com/teamleaderleo/scrawlix/blob/main/docs/README.md
+Compatibility: https://github.com/teamleaderleo/scrawlix/blob/main/docs/compatibility.md
+Versioning: https://github.com/teamleaderleo/scrawlix/blob/main/docs/versioning.md
 Language packs: https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md
 DOM lifecycle: https://github.com/teamleaderleo/scrawlix/blob/main/docs/dom.md
 Extension notes: https://github.com/teamleaderleo/scrawlix/blob/main/apps/extension/README.md
