@@ -3,23 +3,36 @@ import { resolve } from 'node:path';
 
 const extensionPath = resolve(process.cwd(), 'apps/extension/dist');
 
-test('demo controls drive real rendered coverage and reveal state', async ({ page }) => {
+test('demo controls drive real rendered coverage, X-ray, and reveal state', async ({ page }) => {
   await page.goto('http://127.0.0.1:4173');
 
   const proof = page.locator('.proof-output [data-scrawlix-root]');
   const firstCover = proof.locator('[data-scrawlix-cover]').first();
   const secondCover = proof.locator('[data-scrawlix-cover]').nth(1);
+  const xrayGrid = page.locator('#xray-grid');
+  const xrayCoverage = page.locator('[data-xray-stage="cover"] .xray-coverage mark');
 
   await expect(proof).toBeVisible();
   await expect(proof).toHaveAttribute('data-scrawlix-appearance', 'scrawl');
   await expect(proof).toHaveAttribute('data-scrawlix-reveal-scope', 'match');
   await expect(firstCover).toHaveText('uc');
 
+  await expect(xrayGrid).toBeVisible();
+  await expect(page.locator('[data-xray-stage="match"] .xray-value')).toHaveText(
+    'motherfucker'
+  );
+  await expect(page.locator('[data-xray-stage="target"] mark')).toHaveText('fuck');
+  await expect(xrayCoverage).toHaveText('uc');
+
   await page.getByRole('button', { name: 'bar', exact: true }).click();
   await expect(proof).toHaveAttribute('data-scrawlix-appearance', 'bar');
+  await expect(
+    page.locator('[data-xray-stage="output"] [data-scrawlix-root]')
+  ).toHaveAttribute('data-scrawlix-appearance', 'bar');
 
   await page.getByRole('button', { name: 'full', exact: true }).click();
   await expect(firstCover).toHaveText('fuck');
+  await expect(xrayCoverage).toHaveText('fuck');
 
   for (const appearance of ['whiteout', 'mosaic', 'asterisk'] as const) {
     await page.getByRole('button', { name: appearance, exact: true }).click();
@@ -49,6 +62,11 @@ test('demo controls drive real rendered coverage and reveal state', async ({ pag
   await expect(proof).toHaveAttribute('data-scrawlix-revealed', 'false');
   await proof.click();
   await expect(proof).toHaveAttribute('data-scrawlix-revealed', 'true');
+
+  await page.getByRole('button', { name: 'x-ray on', exact: true }).click();
+  await expect(xrayGrid).toHaveCount(0);
+  await page.getByRole('button', { name: 'x-ray off', exact: true }).click();
+  await expect(xrayGrid).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   const overflow = await page.evaluate(
