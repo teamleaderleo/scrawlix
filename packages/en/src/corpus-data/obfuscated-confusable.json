@@ -1,0 +1,172 @@
+[
+  {
+    "id": "obfuscated-confusable-fuck-c",
+    "text": "fuсk",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "confusable", "cyrillic"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "fuсk",
+        "start": 0,
+        "end": 4,
+        "targetText": "fuсk",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-confusable-fuck-suffix-i",
+    "text": "fuckіng",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "confusable", "cyrillic", "inflection", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "fuckіng",
+        "start": 0,
+        "end": 7,
+        "targetText": "fuck",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-confusable-fuck-mother-c",
+    "text": "motherfuсker",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "confusable", "cyrillic", "compound", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "motherfuсker",
+        "start": 0,
+        "end": 12,
+        "targetText": "fuсk",
+        "targetStart": 6,
+        "targetEnd": 10
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-confusable-shit-s",
+    "text": "ѕhit",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "confusable", "cyrillic"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "ѕhit",
+        "start": 0,
+        "end": 4,
+        "targetText": "ѕhit",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-confusable-shit-i",
+    "text": "shіt",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "confusable", "cyrillic"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "shіt",
+        "start": 0,
+        "end": 4,
+        "targetText": "shіt",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-confusable-shit-bull-i",
+    "text": "bullshіt",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "confusable", "cyrillic", "compound", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "bullshіt",
+        "start": 0,
+        "end": 8,
+        "targetText": "shіt",
+        "targetStart": 4,
+        "targetEnd": 8
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-confusable-bitch-plural-i",
+    "text": "bіtches",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "confusable", "cyrillic", "plural", "inflection", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "bitch-obfuscated",
+        "text": "bіtches",
+        "start": 0,
+        "end": 7,
+        "targetText": "bіtch",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-confusable-asshole-a",
+    "text": "аsshole",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "confusable", "cyrillic"],
+    "matches": [
+      {
+        "ruleId": "asshole-obfuscated",
+        "text": "аsshole",
+        "start": 0,
+        "end": 7,
+        "targetText": "аsshole",
+        "targetStart": 0,
+        "targetEnd": 7
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-confusable-asshole-plural-o",
+    "text": "asshоles",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "confusable", "cyrillic", "plural", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "asshole-obfuscated",
+        "text": "asshоles",
+        "start": 0,
+        "end": 8,
+        "targetText": "asshоle",
+        "targetStart": 0,
+        "targetEnd": 7
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-confusable-cunt-plural-c",
+    "text": "сunts",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "confusable", "cyrillic", "plural", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "cunt-obfuscated",
+        "text": "сunts",
+        "start": 0,
+        "end": 5,
+        "targetText": "сunt",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  }
+]
