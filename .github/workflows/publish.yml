@@ -1,0 +1,99 @@
+name: Publish npm packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact synchronized package version to publish
+        required: true
+        type: string
+      dist_tag:
+        description: npm dist-tag for this release
+        required: true
+        default: next
+        type: string
+      dry_run:
+        description: Run every release gate and pnpm publish --dry-run without writing to npm
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: scrawlix-npm-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install exact dependency graph
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify workspace
+        run: |
+          pnpm typecheck
+          pnpm test
+          pnpm build
+          pnpm smoke:packages
+
+      - name: Verify synchronized release version
+        run: node scripts/check-release-version.mjs "${{ inputs.version }}"
+
+      - name: Verify registry state for trusted publishing
+        if: inputs.dry_run == false
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          packages=(
+            '@scrawlix/core'
+            '@scrawlix/en'
+            '@scrawlix/react'
+            '@scrawlix/rehype'
+            '@scrawlix/dom'
+          )
+
+          for package in "${packages[@]}"; do
+            if ! npm view "$package" name >/dev/null 2>&1; then
+              echo "::error::$package does not exist on npm yet. Complete the one-time authenticated bootstrap publish and configure its trusted publisher before running this workflow."
+              exit 1
+            fi
+
+            if npm view "$package@$RELEASE_VERSION" version >/dev/null 2>&1; then
+              echo "::error::$package@$RELEASE_VERSION already exists on npm. Refusing a partial or duplicate release."
+              exit 1
+            fi
+          done
+
+      - name: Publish public packages in dependency order
+        env:
+          DIST_TAG: ${{ inputs.dist_tag }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          publish_args=(--access public --tag "$DIST_TAG" --no-git-checks --provenance)
+          if [[ "$DRY_RUN" == "true" ]]; then
+            publish_args+=(--dry-run)
+          fi
+
+          for directory in core en react rehype dom; do
+            echo "Publishing packages/$directory"
+            (
+              cd "packages/$directory"
+              pnpm publish "${publish_args[@]}"
+            )
+          done

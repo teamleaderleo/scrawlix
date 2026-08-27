@@ -22,8 +22,9 @@ A change in one layer should rarely require logic in another.
 - `packages/dom` — arbitrary-page text-node transformation, restoration, and mutation observation
 - `apps/demo` — public interactive proof sheet and integration consumer
 - `apps/extension` — Manifest V3 application: browser state, popup UI, and injected presentation
-- `fixtures/consumer` — external packed-package smoke consumer
-- `docs` — design, adoption, compatibility, versioning, and extension guidance
+- `fixtures/consumer` — external packed-package React 18/19 smoke consumer
+- `fixtures/next-consumer` — packed-package Next.js App Router smoke consumer
+- `docs` — design, adoption, compatibility, versioning, release, and extension guidance
 
 Scrapbook adoption remains tracked separately as a real-consumer integration.
 
@@ -48,21 +49,25 @@ The reusable packages use named runtime exports as the canonical API. `@scrawlix
 
 Do not invent convenience packages, automatic English selection, compatibility aliases, or alternate spellings for the public API.
 
-## Commands
+## Toolchain and commands
 
-Run these before opening or merging a PR:
+The root `packageManager` field pins the exact pnpm release used by CI. Use that version through Corepack/pnpm tooling instead of silently changing package-manager versions.
+
+For a verification checkout whose dependency graph should already be committed:
 
 ```sh
-pnpm install
+pnpm install --frozen-lockfile
 pnpm typecheck
 pnpm test
 pnpm build
 pnpm smoke:packages
 ```
 
-Repository CI uses Node 22. The demo and extension builds are part of the workspace build. The package smoke test installs packed tarballs into consumers outside the workspace dependency graph, typechecks published declarations with library checking enabled, and production-builds against React 18 and React 19.
+When intentionally changing dependencies, run the pinned pnpm install normally, review the resulting `pnpm-lock.yaml`, and commit manifest + lockfile changes together. Never hand-edit lockfile resolutions.
 
-Published runtime compatibility and workspace-tooling expectations live in `docs/compatibility.md`. Release classification and public-contract rules live in `docs/versioning.md`.
+Repository CI uses Node 22 and frozen installs. The demo and extension builds are part of the workspace build. The packed-package smoke suite installs tarballs into consumers outside the workspace dependency graph, strictly typechecks Scrawlix declarations through React 18 and React 19, production-builds both majors, and production-builds the documented Next.js App Router client-wrapper path.
+
+The npm publication workflow uses Node 24 so its OIDC runner comfortably satisfies trusted-publishing runtime requirements. Published runtime compatibility and workspace-tooling expectations live in `docs/compatibility.md`. Release classification and public-contract rules live in `docs/versioning.md`.
 
 ## Invariants
 
@@ -99,6 +104,12 @@ Visual censorship is decorative. When text is transformed, React keeps exactly o
 Passive reveal modes (`hover`, `never`) stay outside the tab order. Keyboard-driven reveal modes must retain an operable focus path and regression coverage.
 
 `@scrawlix/react/styles.css` is part of the documented React adoption path because it owns the built-in treatment CSS and the visually-hidden accessibility helper.
+
+### Keep Next.js rule selection inside the client boundary
+
+Scrawlix rule packs contain `RegExp` values and coverage selectors can be functions. In Next.js App Router integrations, keep those values inside an application-owned Client Component that imports the rule pack and `CensoredText`. Server Components should pass serializable application data such as `text` into that wrapper.
+
+The packed Next consumer release-gates this exact pattern. Keep README and `llms.txt` examples aligned with it.
 
 ### Keep syntax-tree adapters semantic
 
@@ -162,12 +173,20 @@ When a bug or rule change teaches a durable positive or false-positive example, 
 
 Ask whether the behavior is language-neutral. Generic positional coverage may live in core. Character classes, syllables, morphology, or locale-specific rules belong in a pack and can be implemented as `CoverageSelector` callbacks.
 
+## Release discipline
+
+`docs/releasing.md` is the release runbook. The five public packages stay synchronized and `scripts/check-release-version.mjs` refuses mismatched release versions or the workspace placeholder `0.0.0`.
+
+`.github/workflows/publish.yml` is the permanent post-bootstrap publication path. It is manually dispatched from `main`, defaults to dry-run, reruns the release gates, preflights npm package/version state, publishes in dependency order, requests provenance, and carries no long-lived npm write token.
+
+npm trusted publishers are configured per package and require an existing registry package. The first package creation therefore remains an explicit human bootstrap step tracked in issue #18; after all five packages exist and trust `publish.yml`, subsequent releases use GitHub OIDC. Never add an npm write token to the permanent publish workflow to bypass that bootstrap requirement.
+
 ## Public API discipline
 
 Scrawlix is pre-release, so breaking changes are still possible. Use that freedom to remove surprising defaults and awkward names before publication. `docs/versioning.md` defines how 0.x releases classify fixes, additions, language-pack scope changes, and intentional breaks.
 
 The documented package exports, rule ids, option defaults, adapter data attributes, ignore attributes, and React CSS/render attributes are public contracts. Keep application-only browser-extension state private unless a document explicitly promotes it to a public contract.
 
-Packed-package smoke tests are a release gate: external consumers must receive compiled JavaScript, declarations, CSS exports, and valid package metadata rather than workspace-only source imports. Every new public package belongs in `scripts/smoke-packages.mjs` and `fixtures/consumer`.
+Packed-package smoke tests are a release gate: external consumers must receive compiled JavaScript, declarations, CSS exports, and valid package metadata rather than workspace-only source imports. Every new public package belongs in `scripts/smoke-packages.mjs` and the relevant external consumer fixture.
 
-Human quickstarts live in the root/package READMEs. Agent quickstarts live in the demo `llms.txt`. Keep those surfaces synchronized whenever public names, defaults, package selection, or required side-effect imports change.
+Human quickstarts live in the root/package READMEs. Agent quickstarts live in the demo `llms.txt`. Keep those surfaces synchronized whenever public names, defaults, package selection, required side-effect imports, or framework boundaries change.
