@@ -90,6 +90,7 @@ describe('targeted obfuscated terms', () => {
 
   it('preserves NFC/NFD target source ranges', () => {
     const source = 'cafe\u0301s';
+    const obfuscated = `ca-fe\u0301s`;
     const engine = createScrawlix({
       rules: [
         censorRuleFromTargetedObfuscatedTerms(
@@ -103,16 +104,16 @@ describe('targeted obfuscated terms', () => {
       ],
     });
 
-    expect(engine.find(`ca-fe\u0301s`)).toEqual([
+    expect(engine.find(obfuscated)).toEqual([
       {
         ruleId: 'cafe-obfuscated',
         profile: 'obfuscated',
-        text: `ca-fe\u0301s`,
+        text: obfuscated,
         start: 0,
-        end: 8,
+        end: obfuscated.length,
         targetText: `ca-fe\u0301`,
         targetStart: 0,
-        targetEnd: 7,
+        targetEnd: `ca-fe\u0301`.length,
       },
     ]);
     expect(source.normalize('NFC')).toBe('cafés');
