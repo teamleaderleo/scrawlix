@@ -74,12 +74,6 @@ export async function requestHostAccess(origins: readonly string[]) {
   return granted;
 }
 
-export async function removeHostAccess(origins: readonly string[]) {
-  const removed = await chrome.permissions.remove({ origins: [...origins] });
-  if (removed) await syncContentScriptRegistration();
-  return removed;
-}
-
 async function sendContentMessage(tabId: number, message: ScrawlixContentMessage) {
   try {
     await chrome.tabs.sendMessage(tabId, message);
@@ -104,6 +98,56 @@ export async function activateTab(tabId: number) {
 
 export async function deactivateTab(tabId: number) {
   await sendContentMessage(tabId, { type: 'scrawlix-disable' });
+}
+
+async function currentTabUrl(tabId: number) {
+  try {
+    return (await chrome.tabs.get(tabId)).url ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function reactivateTabIfStillGranted(tabId: number) {
+  const url = await currentTabUrl(tabId);
+  if (!url || !(await hasPersistentAccess(url))) return;
+
+  try {
+    await activateTab(tabId);
+  } catch {
+    // The tab may navigate or close between the permission check and injection.
+  }
+}
+
+export async function removeHostAccess(origins: readonly string[]) {
+  const patterns = contentScriptMatches(origins);
+  if (patterns.length === 0) return false;
+
+  const granted = await chrome.permissions.contains({ origins: patterns });
+  if (!granted) return false;
+
+  // Host permission makes URL-filtered tabs.query available without the broad `tabs` permission.
+  const affectedTabs = await chrome.tabs.query({ url: patterns });
+  const tabIds = affectedTabs.flatMap(tab =>
+    tab.id === undefined ? [] : [tab.id]
+  );
+
+  // Restore exact source while the permission still allows reliable page messaging.
+  await Promise.all(tabIds.map(tabId => deactivateTab(tabId)));
+
+  const removed = await chrome.permissions.remove({ origins: patterns });
+  if (!removed) {
+    // Required/policy-controlled permissions cannot be removed. Put any page sessions back.
+    await Promise.all(tabIds.map(tabId => reactivateTabIfStillGranted(tabId)));
+    return false;
+  }
+
+  await syncContentScriptRegistration();
+
+  // An overlapping remaining grant may still cover some tabs (for example a narrow
+  // origin grant after removing all-sites access). Reconcile those tabs immediately.
+  await Promise.all(tabIds.map(tabId => reactivateTabIfStillGranted(tabId)));
+  return true;
 }
 
 export async function revealTabFor(
