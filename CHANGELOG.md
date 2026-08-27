@@ -67,6 +67,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added compiled ESM/declaration artifacts for public packages.
 - Added external tarball consumer smoke tests as a CI release gate, with strict declaration checking, React 18/19 production builds, and a Next.js 16 App Router production build using the documented client-wrapper boundary.
 - Added package-local READMEs for every public package, exact install commands, a top-level integration chooser, a docs index, React CSS troubleshooting, Next.js client-boundary guidance, and clearer source/accessibility notes.
+- Added a symptom-first troubleshooting guide covering matching, CSS, App Router boundaries, DOM observation/exclusions, grapheme-expanded coverage, public subpaths, and packed-package diagnosis.
 - Added a framework-neutral renderer recipe with plain-DOM, Vue, Svelte, and Solid sketches plus a threshold for when a dedicated adapter package is worth maintaining.
 - Added explicit runtime compatibility and pre-1.0 versioning/public-contract policies.
 - Declared Node 18+ in every public package manifest and Node 22+ in the private workspace manifest so package-manager metadata matches the documented runtime/tooling baselines.
