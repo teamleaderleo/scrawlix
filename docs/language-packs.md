@@ -2,7 +2,7 @@
 
 Scrawlix keeps linguistic knowledge outside `@scrawlix/core`.
 
-The core knows how to execute rules, preserve semantic target ranges, apply coverage, merge overlaps, and return source-preserving segments. A language pack decides which terms exist, how they inflect or combine, and which language-specific coverage helpers make sense.
+The core knows how to execute rules, preserve semantic target ranges, apply coverage, merge overlaps, and return source-preserving segments. A language pack decides which terms exist, how they inflect or combine, which evasion transforms are reviewed, and which language-specific coverage helpers make sense.
 
 ## Minimal pack
 
@@ -77,6 +77,43 @@ Thai and Lao examples are covered in core regressions using explicit `th` and `l
 
 Locale selection is pack/application policy. Scrawlix does not infer a language from the input. A custom matcher remains the escape hatch when a pack needs boundaries beyond these strategies.
 
+## Bounded obfuscated profiles
+
+`censorRuleFromObfuscatedTerms()` provides a source-mapped execution path for reviewed evasions without supplying a universal evasion table. A pack chooses every substitution and ignored grapheme itself.
+
+```ts
+const obfuscatedRule = censorRuleFromObfuscatedTerms('example-obfuscated', ['shit'], {
+  substitutions: {
+    i: ['1'],
+    t: ['7'],
+  },
+  maxSubstitutions: 1,
+});
+```
+
+Substitution maps use canonical grapheme → accepted source graphemes. Keys and values are each exactly one extended grapheme. Core rejects ambiguous mappings, self-mappings, and graphemes configured simultaneously as substitutions and ignored values.
+
+Packs can review punctuation or zero-width insertion separately:
+
+```ts
+const punctuationRule = censorRuleFromObfuscatedTerms(
+  'example-punctuation',
+  ['shit'],
+  {
+    ignored: ['.'],
+    maxIgnored: 3,
+  }
+);
+```
+
+Internal ignored graphemes remain inside the exact original-source range returned by `find()`. A source such as `s.h.i.t` therefore yields that complete original slice even though matching happens against a transformed shadow.
+
+Every enabled transform class requires an explicit non-negative integer budget. When substitutions and ignored graphemes are enabled together, the pack must also set `maxChanges`, which caps the combined cost. The obfuscated helper filters zero-change candidates, so canonical and aggressive paths can be composed without duplicating ordinary canonical matches.
+
+This first helper intentionally covers only reviewed single-grapheme substitutions and reviewed ignored graphemes. Repeated-letter collapsing, width folding, confusables, transliteration, and other transforms should arrive as separate reviewed capabilities with their own corpus positives and ordinary-text negatives. A pack-specific confusable table belongs in that pack; blanket Unicode skeleton equivalence would create a much larger false-positive surface.
+
+The helper defaults to `profile: 'obfuscated'`. `find()` and coverage callbacks therefore expose which path produced a match, alongside `packId` when rules were composed from a pack.
+
 ## Semantic targets
 
 A regex rule can match a larger inflection or compound while identifying the semantic core with a named capture group:
@@ -93,7 +130,7 @@ Coverage runs against `core`, while `find()` still reports the full match and bo
 
 ## Custom matcher escape hatch
 
-Regex remains the compact path for ordinary rules. A pack that needs locale-specific segmentation, a trie, obfuscation handling, or another matching algorithm can provide a custom matcher instead:
+Regex remains the compact path for ordinary rules. A pack that needs locale-specific segmentation, a trie, a transform beyond the bounded helper, or another matching algorithm can provide a custom matcher instead:
 
 ```ts
 import type { CensorRule } from '@scrawlix/core';
@@ -202,7 +239,8 @@ A publishable third-party pack should contain:
 2. one or more named rule collections plus a `CensorRulePack` export
 3. locale and scope/severity notes
 4. positive and clean/false-positive regression data
-5. tests for semantic targets, casing, punctuation, compounds/inflections, Unicode context, and known ambiguity
-6. an ordinary package README with an install command and copy/paste consumer example
+5. tests for semantic targets, casing, punctuation, compounds/inflections, Unicode context, known ambiguity, and every enabled obfuscation class
+6. explicit transform tables and budgets for any aggressive profile
+7. an ordinary package README with an install command and copy/paste consumer example
 
 Keep pack-specific presentation and application state outside the pack. Matching policy should remain inspectable as ordinary code/data.
