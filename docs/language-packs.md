@@ -36,6 +36,22 @@ const engine = createScrawlix({
 
 Scrawlix deliberately avoids automatic language detection. Applications know more about their content and can choose one pack, several packs, or caller-authored rules.
 
+## Canonical Unicode matching
+
+`censorRuleFromTerms()` normalizes both declared terms and an internal source shadow to NFC by default. Canonically equivalent spellings therefore match even when their UTF-16 lengths differ:
+
+```ts
+const rule = censorRuleFromTerms('cafe', ['café']);
+
+// Both match, while find() reports the exact original source slice.
+engine.find('café');
+engine.find('cafe\u0301');
+```
+
+The source string itself stays unchanged. Scrawlix builds the normalized shadow one extended grapheme at a time and maps every accepted shadow boundary back to the corresponding original-source boundary. `{ normalization: 'none' }` is available for rules that intentionally distinguish canonical forms.
+
+Raw regex rules and custom matchers keep their own matching policy. Core validates the ranges they produce and throws when a full match or semantic target cuts through an extended grapheme cluster.
+
 ## Boundaries
 
 `censorRuleFromTerms()` defaults to `boundary: 'word'`, using Unicode-aware lookarounds. Letters, numbers, combining marks, connector punctuation, ZWNJ, and ZWJ keep a candidate attached to surrounding text. This prevents a boundary from appearing inside many decomposed or connected Unicode sequences while still blocking ordinary substring false positives.
@@ -70,7 +86,7 @@ Coverage runs against `core`, while `find()` still reports the full match and bo
 
 ## Custom matcher escape hatch
 
-Regex remains the compact path for ordinary rules. A pack that needs normalization, locale-specific segmentation, a trie, or another matching algorithm can provide a custom matcher instead:
+Regex remains the compact path for ordinary rules. A pack that needs locale-specific segmentation, a trie, obfuscation handling, or another matching algorithm can provide a custom matcher instead:
 
 ```ts
 import type { CensorRule } from '@scrawlix/core';
@@ -95,9 +111,9 @@ const rule: CensorRule = {
 
 Matcher ranges are UTF-16 offsets into the exact original JavaScript source string. `start`/`end` identify the complete match. `targetStart`/`targetEnd` are optional; omit both to make the complete match the semantic target.
 
-Custom matchers may build normalized or otherwise transformed shadow text internally, but they remain responsible for mapping a detected span back to exact original-source offsets before yielding it. Core validates matcher output and rejects empty, out-of-bounds, partial-target, or target-outside-match ranges rather than clamping them.
+Custom matchers may build normalized or otherwise transformed shadow text internally, but they remain responsible for mapping a detected span back to exact original-source offsets before yielding it. Core validates matcher output and rejects empty, out-of-bounds, partial-target, target-outside-match, and grapheme-splitting ranges.
 
-Keep language-specific matching algorithms in their language packs. The custom matcher seam exists so core can execute source-ranged results without learning a language's morphology, segmentation, normalization, or evasion conventions.
+Keep language-specific matching algorithms in their language packs. The custom matcher seam exists so core can execute source-ranged results without learning a language's morphology, segmentation, or evasion conventions.
 
 ## Coverage helpers
 
@@ -110,9 +126,9 @@ Core coverage presets are positional and language-neutral:
 
 `full` is the default engine policy. Packs and consumers can choose a different policy explicitly.
 
-Language-specific character classes belong in packs. `@scrawlix/en`, for example, exports `englishVowelCoverage` as a `CoverageSelector` callback instead of teaching core what an English vowel is.
+Core exports `graphemeRanges()` as the shared extended-grapheme primitive. Language-specific character classes belong in packs, but pack coverage helpers should reuse those core ranges instead of carrying a second segmentation implementation. `@scrawlix/en`, for example, uses the core ranges inside `englishVowelCoverage`.
 
-A pack can export several named helpers without changing the core API.
+Coverage callbacks can return arbitrary UTF-16 offsets inside the semantic target. Core expands sanitized coverage edges to complete graphemes before producing covered segments.
 
 ## Corpora
 
