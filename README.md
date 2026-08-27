@@ -53,6 +53,22 @@ Current reveal modes: `hover`, `focus`, `click`, and `never`.
 
 The renderer exposes a namespaced presentation contract through `data-scrawlix-root`, `data-scrawlix-appearance`, `data-scrawlix-reveal`, `data-scrawlix-revealed`, `data-scrawlix-cover`, `data-scrawlix-rules`, and optional `data-scrawlix-mask` attributes. Preset styling can be tuned with CSS custom properties including `--scrawlix-ink`, `--scrawlix-surface`, `--scrawlix-bar-height`, `--scrawlix-blur-radius`, and `--scrawlix-mosaic-cell`.
 
+`CensoredText` accepts ordinary React styles plus those five Scrawlix variables through the exported `ScrawlixStyle` type. Inline JSX gets contextual typing, so custom-property tuning stays simple:
+
+```tsx
+<CensoredText
+  text="what the fuck"
+  rules={englishProfanityRules}
+  appearance="bar"
+  style={{
+    '--scrawlix-ink': 'rebeccapurple',
+    '--scrawlix-bar-height': '0.62em',
+  }}
+/>;
+```
+
+Root `className`, the namespaced data attributes, and these custom properties are the first styling escape hatches. Matching, source preservation, accessibility, and reveal behavior stay inside the renderer.
+
 ## Markdown / rehype
 
 `@scrawlix/rehype` walks HAST text nodes and marks covered ranges while leaving the source text intact:
