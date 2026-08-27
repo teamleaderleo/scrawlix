@@ -1,87 +1,32 @@
+import cleanCorpus from './corpus-data/clean.json' with { type: 'json' };
+import profanityCorpus from './corpus-data/profanity.json' with { type: 'json' };
+
 export type EnglishCorpusMatch = {
   ruleId: string;
   text: string;
+  start: number;
+  end: number;
   targetText: string;
+  targetStart: number;
+  targetEnd: number;
 };
 
 export type EnglishCorpusCase = {
   id: string;
   text: string;
+  profile: string;
+  tags: readonly string[];
+  note?: string;
   matches: readonly EnglishCorpusMatch[];
 };
 
 /**
- * Small, reviewable regression corpus for the bundled English profanity rules.
- * Add a case whenever a bug report or rule change teaches us something durable.
+ * Reviewable regression data for the bundled English profanity rules.
+ * Source cases live in `src/corpus-data/*.json` and are validated against the
+ * shared corpus schema plus source-range invariants by `pnpm validate:corpora`.
  */
-export const englishProfanityCorpus: readonly EnglishCorpusCase[] = [
-  {
-    id: 'fuck-base',
-    text: 'fuck',
-    matches: [{ ruleId: 'fuck', text: 'fuck', targetText: 'fuck' }],
-  },
-  {
-    id: 'fuck-uppercase-inflection',
-    text: 'FUCKING',
-    matches: [{ ruleId: 'fuck', text: 'FUCKING', targetText: 'FUCK' }],
-  },
-  {
-    id: 'fuck-mother-compound',
-    text: 'motherfucker',
-    matches: [
-      { ruleId: 'fuck', text: 'motherfucker', targetText: 'fuck' },
-    ],
-  },
-  {
-    id: 'fuck-punctuation',
-    text: 'well, fuck!',
-    matches: [{ ruleId: 'fuck', text: 'fuck', targetText: 'fuck' }],
-  },
-  {
-    id: 'shit-bull-compound',
-    text: 'bullshit',
-    matches: [{ ruleId: 'shit', text: 'bullshit', targetText: 'shit' }],
-  },
-  {
-    id: 'shit-inflection',
-    text: 'shitty',
-    matches: [{ ruleId: 'shit', text: 'shitty', targetText: 'shit' }],
-  },
-  {
-    id: 'bitch-plural',
-    text: 'bitches',
-    matches: [{ ruleId: 'bitch', text: 'bitches', targetText: 'bitch' }],
-  },
-  {
-    id: 'asshole-plural',
-    text: 'assholes',
-    matches: [
-      { ruleId: 'asshole', text: 'assholes', targetText: 'asshole' },
-    ],
-  },
-  {
-    id: 'cunt-plural',
-    text: 'cunts',
-    matches: [{ ruleId: 'cunt', text: 'cunts', targetText: 'cunt' }],
-  },
-  {
-    id: 'multiple-rules',
-    text: 'fuck this shit',
-    matches: [
-      { ruleId: 'fuck', text: 'fuck', targetText: 'fuck' },
-      { ruleId: 'shit', text: 'shit', targetText: 'shit' },
-    ],
-  },
-] as const;
+export const englishProfanityCorpus: readonly EnglishCorpusCase[] =
+  profanityCorpus;
 
-/** Cases that contain suspicious substrings but should remain untouched. */
-export const englishCleanCorpus: readonly EnglishCorpusCase[] = [
-  { id: 'scunthorpe', text: 'Scunthorpe', matches: [] },
-  { id: 'shitake', text: 'shitake mushrooms', matches: [] },
-  { id: 'classhole', text: 'classhole', matches: [] },
-  { id: 'motherfuckerish', text: 'motherfuckerish', matches: [] },
-  { id: 'fuck-combining-mark-continuation', text: 'fuck\u0301', matches: [] },
-  { id: 'shit-connector-continuation', text: 'shit‿word', matches: [] },
-  { id: 'cunt-join-control-continuation', text: 'cunt\u200Dword', matches: [] },
-  { id: 'ordinary-prose', text: 'a perfectly ordinary sentence', matches: [] },
-] as const;
+/** Cases that contain suspicious substrings or boundaries but should stay clean. */
+export const englishCleanCorpus: readonly EnglishCorpusCase[] = cleanCorpus;
