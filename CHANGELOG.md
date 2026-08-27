@@ -38,6 +38,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added keyboard reveal handling and a single-source accessibility contract with rendered regressions.
 - Added the public CSS subpath export.
 - Bound the supported peer range to React 18 and 19 and added packed external-consumer verification for both majors.
+- Documented and release-gated the Next.js App Router pattern: keep non-serializable rule packs inside an application-owned Client Component and pass serializable text from Server Components.
 
 ### Markdown
 
@@ -61,7 +62,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 ### Developer experience
 
 - Added compiled ESM/declaration artifacts for public packages.
-- Added external tarball consumer smoke tests as a CI release gate, with strict declaration checking and React 18/19 production builds.
+- Added external tarball consumer smoke tests as a CI release gate, with strict declaration checking, React 18/19 production builds, and a Next.js 16 App Router production build using the documented client-wrapper boundary.
 - Added shared JSON Schema validation plus semantic source-range checks for language-pack corpora through `pnpm validate:corpora`.
 - Added package-local READMEs for every public package, exact install commands, a top-level integration chooser, a docs index, React CSS troubleshooting, Next.js client-boundary guidance, and clearer source/accessibility notes.
 - Added explicit runtime compatibility and pre-1.0 versioning/public-contract policies.
