@@ -15,6 +15,7 @@ import {
   type ScrawlixRevealScope,
 } from '@scrawlix/react';
 import { useMemo, useState } from 'react';
+import { ContextLab } from './ContextLab';
 
 const appearances: readonly ScrawlixAppearance[] = [
   'scrawl',
@@ -268,6 +269,12 @@ export function App() {
           ))}
         </div>
       </section>
+
+      <ContextLab
+        appearance={appearance}
+        coverage={coverageSelector}
+        coverageLabel={coverage}
+      />
 
       <section className="xray-section" aria-labelledby="xray-title">
         <div className="xray-heading">
