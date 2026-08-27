@@ -56,13 +56,25 @@ function shouldSkipElement(element: Element, options: PreparedOptions) {
 }
 
 function coveredElement(segment: ScrawlixSegment): Element {
+  const properties: Element['properties'] = {
+    'data-scrawlix-cover': '',
+    'data-scrawlix-rules': segment.ruleIds.join(','),
+    'data-scrawlix-matches': segment.matchIds.join(','),
+    'data-scrawlix-start': segment.start,
+    'data-scrawlix-end': segment.end,
+  };
+
+  if (segment.revealId) {
+    properties['data-scrawlix-reveal-id'] = segment.revealId;
+  }
+  if (segment.coverageEdge) {
+    properties['data-scrawlix-edge'] = segment.coverageEdge;
+  }
+
   return {
     type: 'element',
     tagName: 'span',
-    properties: {
-      'data-scrawlix-cover': '',
-      'data-scrawlix-rules': segment.ruleIds.join(','),
-    },
+    properties,
     children: [{ type: 'text', value: segment.text }],
   };
 }
