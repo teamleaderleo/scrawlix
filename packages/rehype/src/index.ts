@@ -141,5 +141,3 @@ export function rehypeScrawlix(options: RehypeScrawlixOptions) {
     transformParent(tree, prepared);
   };
 }
-
-export default rehypeScrawlix;
