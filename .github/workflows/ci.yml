@@ -27,6 +27,15 @@ jobs:
         run: pnpm test:browser:extension
       - name: Browser visual regressions
         run: pnpm exec playwright test -c playwright.config.ts tests/browser/visual.spec.ts
+      - name: Capture context lab candidate
+        run: pnpm exec playwright test -c playwright.config.ts tests/browser/context.capture.spec.ts
+      - name: Upload context lab candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrawlix-context-lab-candidate
+          path: test-results/context-candidate/context-lab-desktop.png
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload visual regression failures
         if: failure()
         uses: actions/upload-artifact@v4
