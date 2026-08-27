@@ -12,7 +12,9 @@ Scrawlix publishes ESM and TypeScript declarations targeting modern JavaScript. 
 - Unicode property escapes
 - RegExp match indices (`d` flag)
 
-Node **18 and newer** is the supported Node baseline for development, SSR/build tooling, and direct core/rehype execution.
+For published-package execution in Node, **Node 18 and newer** is the supported baseline for core/rehype and SSR contexts that execute package code directly.
+
+Repository development and release verification use **Node 22**. The workspace includes current build/test tools with their own Node requirements, so contributors should follow the CI/toolchain baseline instead of treating the package-runtime minimum as the repository-development minimum.
 
 For browsers, support is capability-based during pre-1.0: the consuming browser must support the features above. Scrawlix's browser CI exercises current Chromium. Add explicit Firefox/Safari version claims only alongside CI or targeted compatibility tests that enforce them.
 
