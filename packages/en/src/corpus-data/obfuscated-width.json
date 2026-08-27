@@ -1,0 +1,138 @@
+[
+  {
+    "id": "obfuscated-width-fuck-f",
+    "text": "ｆuck",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "width-variant"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "ｆuck",
+        "start": 0,
+        "end": 4,
+        "targetText": "ｆuck",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-width-fuck-suffix-i",
+    "text": "fuckｉng",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "width-variant", "inflection", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "fuckｉng",
+        "start": 0,
+        "end": 7,
+        "targetText": "fuck",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-width-fuck-mother-f",
+    "text": "motherｆucker",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "width-variant", "compound", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "motherｆucker",
+        "start": 0,
+        "end": 12,
+        "targetText": "ｆuck",
+        "targetStart": 6,
+        "targetEnd": 10
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-width-shit-i",
+    "text": "shｉt",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "width-variant"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "shｉt",
+        "start": 0,
+        "end": 4,
+        "targetText": "shｉt",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-width-shit-bull-i",
+    "text": "bullshｉt",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "width-variant", "compound", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "bullshｉt",
+        "start": 0,
+        "end": 8,
+        "targetText": "shｉt",
+        "targetStart": 4,
+        "targetEnd": 8
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-width-bitch-plural-b",
+    "text": "ｂitches",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "width-variant", "plural", "inflection", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "bitch-obfuscated",
+        "text": "ｂitches",
+        "start": 0,
+        "end": 7,
+        "targetText": "ｂitch",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-width-asshole-plural-o",
+    "text": "asshｏles",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "width-variant", "plural", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "asshole-obfuscated",
+        "text": "asshｏles",
+        "start": 0,
+        "end": 8,
+        "targetText": "asshｏle",
+        "targetStart": 0,
+        "targetEnd": 7
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-width-cunt-plural-u",
+    "text": "cｕnts",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "width-variant", "plural", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "cunt-obfuscated",
+        "text": "cｕnts",
+        "start": 0,
+        "end": 5,
+        "targetText": "cｕnt",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  }
+]
