@@ -323,7 +323,8 @@ button:focus-visible {
   opacity: 0.58;
 }
 
-#custom-status {
+#custom-status,
+#access-action-status {
   display: block;
   margin: 8px 0 0;
 }
@@ -375,8 +376,13 @@ button:focus-visible {
   font-size: 13px;
 }
 
-.hostname {
+.hostname,
+.access-value {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.access-value {
+  font-size: 10px;
 }
 
 .quiet-button {
@@ -407,13 +413,6 @@ button:focus-visible {
 .empty-state {
   margin: 14px 0 0;
   opacity: 0.58;
-}
-
-.access-list li {
-  padding: 9px 0;
-  border-bottom: 1px solid rgba(23, 21, 16, 0.2);
-  font-size: 10px;
-  overflow-wrap: anywhere;
 }
 
 .privacy-panel p:not(.eyebrow) {
