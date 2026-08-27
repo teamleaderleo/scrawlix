@@ -1,6 +1,7 @@
 import { createScrawlix } from '@scrawlix/core';
 import { createDomScrawlix } from '@scrawlix/dom';
 import { englishStrongProfanityRules } from '@scrawlix/en';
+import { englishProfanityCorpus } from '@scrawlix/en/corpus';
 import { transformHast } from '@scrawlix/rehype';
 import { CensoredText } from '@scrawlix/react';
 import '@scrawlix/react/styles.css';
@@ -15,6 +16,15 @@ const engine = createScrawlix({
 const matches = engine.find('well, fuck');
 if (matches.length !== 1 || matches[0]?.targetText.toLowerCase() !== 'fuck') {
   throw new Error('Scrawlix core/English package smoke assertion failed.');
+}
+
+const corpusCase = englishProfanityCorpus.find(entry => entry.id === 'fuck-base');
+if (
+  corpusCase?.text !== 'fuck' ||
+  corpusCase.matches[0]?.start !== 0 ||
+  corpusCase.matches[0]?.targetEnd !== 4
+) {
+  throw new Error('Scrawlix English corpus export smoke assertion failed.');
 }
 
 const tree: Parameters<typeof transformHast>[0] = {
