@@ -55,6 +55,40 @@ Passive `never`/`hover` modes stay outside the tab order. Keyboard-driven `focus
 
 ## Next.js App Router
 
-The package entry point is a Client Component because `CensoredText` uses React state for interactive reveal. Import it from Server Components as you would another client-boundary component. Put the global Scrawlix stylesheet in an App Router global CSS entry such as `app/globals.css`/`app/layout.tsx` according to your application's CSS setup.
+`CensoredText` is a Client Component because interactive reveal uses React state. Scrawlix rule packs contain `RegExp` values (and coverage policies can be functions), so keep the selected rules on the client side instead of passing them as props from a Server Component.
+
+A small application-owned wrapper is the clean boundary:
+
+```tsx
+// app/ScrawlixText.tsx
+'use client';
+
+import { englishStrongProfanityRules } from '@scrawlix/en';
+import { CensoredText } from '@scrawlix/react';
+
+export function ScrawlixText({ text }: { text: string }) {
+  return <CensoredText text={text} rules={englishStrongProfanityRules} />;
+}
+```
+
+Then a Server Component passes only serializable application data:
+
+```tsx
+// app/page.tsx
+import { ScrawlixText } from './ScrawlixText';
+
+export default function Page() {
+  return <ScrawlixText text="what the fuck" />;
+}
+```
+
+Import the global Scrawlix stylesheet from the root layout (or your existing App Router global CSS entry):
+
+```tsx
+// app/layout.tsx
+import '@scrawlix/react/styles.css';
+```
+
+The repository's packed-package smoke suite installs a real Next.js App Router fixture and production-builds this client-wrapper path, so the documented boundary is release-gated.
 
 See the repository README for core, rehype, and arbitrary-DOM paths.

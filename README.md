@@ -66,7 +66,23 @@ Current reveal modes: `never`, `hover`, `focus`, `click`.
 
 `CensoredText` is reversible presentation. It keeps one exact source copy available to assistive technology and marks the decorative visual tree `aria-hidden="true"`. Secrets or destructive redaction belong upstream; Scrawlix intentionally preserves caller-owned source text.
 
-The React entry is a Client Component, so Next.js App Router consumers can import it across a normal client boundary. Put the global stylesheet in the application’s global CSS path.
+### Next.js App Router
+
+`CensoredText` is a Client Component. Rule packs contain `RegExp` values and coverage policies can be functions, so keep rule selection inside a client boundary instead of passing a rule pack from a Server Component.
+
+```tsx
+// app/ScrawlixText.tsx
+'use client';
+
+import { englishStrongProfanityRules } from '@scrawlix/en';
+import { CensoredText } from '@scrawlix/react';
+
+export function ScrawlixText({ text }: { text: string }) {
+  return <CensoredText text={text} rules={englishStrongProfanityRules} />;
+}
+```
+
+Server Components can then pass ordinary serializable text to that wrapper. Import `@scrawlix/react/styles.css` from the root layout or your App Router global CSS entry. This exact boundary is production-built in the packed-package smoke suite.
 
 ## Core
 
@@ -213,7 +229,7 @@ pnpm build
 pnpm smoke:packages
 ```
 
-The packed-package smoke test installs real tarballs into a consumer outside the workspace graph, then typechecks and production-builds through public package exports.
+The packed-package smoke test installs real tarballs into external consumers, then typechecks and production-builds React 18, React 19, and Next.js App Router integrations through public package exports.
 
 ## Status
 

@@ -57,11 +57,26 @@ function packPackage(packageDirectory) {
 
 const asFileDependency = path => `file:${path.replaceAll('\\', '/')}`;
 
-function smokeConsumer({
-  label,
-  reactMajor,
-  tarballs,
-}) {
+function addPackedDependencies(packageJson, tarballs, packageNames) {
+  for (const packageName of packageNames) {
+    const tarballKey = {
+      '@scrawlix/core': 'core',
+      '@scrawlix/en': 'english',
+      '@scrawlix/react': 'react',
+      '@scrawlix/rehype': 'rehype',
+      '@scrawlix/dom': 'dom',
+    }[packageName];
+    packageJson.dependencies[packageName] = asFileDependency(tarballs[tarballKey]);
+  }
+
+  packageJson.pnpm = {
+    overrides: {
+      '@scrawlix/core': asFileDependency(tarballs.core),
+    },
+  };
+}
+
+function smokeConsumer({ label, reactMajor, tarballs }) {
   const consumerDirectory = join(temporaryRoot, `consumer-${label}`);
   cpSync(resolve(root, 'fixtures/consumer'), consumerDirectory, {
     recursive: true,
@@ -74,28 +89,47 @@ function smokeConsumer({
     ...packageJson.dependencies,
     react: reactMajor,
     'react-dom': reactMajor,
-    '@scrawlix/core': asFileDependency(tarballs.core),
-    '@scrawlix/en': asFileDependency(tarballs.english),
-    '@scrawlix/react': asFileDependency(tarballs.react),
-    '@scrawlix/rehype': asFileDependency(tarballs.rehype),
-    '@scrawlix/dom': asFileDependency(tarballs.dom),
   };
   packageJson.devDependencies = {
     ...packageJson.devDependencies,
     '@types/react': reactMajor,
     '@types/react-dom': reactMajor,
   };
-  packageJson.pnpm = {
-    overrides: {
-      '@scrawlix/core': asFileDependency(tarballs.core),
-    },
-  };
+  addPackedDependencies(packageJson, tarballs, [
+    '@scrawlix/core',
+    '@scrawlix/en',
+    '@scrawlix/react',
+    '@scrawlix/rehype',
+    '@scrawlix/dom',
+  ]);
 
   writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 
   console.log(`\nSmoke consumer: React ${reactMajor}`);
   run(['install', '--no-frozen-lockfile'], consumerDirectory);
   run(['exec', 'node', 'runtime.mjs'], consumerDirectory);
+  run(['typecheck'], consumerDirectory);
+  run(['build'], consumerDirectory);
+}
+
+function smokeNextConsumer(tarballs) {
+  const consumerDirectory = join(temporaryRoot, 'consumer-next');
+  cpSync(resolve(root, 'fixtures/next-consumer'), consumerDirectory, {
+    recursive: true,
+  });
+
+  const packageJsonPath = join(consumerDirectory, 'package.json');
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+  addPackedDependencies(packageJson, tarballs, [
+    '@scrawlix/core',
+    '@scrawlix/en',
+    '@scrawlix/react',
+  ]);
+
+  writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+
+  console.log('\nSmoke consumer: Next.js App Router');
+  run(['install', '--no-frozen-lockfile'], consumerDirectory);
   run(['typecheck'], consumerDirectory);
   run(['build'], consumerDirectory);
 }
@@ -111,9 +145,12 @@ try {
 
   smokeConsumer({ label: 'react-18', reactMajor: '18', tarballs });
   smokeConsumer({ label: 'react-19', reactMajor: '19', tarballs });
+  smokeNextConsumer(tarballs);
 
   passed = true;
-  console.log('Scrawlix packed-package smoke tests passed for React 18 and 19.');
+  console.log(
+    'Scrawlix packed-package smoke tests passed for React 18, React 19, and Next.js App Router.'
+  );
 } finally {
   if (passed) {
     rmSync(temporaryRoot, { recursive: true, force: true });
