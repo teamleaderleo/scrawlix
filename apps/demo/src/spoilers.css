@@ -1,0 +1,225 @@
+.spoiler-section {
+  padding: 86px 0;
+  border-bottom: 1px solid #171512;
+}
+
+.spoiler-lab {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.36fr) minmax(0, 1fr);
+  border: 1px solid #171512;
+  background: rgba(251, 248, 240, 0.62);
+}
+
+.spoiler-pack-card {
+  padding: 22px;
+  border-right: 1px solid #171512;
+  background: #171512;
+  color: #f2eee5;
+}
+
+.spoiler-kicker,
+.spoiler-pack-meta,
+.spoiler-episode-list,
+.spoiler-progress,
+.spoiler-output-label,
+.spoiler-hint {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.spoiler-kicker {
+  margin: 0 0 28px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.64;
+}
+
+.spoiler-pack-card h3 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(34px, 3.4vw, 54px);
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: -0.055em;
+}
+
+.spoiler-pack-meta {
+  margin: 16px 0 28px;
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  opacity: 0.66;
+}
+
+.spoiler-episode-list {
+  border-top: 1px solid rgba(242, 238, 229, 0.34);
+}
+
+.spoiler-episode-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(242, 238, 229, 0.22);
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.spoiler-episode-list > div[data-future='false'] {
+  opacity: 0.38;
+}
+
+.spoiler-episode-list strong {
+  font-size: 8px;
+}
+
+.spoiler-workbench {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.spoiler-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #171512;
+}
+
+.spoiler-progress > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 9px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.spoiler-progress > div:first-child span {
+  opacity: 0.55;
+}
+
+.spoiler-progress-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.spoiler-progress-buttons button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #171512;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+}
+
+.spoiler-progress-buttons button:hover,
+.spoiler-progress-buttons button:focus-visible,
+.spoiler-progress-buttons button.is-active {
+  background: #171512;
+  color: #f2eee5;
+}
+
+.spoiler-output {
+  flex: 1;
+  min-height: 390px;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+}
+
+.spoiler-output-label,
+.spoiler-hint {
+  margin: 0;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.spoiler-output-label {
+  padding-bottom: 13px;
+  border-bottom: 1px solid #171512;
+}
+
+.spoiler-copy {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 38px clamp(4px, 2vw, 22px);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(27px, 3.3vw, 48px);
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+
+.spoiler-hint {
+  padding-top: 13px;
+  border-top: 1px solid #171512;
+  opacity: 0.62;
+}
+
+@media (max-width: 900px) {
+  .spoiler-lab {
+    grid-template-columns: 1fr;
+  }
+
+  .spoiler-pack-card {
+    border-right: 0;
+    border-bottom: 1px solid #171512;
+  }
+
+  .spoiler-episode-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .spoiler-episode-list > div {
+    border-right: 1px solid rgba(242, 238, 229, 0.22);
+    padding-right: 8px;
+  }
+
+  .spoiler-episode-list > div:last-child {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .spoiler-progress {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .spoiler-progress-buttons {
+    width: 100%;
+  }
+
+  .spoiler-progress-buttons button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .spoiler-episode-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .spoiler-episode-list > div:nth-child(even) {
+    border-right: 0;
+  }
+
+  .spoiler-output {
+    min-height: 330px;
+    padding: 14px;
+  }
+
+  .spoiler-copy {
+    font-size: 29px;
+  }
+}

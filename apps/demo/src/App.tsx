@@ -14,6 +14,7 @@ import {
   type ScrawlixReveal,
 } from '@scrawlix/react';
 import { useMemo, useState } from 'react';
+import { SpoilerLab } from './SpoilerLab';
 
 const appearances: readonly ScrawlixAppearance[] = [
   'scrawl',
@@ -399,9 +400,11 @@ export function App() {
         </div>
       </section>
 
+      <SpoilerLab />
+
       <section className="code-section" aria-labelledby="code-title">
         <div>
-          <p className="eyebrow">05 / use it</p>
+          <p className="eyebrow">06 / use it</p>
           <h2 id="code-title">Pick the language. Pick the damage.</h2>
           <p>
             Matching rules live in explicit language or custom packs. The core stays
