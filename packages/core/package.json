@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "description": "Language-neutral matching and coverage engine for Scrawlix.",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "sideEffects": false,
   "files": ["dist"],
   "main": "./dist/index.js",
