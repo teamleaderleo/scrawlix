@@ -80,5 +80,8 @@ export const englishCleanCorpus: readonly EnglishCorpusCase[] = [
   { id: 'shitake', text: 'shitake mushrooms', matches: [] },
   { id: 'classhole', text: 'classhole', matches: [] },
   { id: 'motherfuckerish', text: 'motherfuckerish', matches: [] },
+  { id: 'fuck-combining-mark-continuation', text: 'fuck\u0301', matches: [] },
+  { id: 'shit-connector-continuation', text: 'shit‿word', matches: [] },
+  { id: 'cunt-join-control-continuation', text: 'cunt\u200Dword', matches: [] },
   { id: 'ordinary-prose', text: 'a perfectly ordinary sentence', matches: [] },
 ] as const;
