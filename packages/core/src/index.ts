@@ -68,6 +68,7 @@ export type CensorRulePack = {
 };
 
 export type WordBoundaryMode = 'word' | 'substring';
+export type UnicodeNormalization = 'none' | 'NFC';
 
 export type ScrawlixMatch = {
   ruleId: string;
@@ -113,6 +114,11 @@ type CoveredRange = {
   ruleIds: Set<string>;
 };
 
+type NormalizedShadow = {
+  value: string;
+  sourceOffsets: ReadonlyMap<number, number>;
+};
+
 const graphemeSegmenter =
   typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
     ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
@@ -153,23 +159,32 @@ function isMatcherRule(rule: CensorRule): rule is CensorMatcherRule {
   return rule.matcher !== undefined;
 }
 
-function graphemeRanges(value: string): RelativeRange[] {
+function requireGraphemeSegmenter() {
+  if (!graphemeSegmenter) {
+    throw new Error(
+      'Scrawlix requires Intl.Segmenter for grapheme-safe matching and coverage.'
+    );
+  }
+  return graphemeSegmenter;
+}
+
+/** Return extended-grapheme ranges as UTF-16 offsets into the original string. */
+export function graphemeRanges(value: string): RelativeRange[] {
   if (!value) return [];
 
-  if (graphemeSegmenter) {
-    return [...graphemeSegmenter.segment(value)].map(part => ({
-      start: part.index,
-      end: part.index + part.segment.length,
-    }));
-  }
+  return [...requireGraphemeSegmenter().segment(value)].map(part => ({
+    start: part.index,
+    end: part.index + part.segment.length,
+  }));
+}
 
-  const ranges: RelativeRange[] = [];
-  let cursor = 0;
-  for (const character of Array.from(value)) {
-    ranges.push({ start: cursor, end: cursor + character.length });
-    cursor += character.length;
+function graphemeBoundarySet(value: string) {
+  const boundaries = new Set<number>([0, value.length]);
+  for (const range of graphemeRanges(value)) {
+    boundaries.add(range.start);
+    boundaries.add(range.end);
   }
-  return ranges;
+  return boundaries;
 }
 
 function fullRange(value: string): RelativeRange[] {
@@ -227,9 +242,28 @@ function coverageForPreset(
   }
 }
 
+function alignCoverageRange(
+  value: string,
+  start: number,
+  end: number
+): RelativeRange | null {
+  const graphemes = graphemeRanges(value);
+  const first = graphemes.find(range => range.end > start);
+  if (!first) return null;
+
+  let last: RelativeRange | undefined;
+  for (const range of graphemes) {
+    if (range.start >= end) break;
+    last = range;
+  }
+  if (!last) return null;
+
+  return { start: first.start, end: last.end };
+}
+
 function sanitizeRanges(
   ranges: readonly RelativeRange[],
-  targetLength: number
+  targetText: string
 ): RelativeRange[] {
   return ranges
     .map(range => {
@@ -237,10 +271,16 @@ function sanitizeRanges(
         return null;
       }
 
-      const start = Math.max(0, Math.min(targetLength, Math.trunc(range.start)));
-      const end = Math.max(0, Math.min(targetLength, Math.trunc(range.end)));
+      const start = Math.max(
+        0,
+        Math.min(targetText.length, Math.trunc(range.start))
+      );
+      const end = Math.max(
+        0,
+        Math.min(targetText.length, Math.trunc(range.end))
+      );
       if (end <= start) return null;
-      return { start, end };
+      return alignCoverageRange(targetText, start, end);
     })
     .filter((range): range is RelativeRange => range !== null)
     .sort((left, right) => left.start - right.start || left.end - right.end);
@@ -248,6 +288,20 @@ function sanitizeRanges(
 
 function ruleIdentity(rule: CompiledRule) {
   return rule.packId ? `${rule.packId}:${rule.id}` : rule.id;
+}
+
+function assertGraphemeAlignedRange(
+  boundaries: ReadonlySet<number>,
+  rule: CompiledRule,
+  start: number,
+  end: number,
+  kind: 'match' | 'target'
+) {
+  if (!boundaries.has(start) || !boundaries.has(end)) {
+    throw new Error(
+      `Censor rule "${ruleIdentity(rule)}" produced a ${kind} range [${start}, ${end}) that splits an extended grapheme cluster.`
+    );
+  }
 }
 
 function scannedMatchFromRange(
@@ -291,7 +345,11 @@ function resolveTargetRange(match: RegExpExecArray, rule: CompiledRegexRule) {
   return { start: groupRange[0], end: groupRange[1] };
 }
 
-function scanRegexRule(text: string, rule: CompiledRegexRule): ScannedMatch[] {
+function scanRegexRule(
+  text: string,
+  rule: CompiledRegexRule,
+  boundaries: ReadonlySet<number>
+): ScannedMatch[] {
   const matches: ScannedMatch[] = [];
   rule.pattern.lastIndex = 0;
 
@@ -305,13 +363,29 @@ function scanRegexRule(text: string, rule: CompiledRegexRule): ScannedMatch[] {
         continue;
       }
 
+      const matchStart = rawMatch.index;
+      const matchEnd = rawMatch.index + rawMatch[0].length;
       const target = resolveTargetRange(rawMatch, rule);
+      assertGraphemeAlignedRange(
+        boundaries,
+        rule,
+        matchStart,
+        matchEnd,
+        'match'
+      );
+      assertGraphemeAlignedRange(
+        boundaries,
+        rule,
+        target.start,
+        target.end,
+        'target'
+      );
       matches.push(
         scannedMatchFromRange(
           text,
           rule,
-          rawMatch.index,
-          rawMatch.index + rawMatch[0].length,
+          matchStart,
+          matchEnd,
           target.start,
           target.end
         )
@@ -327,7 +401,8 @@ function scanRegexRule(text: string, rule: CompiledRegexRule): ScannedMatch[] {
 function validatedMatcherRange(
   textLength: number,
   rule: CensorMatcherRule,
-  range: CensorMatcherMatch
+  range: CensorMatcherMatch,
+  boundaries: ReadonlySet<number>
 ) {
   if (
     !Number.isInteger(range.start) ||
@@ -340,6 +415,8 @@ function validatedMatcherRange(
       `Censor rule "${ruleIdentity(rule)}" returned an invalid match range [${range.start}, ${range.end}) for source length ${textLength}.`
     );
   }
+
+  assertGraphemeAlignedRange(boundaries, rule, range.start, range.end, 'match');
 
   const hasTargetStart = range.targetStart !== undefined;
   const hasTargetEnd = range.targetEnd !== undefined;
@@ -372,6 +449,14 @@ function validatedMatcherRange(
     );
   }
 
+  assertGraphemeAlignedRange(
+    boundaries,
+    rule,
+    targetStart,
+    targetEnd,
+    'target'
+  );
+
   return {
     start: range.start,
     end: range.end,
@@ -380,11 +465,20 @@ function validatedMatcherRange(
   };
 }
 
-function scanMatcherRule(text: string, rule: CensorMatcherRule): ScannedMatch[] {
+function scanMatcherRule(
+  text: string,
+  rule: CensorMatcherRule,
+  boundaries: ReadonlySet<number>
+): ScannedMatch[] {
   const matches: ScannedMatch[] = [];
 
   for (const rawRange of rule.matcher.find(text)) {
-    const range = validatedMatcherRange(text.length, rule, rawRange);
+    const range = validatedMatcherRange(
+      text.length,
+      rule,
+      rawRange,
+      boundaries
+    );
     matches.push(
       scannedMatchFromRange(
         text,
@@ -401,10 +495,11 @@ function scanMatcherRule(text: string, rule: CensorMatcherRule): ScannedMatch[] 
 }
 
 function scan(text: string, rules: readonly CompiledRule[]): ScannedMatch[] {
+  const boundaries = graphemeBoundarySet(text);
   const matches = rules.flatMap(rule =>
     isMatcherRule(rule)
-      ? scanMatcherRule(text, rule)
-      : scanRegexRule(text, rule)
+      ? scanMatcherRule(text, rule, boundaries)
+      : scanRegexRule(text, rule, boundaries)
   );
 
   matches.sort(
@@ -441,7 +536,7 @@ function collectCoveredRanges(
       typeof selector === 'function'
         ? selector(context)
         : coverageForPreset(selector, match.targetText),
-      match.targetText.length
+      match.targetText
     );
 
     for (const relative of relativeRanges) {
@@ -514,6 +609,63 @@ function segmentFromRanges(text: string, ranges: readonly CoveredRange[]) {
   return segments;
 }
 
+function normalizedShadow(
+  value: string,
+  normalization: Exclude<UnicodeNormalization, 'none'>
+): NormalizedShadow {
+  let shadow = '';
+  const sourceOffsets = new Map<number, number>([[0, 0]]);
+
+  for (const range of graphemeRanges(value)) {
+    const shadowStart = shadow.length;
+    sourceOffsets.set(shadowStart, range.start);
+    shadow += value.slice(range.start, range.end).normalize(normalization);
+    sourceOffsets.set(shadow.length, range.end);
+  }
+
+  return { value: shadow, sourceOffsets };
+}
+
+function termPatternSource(
+  alternatives: readonly string[],
+  boundary: WordBoundaryMode
+) {
+  const source = `(?:${alternatives.map(escapeRegExp).join('|')})`;
+  return boundary === 'word'
+    ? `(?<![${wordContextClass}])${source}(?![${wordContextClass}])`
+    : source;
+}
+
+function normalizedTermMatcher(
+  patternSource: string,
+  caseSensitive: boolean,
+  normalization: Exclude<UnicodeNormalization, 'none'>
+): CensorMatcher {
+  return {
+    *find(text) {
+      const shadow = normalizedShadow(text, normalization);
+      const pattern = new RegExp(patternSource, caseSensitive ? 'gu' : 'giu');
+      let match: RegExpExecArray | null;
+
+      while ((match = pattern.exec(shadow.value)) !== null) {
+        if (!match[0]) {
+          pattern.lastIndex = advanceStringIndex(
+            shadow.value,
+            match.index,
+            pattern.unicode
+          );
+          continue;
+        }
+
+        const start = shadow.sourceOffsets.get(match.index);
+        const end = shadow.sourceOffsets.get(match.index + match[0].length);
+        if (start === undefined || end === undefined) continue;
+        yield { start, end };
+      }
+    },
+  };
+}
+
 export function censorRuleFromTerms(
   id: string,
   terms: readonly string[],
@@ -521,30 +673,40 @@ export function censorRuleFromTerms(
     caseSensitive = false,
     coverage,
     boundary = 'word',
+    normalization = 'NFC',
   }: {
     caseSensitive?: boolean;
     coverage?: CoverageSelector;
     boundary?: WordBoundaryMode;
+    normalization?: UnicodeNormalization;
   } = {}
 ): CensorRule {
-  const alternatives = [...new Set(terms.map(term => term.trim()).filter(Boolean))]
-    .sort((left, right) => right.length - left.length)
-    .map(escapeRegExp);
+  const preparedTerms = terms.map(term => term.trim()).filter(Boolean);
+  const alternatives = [
+    ...new Set(
+      preparedTerms.map(term =>
+        normalization === 'none' ? term : term.normalize(normalization)
+      )
+    ),
+  ].sort((left, right) => right.length - left.length);
 
   if (alternatives.length === 0) {
     throw new Error('A censor rule needs at least one non-empty term.');
   }
 
-  const source = `(?:${alternatives.join('|')})`;
-  const boundedSource =
-    boundary === 'word'
-      ? `(?<![${wordContextClass}])${source}(?![${wordContextClass}])`
-      : source;
+  const patternSource = termPatternSource(alternatives, boundary);
+  if (normalization === 'none') {
+    return {
+      id,
+      coverage,
+      pattern: new RegExp(patternSource, caseSensitive ? 'gu' : 'giu'),
+    };
+  }
 
   return {
     id,
     coverage,
-    pattern: new RegExp(boundedSource, caseSensitive ? 'gu' : 'giu'),
+    matcher: normalizedTermMatcher(patternSource, caseSensitive, normalization),
   };
 }
 
