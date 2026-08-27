@@ -33,11 +33,13 @@ const engine = createScrawlix({
 });
 ```
 
+`rulesFromPacks(...)` copies each rule with its source pack id. `find()` exposes that value as `match.packId`, and coverage callbacks receive the same optional `packId`, so composed rules remain traceable even when different packs use the same local rule id. Caller-authored loose rules can continue to omit pack provenance.
+
 Scrawlix deliberately avoids automatic language detection. Applications know more about their content and can choose one pack, several packs, or caller-authored rules.
 
 ## Boundaries
 
-`censorRuleFromWords()` defaults to `boundary: 'word'`, using Unicode letter/number-aware lookarounds. This works well for many whitespace-delimited words and prevents substring false positives such as a short term firing inside a longer ordinary word.
+`censorRuleFromWords()` defaults to `boundary: 'word'`, using Unicode-aware lookarounds. Letters, numbers, combining marks, connector punctuation, ZWNJ, and ZWJ keep a candidate attached to surrounding text. This prevents a boundary from appearing inside many decomposed or connected Unicode sequences while still blocking ordinary substring false positives.
 
 Some scripts and phrase lists need direct substring matching:
 
@@ -63,7 +65,7 @@ const rule = {
 };
 ```
 
-Coverage runs against `core`, while `find()` still reports the full match and both full/target ranges.
+Coverage runs against `core`, while `find()` still reports the full match and both full/target ranges. A declared target group is part of the rule contract: if a produced match cannot resolve that named group, Scrawlix throws a descriptive error instead of widening the target to the full match.
 
 ## Coverage helpers
 
