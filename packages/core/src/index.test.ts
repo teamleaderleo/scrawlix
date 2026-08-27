@@ -51,7 +51,7 @@ describe('Scrawlix core', () => {
 
     expect(scrawlix.find('motherfucker')).toEqual([
       {
-        id: 'm0',
+        matchId: 'm0',
         ruleId: 'semantic-test',
         text: 'motherfucker',
         start: 0,
@@ -143,7 +143,7 @@ describe('Scrawlix core', () => {
 
     expect(second).toEqual(first);
     expect(afterFind).toHaveLength(2);
-    expect(afterFind.map(match => match.id)).toEqual(['m0', 'm1']);
+    expect(afterFind.map(match => match.matchId)).toEqual(['m0', 'm1']);
     expect(third).toEqual(first);
   });
 
@@ -190,10 +190,10 @@ describe('Scrawlix core', () => {
       covered: true,
       start: 0,
       end: 12,
-      matchIds: ['m0', 'm1'],
       revealId: 'g:0:12:m0+m1',
       coverageEdge: 'solo',
     });
+    expect(new Set(segments[0]!.matchIds)).toEqual(new Set(['m0', 'm1']));
     expect([...segments[0]!.ruleIds].sort()).toEqual([
       'semantic-test',
       'whole',
