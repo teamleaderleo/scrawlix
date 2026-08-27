@@ -16,11 +16,14 @@ import { loadExtensionState } from './storage';
 
 const INTERACTIVE_ANCESTOR =
   'a,button,input,select,textarea,summary,[role="button"],[role="link"]';
+const MIN_REVEAL_MS = 250;
+const MAX_REVEAL_MS = 60_000;
 
 let observation: DomObservation | null = null;
 let presentationObserver: MutationObserver | null = null;
 let activeState: ExtensionStateSnapshot | null = null;
 let restartGeneration = 0;
+let pageRevealTimer: number | null = null;
 
 function customRule(customWords: readonly string[]): CensorRule[] {
   if (customWords.length === 0) return [];
@@ -29,6 +32,28 @@ function customRule(customWords: readonly string[]): CensorRule[] {
 
 function canOwnInteraction(root: HTMLElement) {
   return root.closest(INTERACTIVE_ANCESTOR) === null;
+}
+
+function pageIsTemporarilyRevealed() {
+  return document.documentElement.dataset.scrawlixPageRevealed === 'true';
+}
+
+function clearPageReveal() {
+  if (pageRevealTimer !== null) {
+    window.clearTimeout(pageRevealTimer);
+    pageRevealTimer = null;
+  }
+  delete document.documentElement.dataset.scrawlixPageRevealed;
+}
+
+function revealPageFor(durationMs: number) {
+  const duration = Number.isFinite(durationMs)
+    ? Math.min(MAX_REVEAL_MS, Math.max(MIN_REVEAL_MS, durationMs))
+    : MIN_REVEAL_MS;
+
+  if (pageRevealTimer !== null) window.clearTimeout(pageRevealTimer);
+  document.documentElement.dataset.scrawlixPageRevealed = 'true';
+  pageRevealTimer = window.setTimeout(clearPageReveal, duration);
 }
 
 function decorateGeneratedRoot(root: HTMLElement, settings: SyncSettings) {
@@ -118,6 +143,7 @@ async function reconcile() {
 
   switch (action) {
     case 'stop':
+      clearPageReveal();
       stopCurrentSession();
       return;
 
@@ -139,7 +165,14 @@ async function reconcile() {
   }
 }
 
+async function revealWhenReady(durationMs: number) {
+  if (observation === null) await reconcile();
+  if (observation !== null) revealPageFor(durationMs);
+}
+
 function clickRootFromEvent(event: Event) {
+  if (pageIsTemporarilyRevealed()) return null;
+
   const target = event.target;
   if (!(target instanceof Element)) return null;
   const root = target.closest<HTMLElement>(
@@ -181,12 +214,18 @@ chrome.runtime.onMessage.addListener((message: ScrawlixContentMessage) => {
   if (message?.type === 'scrawlix-disable') {
     restartGeneration += 1;
     activeState = null;
+    clearPageReveal();
     stopCurrentSession();
     return;
   }
 
   if (message?.type === 'scrawlix-reconcile') {
     void reconcile();
+    return;
+  }
+
+  if (message?.type === 'scrawlix-reveal-for') {
+    void revealWhenReady(message.durationMs);
   }
 });
 

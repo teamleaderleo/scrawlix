@@ -46,7 +46,7 @@ test('demo controls drive real rendered coverage and reveal state', async ({ pag
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test('built extension registers granted hosts and transforms page text in Chromium', async ({}, testInfo) => {
+test('built extension registers granted hosts and handles page interaction in Chromium', async ({}, testInfo) => {
   const testExtensionPath = extensionWithPregrantedHosts(
     testInfo.outputPath('extension-under-test')
   );
@@ -78,9 +78,8 @@ test('built extension registers granted hosts and transforms page text in Chromi
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
 
-    await expect(
-      page.locator('#initial [data-scrawlix-dom-root]')
-    ).toHaveCount(1);
+    const initialRoot = page.locator('#initial [data-scrawlix-dom-root]');
+    await expect(initialRoot).toHaveCount(1);
     await expect(
       page.locator('#initial [data-scrawlix-cover]')
     ).toHaveText('uc');
@@ -103,6 +102,27 @@ test('built extension registers granted hosts and transforms page text in Chromi
     await expect(
       page.locator('#dynamic-copy [data-scrawlix-cover]')
     ).toHaveText('uc');
+
+    // Temporary reveal changes presentation only. Owned censor DOM stays in place.
+    await worker.evaluate(async () => {
+      const tabs = await chrome.tabs.query({ url: 'http://127.0.0.1:4174/*' });
+      const tabId = tabs.find(tab => tab.url?.endsWith('/fixture.html'))?.id;
+      if (tabId === undefined) throw new Error('Fixture tab was unavailable.');
+      await chrome.tabs.sendMessage(tabId, {
+        type: 'scrawlix-reveal-for',
+        durationMs: 500,
+      });
+    });
+
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-scrawlix-page-revealed',
+      'true'
+    );
+    await expect(initialRoot).toHaveCount(1);
+    await expect
+      .poll(() => page.locator('html').getAttribute('data-scrawlix-page-revealed'))
+      .toBeNull();
+    await expect(initialRoot).toHaveCount(1);
 
     await page.locator('#native-link').click();
     await expect(page).toHaveURL('http://127.0.0.1:4174/clicked.html');

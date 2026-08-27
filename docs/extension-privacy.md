@@ -20,7 +20,7 @@ Explicit per-host `on` / `off` preferences are stored in `chrome.storage.local`.
 
 ### Custom words and phrases
 
-User-entered custom terms are stored in `chrome.storage.local` and are used only by the local matching engine.
+User-entered custom terms are stored in `chrome.storage.local` and are used only by the local matching engine. When the user explicitly chooses Scrawlix's selection context-menu action, the selected text is normalized into a custom term and stored through the same local custom-term list.
 
 ### General preferences
 
@@ -30,13 +30,17 @@ The master pause/default behavior, censor style, coverage, and reveal preference
 
 Scrawlix declares HTTP and HTTPS access as optional host permissions. Users can grant access for the current origin or for all HTTP/HTTPS websites, and can remove that access again. Chrome stores and enforces those grants. Scrawlix dynamically registers its local content script only for currently granted HTTP/HTTPS patterns.
 
+### Temporary page reveal
+
+The popup and keyboard command can reveal Scrawlix-covered text for ten seconds. This state exists only in the current page as a temporary data attribute and timer. It is not written to extension storage.
+
 ## Sharing and transmission
 
-Scrawlix extension code does not transmit webpage text, browsing activity, custom terms, or hostname preferences to Scrawlix or third parties. General preferences may be handled by Chrome Sync when the user has browser sync enabled.
+Scrawlix extension code does not transmit webpage text, browsing activity, custom terms, selected context-menu text, or hostname preferences to Scrawlix or third parties. General preferences may be handled by Chrome Sync when the user has browser sync enabled.
 
 ## User controls
 
-Users can pause Scrawlix, disable it by default, override individual hostnames, remove browser site access, edit or delete custom terms, and clear extension storage through the browser's extension controls.
+Users can pause Scrawlix, disable it by default, override individual hostnames, remove browser site access, temporarily reveal covered text, edit or delete custom terms, and clear extension storage through the browser's extension controls.
 
 ## Chrome Web Store Limited Use
 
