@@ -345,5 +345,3 @@ export function createDomScrawlix(
 
   return { apply, restore, observe };
 }
-
-export default createDomScrawlix;

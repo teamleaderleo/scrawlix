@@ -16,7 +16,6 @@ const root = process.cwd();
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'scrawlix-smoke-'));
 const packDirectory = join(temporaryRoot, 'packs');
-const consumerDirectory = join(temporaryRoot, 'consumer');
 let passed = false;
 
 mkdirSync(packDirectory, { recursive: true });
@@ -56,43 +55,64 @@ function packPackage(packageDirectory) {
   return join(packDirectory, created[0]);
 }
 
-try {
-  const coreTarball = packPackage('packages/core');
-  const englishTarball = packPackage('packages/en');
-  const reactTarball = packPackage('packages/react');
-  const rehypeTarball = packPackage('packages/rehype');
-  const domTarball = packPackage('packages/dom');
+const asFileDependency = path => `file:${path.replaceAll('\\', '/')}`;
 
+function smokeConsumer({
+  label,
+  reactMajor,
+  tarballs,
+}) {
+  const consumerDirectory = join(temporaryRoot, `consumer-${label}`);
   cpSync(resolve(root, 'fixtures/consumer'), consumerDirectory, {
     recursive: true,
   });
 
   const packageJsonPath = join(consumerDirectory, 'package.json');
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
-  const asFileDependency = path => `file:${path.replaceAll('\\', '/')}`;
 
   packageJson.dependencies = {
     ...packageJson.dependencies,
-    '@scrawlix/core': asFileDependency(coreTarball),
-    '@scrawlix/en': asFileDependency(englishTarball),
-    '@scrawlix/react': asFileDependency(reactTarball),
-    '@scrawlix/rehype': asFileDependency(rehypeTarball),
-    '@scrawlix/dom': asFileDependency(domTarball),
+    react: reactMajor,
+    'react-dom': reactMajor,
+    '@scrawlix/core': asFileDependency(tarballs.core),
+    '@scrawlix/en': asFileDependency(tarballs.english),
+    '@scrawlix/react': asFileDependency(tarballs.react),
+    '@scrawlix/rehype': asFileDependency(tarballs.rehype),
+    '@scrawlix/dom': asFileDependency(tarballs.dom),
+  };
+  packageJson.devDependencies = {
+    ...packageJson.devDependencies,
+    '@types/react': reactMajor,
+    '@types/react-dom': reactMajor,
   };
   packageJson.pnpm = {
     overrides: {
-      '@scrawlix/core': asFileDependency(coreTarball),
+      '@scrawlix/core': asFileDependency(tarballs.core),
     },
   };
 
   writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 
+  console.log(`\nSmoke consumer: React ${reactMajor}`);
   run(['install', '--no-frozen-lockfile'], consumerDirectory);
   run(['typecheck'], consumerDirectory);
   run(['build'], consumerDirectory);
+}
+
+try {
+  const tarballs = {
+    core: packPackage('packages/core'),
+    english: packPackage('packages/en'),
+    react: packPackage('packages/react'),
+    rehype: packPackage('packages/rehype'),
+    dom: packPackage('packages/dom'),
+  };
+
+  smokeConsumer({ label: 'react-18', reactMajor: '18', tarballs });
+  smokeConsumer({ label: 'react-19', reactMajor: '19', tarballs });
 
   passed = true;
-  console.log('Scrawlix packed-package smoke test passed.');
+  console.log('Scrawlix packed-package smoke tests passed for React 18 and 19.');
 } finally {
   if (passed) {
     rmSync(temporaryRoot, { recursive: true, force: true });

@@ -4,6 +4,8 @@ Start with the repository README for installation and the shortest path for your
 
 ## Recipes and design notes
 
+- [`compatibility.md`](./compatibility.md) — JavaScript/browser capabilities, Node baseline, React majors, grapheme fallback, DOM/CSS/TypeScript expectations
+- [`versioning.md`](./versioning.md) — synchronized release train, 0.x semver policy, public data/CSS contracts, and deprecation rules
 - [`language-packs.md`](./language-packs.md) — author and compose language/rule packs, semantic targets, boundaries, coverage helpers, and corpora
 - [`dom.md`](./dom.md) — arbitrary-page DOM application, observation, exclusions, and exact restoration
 - [`releasing.md`](./releasing.md) — first-release gates, package verification, registry checks, and publication sequence
