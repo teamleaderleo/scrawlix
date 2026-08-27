@@ -3,6 +3,8 @@ import {
   censorRuleFromWords,
   createScrawlix,
   rulesFromPacks,
+  type CensorMatcher,
+  type CensorMatcherMatch,
   type CensorRule,
   type ScrawlixSegment,
 } from './index';
@@ -54,6 +56,79 @@ describe('Scrawlix core', () => {
       },
     ]);
   });
+
+  it('supports custom matchers that return exact source and semantic-target ranges', () => {
+    const matcher: CensorMatcher = {
+      *find(text) {
+        const needle = 'motherfucker';
+        const start = text.indexOf(needle);
+        if (start < 0) return;
+
+        yield {
+          start,
+          end: start + needle.length,
+          targetStart: start + 6,
+          targetEnd: start + 10,
+        };
+      },
+    };
+    const pack = {
+      id: 'custom-pack',
+      rules: [{ id: 'custom-matcher', matcher } satisfies CensorRule],
+    };
+    const scrawlix = createScrawlix({
+      rules: rulesFromPacks(pack),
+      coverage: 'middle',
+    });
+
+    const text = 'hey motherfucker!';
+    expect(marked(scrawlix.segment(text))).toBe('hey motherf[uc]ker!');
+    expect(source(scrawlix.segment(text))).toBe(text);
+    expect(scrawlix.find(text)).toEqual([
+      {
+        ruleId: 'custom-matcher',
+        packId: 'custom-pack',
+        text: 'motherfucker',
+        start: 4,
+        end: 16,
+        targetText: 'fuck',
+        targetStart: 10,
+        targetEnd: 14,
+      },
+    ]);
+  });
+
+  it.each([
+    [
+      'out-of-bounds match',
+      { start: -1, end: 2 },
+      'returned an invalid match range',
+    ],
+    [
+      'partial target pair',
+      { start: 0, end: 3, targetStart: 0 },
+      'must return targetStart and targetEnd together',
+    ],
+    [
+      'target outside match',
+      { start: 0, end: 3, targetStart: 0, targetEnd: 4 },
+      'returned an invalid target range',
+    ],
+  ] as const)(
+    'rejects custom matcher output with an invalid %s',
+    (_name, range, message) => {
+      const matcher: CensorMatcher = {
+        find() {
+          return [range as CensorMatcherMatch];
+        },
+      };
+      const scrawlix = createScrawlix({
+        rules: [{ id: 'bad-matcher', matcher }],
+      });
+
+      expect(() => scrawlix.find('bad')).toThrow(message);
+    }
+  );
 
   it('fails loudly when a configured semantic target group is unavailable', () => {
     const brokenRule: CensorRule = {
