@@ -66,6 +66,24 @@ Reveal scope is independent too. `revealScope="component"` keeps the original wh
 
 The renderer exposes a namespaced presentation contract through `data-scrawlix-root`, `data-scrawlix-appearance`, `data-scrawlix-reveal`, `data-scrawlix-reveal-scope`, `data-scrawlix-revealed`, `data-scrawlix-cover`, `data-scrawlix-rules`, `data-scrawlix-matches`, `data-scrawlix-reveal-id`, `data-scrawlix-edge`, source-local offset attributes, and optional `data-scrawlix-mask`. Preset styling can be tuned with CSS custom properties including `--scrawlix-ink`, `--scrawlix-surface`, `--scrawlix-bar-height`, `--scrawlix-blur-radius`, and `--scrawlix-mosaic-cell`.
 
+`CensoredText` also composes as a real span host. It forwards a stable `HTMLSpanElement` ref, keeps the same host node when text changes between clean and censored content, accepts ordinary application metadata such as `id`, `dir`, `aria-describedby`, and `data-testid`, and composes application handlers with reveal behavior. Scrawlix reserves the fields that define its accessible reading, generated children, tab order, editing behavior, and the entire `data-scrawlix-*` namespace. See `docs/react.md` for the full host-prop and event-order contract.
+
+`CensoredText` accepts ordinary React styles plus the five public Scrawlix variables through the exported `ScrawlixStyle` type. Inline JSX gets contextual typing, so custom-property tuning stays simple:
+
+```tsx
+<CensoredText
+  text="what the fuck"
+  rules={englishProfanityRules}
+  appearance="bar"
+  style={{
+    '--scrawlix-ink': 'rebeccapurple',
+    '--scrawlix-bar-height': '0.62em',
+  }}
+/>;
+```
+
+Root `className`, ordinary host styles/metadata, namespaced renderer attributes, and the typed custom properties cover the first customization layer while matching, source preservation, accessible copy, and reveal behavior remain owned by Scrawlix.
+
 ## Markdown / rehype
 
 `@scrawlix/rehype` walks HAST text nodes and marks covered ranges while leaving the source text intact:
