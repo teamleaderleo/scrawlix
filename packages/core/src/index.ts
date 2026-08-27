@@ -8,6 +8,7 @@ export type RelativeRange = {
 export type CoverageContext = {
   ruleId: string;
   packId?: string;
+  profile?: string;
   matchText: string;
   targetText: string;
   matchStart: number;
@@ -42,6 +43,8 @@ export type CensorMatcher = {
 
 type CensorRuleBase = {
   id: string;
+  /** Named matching profile for debug/provenance, e.g. canonical or obfuscated. */
+  profile?: string;
   coverage?: CoverageSelector;
   /** Pack provenance attached by rulesFromPacks(). */
   packId?: string;
@@ -78,6 +81,7 @@ export type UnicodeNormalization = 'none' | 'NFC';
 export type ScrawlixMatch = {
   ruleId: string;
   packId?: string;
+  profile?: string;
   text: string;
   start: number;
   end: number;
@@ -322,6 +326,7 @@ function scannedMatchFromRange(
     match: {
       ruleId: rule.id,
       ...(rule.packId ? { packId: rule.packId } : {}),
+      ...(rule.profile ? { profile: rule.profile } : {}),
       text: text.slice(start, end),
       start,
       end,
@@ -529,6 +534,7 @@ function collectCoveredRanges(
     const context: CoverageContext = {
       ruleId: match.ruleId,
       ...(match.packId ? { packId: match.packId } : {}),
+      ...(match.profile ? { profile: match.profile } : {}),
       matchText: match.text,
       targetText: match.targetText,
       matchStart: match.start,
@@ -719,11 +725,13 @@ export function censorRuleFromTerms(
     coverage,
     boundary = 'word',
     normalization = 'NFC',
+    profile = 'canonical',
   }: {
     caseSensitive?: boolean;
     coverage?: CoverageSelector;
     boundary?: TermBoundaryStrategy;
     normalization?: UnicodeNormalization;
+    profile?: string;
   } = {}
 ): CensorRule {
   const preparedTerms = terms.map(term => term.trim()).filter(Boolean);
@@ -743,6 +751,7 @@ export function censorRuleFromTerms(
   if (normalization === 'none' && typeof boundary === 'string') {
     return {
       id,
+      profile,
       coverage,
       pattern: new RegExp(patternSource, caseSensitive ? 'gu' : 'giu'),
     };
@@ -750,6 +759,7 @@ export function censorRuleFromTerms(
 
   return {
     id,
+    profile,
     coverage,
     matcher: termMatcher(patternSource, caseSensitive, normalization, boundary),
   };
