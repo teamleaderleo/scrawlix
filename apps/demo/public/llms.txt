@@ -5,13 +5,15 @@ Scrawlix is programmable censorship for text and the web. It separates matching,
 Source: https://github.com/teamleaderleo/scrawlix
 
 Packages:
-- @scrawlix/core — language-neutral matching and segmentation
-- @scrawlix/en — English strong-profanity rules, English vowel coverage, regression corpus
+- @scrawlix/core — language-neutral matching, segmentation, canonical and bounded aggressive term helpers
+- @scrawlix/core/targeted-obfuscated — semantic targets inside bounded aggressive full forms
+- @scrawlix/core/pack-authoring — manifest + lexicon + matching-profile authoring helpers
+- @scrawlix/en — English strong-profanity rules, English vowel coverage, regression corpora
 - @scrawlix/react — React renderer and visual/reveal presets
 - @scrawlix/rehype — HAST/rehype transformer for Markdown-rendered prose
 - @scrawlix/dom — arbitrary-page DOM transformation, restoration, and mutation observation
 
-Choose the smallest package path for the target project. Do not invent aggregate package names or hidden language defaults.
+Choose the smallest documented package path. Keep language selection explicit.
 
 React install:
 
@@ -26,61 +28,74 @@ import { englishStrongProfanityRules } from '@scrawlix/en';
 import { CensoredText } from '@scrawlix/react';
 import '@scrawlix/react/styles.css';
 
-<CensoredText
-  text="what the fuck"
-  rules={englishStrongProfanityRules}
-/>;
+<CensoredText text="what the fuck" rules={englishStrongProfanityRules} />;
 ```
 
-React defaults: `coverage="full"`, `appearance="scrawl"`, `reveal="never"`. Add partial coverage or reveal props only when the application asks for them. The stylesheet import is required for built-in appearances and the visually-hidden accessibility copy. `CensoredText` preserves one exact source copy for assistive technology; it is reversible presentation, not destructive redaction.
+React defaults: `coverage="full"`, `appearance="scrawl"`, `reveal="never"`. The stylesheet import is required for built-in appearances and the visually-hidden accessibility source copy.
 
-Next.js App Router rule:
-- `CensoredText` is a Client Component.
-- Scrawlix rules contain `RegExp` values and coverage selectors can be functions. Do not pass rule packs from a Server Component into `CensoredText` props.
-- Create a small application-owned `'use client'` wrapper that imports both the selected rule pack and `CensoredText`; let Server Components pass only serializable values such as `text`.
-- Import `@scrawlix/react/styles.css` from the root layout/global CSS path.
-- The packed-package smoke suite production-builds this exact App Router pattern.
+Next.js App Router: keep rule packs and coverage functions inside an application-owned Client Component. Server Components should pass serializable values such as `text` into that wrapper. Import `@scrawlix/react/styles.css` from the root layout/global CSS path.
 
-Canonical App Router wrapper:
-
-```tsx
-'use client';
-
-import { englishStrongProfanityRules } from '@scrawlix/en';
-import { CensoredText } from '@scrawlix/react';
-
-export function ScrawlixText({ text }: { text: string }) {
-  return <CensoredText text={text} rules={englishStrongProfanityRules} />;
-}
-```
-
-Core install:
-
-```sh
-npm install @scrawlix/core @scrawlix/en
-```
-
-Canonical core usage:
+Core usage:
 
 ```ts
 import { createScrawlix } from '@scrawlix/core';
 import { englishStrongProfanityRules } from '@scrawlix/en';
 
-const engine = createScrawlix({
-  rules: englishStrongProfanityRules,
-});
+const engine = createScrawlix({ rules: englishStrongProfanityRules });
 ```
 
-Custom terms and phrases:
+Custom canonical terms:
 
 ```ts
 import { censorRuleFromTerms } from '@scrawlix/core';
 
-const privateTerms = censorRuleFromTerms('private', [
-  'Project Velvet',
-  'Mothbit',
-]);
+const rule = censorRuleFromTerms('private', ['Project Velvet']);
 ```
+
+`censorRuleFromTerms()` defaults to NFC canonical equivalence, Unicode word-context boundaries, and `profile: 'canonical'`. Current boundary strategies include `word`, `unicode-word`, `substring`, and explicit `{ mode: 'locale-word', locale }` segmentation.
+
+Bounded aggressive matching is opt-in through `censorRuleFromObfuscatedTerms()`. Packs must provide reviewed substitutions/ignored graphemes and explicit budgets. Canonical zero-change matches are filtered from the aggressive helper. Semantic targets in aggressive full forms use `censorRuleFromTargetedObfuscatedTerms()` from `@scrawlix/core/targeted-obfuscated`.
+
+Pack authoring:
+
+```ts
+import { rulesFromPacks } from '@scrawlix/core';
+import { defineLexiconPack } from '@scrawlix/core/pack-authoring';
+
+const pack = defineLexiconPack({
+  manifest: {
+    id: 'museum-exhibits',
+    version: '1.0.0',
+    name: 'Museum Exhibit Labels',
+    locale: 'en',
+    reviewStatus: 'reviewed',
+  },
+  matchingProfiles: [
+    { id: 'canonical', mode: 'canonical', boundary: 'unicode-word' },
+    {
+      id: 'aggressive',
+      mode: 'obfuscated',
+      substitutions: { a: ['@'] },
+      maxSubstitutions: 1,
+    },
+  ],
+  lexicon: [
+    {
+      id: 'blue-lantern',
+      lemma: 'Blue Lantern',
+      profiles: ['canonical', 'aggressive'],
+      forms: [
+        { text: 'Blue Lantern', kind: 'base' },
+        { text: 'Blue Lantern Annex', kind: 'compound', target: 'Blue Lantern' },
+      ],
+    },
+  ],
+});
+
+const rules = rulesFromPacks(pack);
+```
+
+Use `defineLexiconPack()` when explicit attested lexical data can express the pack. The manifest stays plain app-facing data. A lexical target is an explicit unique semantic substring. One lexical entry can participate in several matching profiles while retaining one stable rule id; `match.profile` identifies the path. Presentation recommendation strings in a manifest are metadata hints, not core rendering policy.
 
 Canonical rehype usage:
 
@@ -97,30 +112,24 @@ Canonical arbitrary-page usage:
 import { createDomScrawlix } from '@scrawlix/dom';
 import { englishStrongProfanityRules } from '@scrawlix/en';
 
-const controller = createDomScrawlix({
-  rules: englishStrongProfanityRules,
-});
-
+const controller = createDomScrawlix({ rules: englishStrongProfanityRules });
 const observation = controller.observe(document.body);
-// Later, when disabling censorship:
 observation.restore();
 ```
 
-Core is deliberately language-neutral. Select language/rule packs explicitly. Generic coverage presets are full, tail, middle, inner. Full coverage is the engine default. English-specific helper: englishVowelCoverage.
+Core stays language-neutral. Generic coverage presets: full, tail, middle, inner. Full coverage is the engine default. English-specific helper: englishVowelCoverage.
 
 React appearances: scrawl, bar, blur, asterisk, grawlix.
 React reveal modes: never, hover, focus, click.
 
-The rehype adapter emits spans with `data-scrawlix-cover` and `data-scrawlix-rules`, preserves source as text content, and skips code/pre/script/style/textarea by default.
+The browser extension owns browser state: global/per-host enablement plus local lenses and named profiles. Reusable packages own page matching/restoration.
 
-The DOM adapter transforms only matching eligible text nodes, marks controller output with `data-scrawlix-dom-root`, skips editable/form/code/non-HTML regions by default, observes only mutation roots delivered by MutationObserver, and can restore exact controller-owned source strings.
-
-The browser extension keeps browser state outside reusable packages. Global treatment settings + sparse hostname overrides use chrome.storage.sync; custom terms use chrome.storage.local. Storage changes restore the old DOM session before a newly configured observation begins.
-
-Use only documented public package exports. Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md
+Use only documented public exports.
+Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md
 Docs index: https://github.com/teamleaderleo/scrawlix/blob/main/docs/README.md
 Compatibility: https://github.com/teamleaderleo/scrawlix/blob/main/docs/compatibility.md
 Versioning: https://github.com/teamleaderleo/scrawlix/blob/main/docs/versioning.md
+Privacy/output semantics: https://github.com/teamleaderleo/scrawlix/blob/main/docs/privacy-and-output.md
 Language packs: https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md
 DOM lifecycle: https://github.com/teamleaderleo/scrawlix/blob/main/docs/dom.md
 Extension notes: https://github.com/teamleaderleo/scrawlix/blob/main/apps/extension/README.md
