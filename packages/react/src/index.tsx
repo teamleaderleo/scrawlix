@@ -83,6 +83,17 @@ function revealIdFromTarget(target: EventTarget | null) {
   );
 }
 
+function hasSelectedText(root: HTMLElement) {
+  const selection = root.ownerDocument.defaultView?.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+    return false;
+  }
+
+  return [selection.anchorNode, selection.focusNode].some(
+    node => node !== null && root.contains(node)
+  );
+}
+
 export function CensoredText({
   text,
   rules,
@@ -195,7 +206,7 @@ export function CensoredText({
   }
 
   function onRootClick(event: MouseEvent<HTMLSpanElement>) {
-    if (reveal !== 'click') return;
+    if (reveal !== 'click' || hasSelectedText(event.currentTarget)) return;
     if (revealScope === 'component') {
       setComponentRevealed(value => !value);
       return;
