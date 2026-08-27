@@ -15,6 +15,20 @@
     "matches": []
   },
   {
+    "id": "obfuscated-clean-canonical-fucking",
+    "text": "fucking",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "canonical-form", "inflection"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-canonical-motherfucker",
+    "text": "motherfucker",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "canonical-form", "compound"],
+    "matches": []
+  },
+  {
     "id": "obfuscated-clean-two-substitutions",
     "text": "sh17",
     "profile": "obfuscated",
@@ -26,6 +40,13 @@
     "text": "sh1-t",
     "profile": "obfuscated",
     "tags": ["false-positive", "obfuscation", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-inflection-mixed-budget",
+    "text": "f*-cking",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "budget", "inflection"],
     "matches": []
   },
   {
@@ -68,6 +89,41 @@
     "text": "a$$orted",
     "profile": "obfuscated",
     "tags": ["false-positive", "ordinary-word"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-motherfuckerly",
+    "text": "motherf*ckerly",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "word-boundary", "compound"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-bullshitake",
+    "text": "bullsh1take",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "word-boundary", "compound"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-bitchcraft",
+    "text": "b!tchcraft",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "word-boundary", "ordinary-word"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-assholeish",
+    "text": "assh0leish",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "word-boundary"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-shittingly",
+    "text": "shit-tingly",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "word-boundary", "inflection"],
     "matches": []
   }
 ]
