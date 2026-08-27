@@ -72,34 +72,52 @@
 
 [data-scrawlix-root][data-scrawlix-appearance='mosaic'] [data-scrawlix-cover] {
   -webkit-text-fill-color: transparent;
-  background:
+  background-color: var(--scrawlix-soft-ink);
+  background-image:
     linear-gradient(
-        90deg,
-        var(--scrawlix-ink) 0 24%,
-        transparent 24% 42%,
-        var(--scrawlix-fuzzy-ink) 42% 67%,
-        transparent 67% 78%,
-        var(--scrawlix-ink) 78% 100%
+      90deg,
+      var(--scrawlix-ink) 0 22%,
+      var(--scrawlix-fuzzy-ink) 22% 52%,
+      var(--scrawlix-ink) 52% 73%,
+      var(--scrawlix-soft-ink) 73% 100%
+    ),
+    linear-gradient(
+      90deg,
+      var(--scrawlix-fuzzy-ink) 0 18%,
+      var(--scrawlix-ink) 18% 47%,
+      var(--scrawlix-soft-ink) 47% 69%,
+      var(--scrawlix-ink) 69% 100%
+    ),
+    linear-gradient(
+      90deg,
+      var(--scrawlix-ink) 0 31%,
+      var(--scrawlix-soft-ink) 31% 48%,
+      var(--scrawlix-ink) 48% 78%,
+      var(--scrawlix-fuzzy-ink) 78% 100%
+    );
+  background-position:
+    0 0.03em,
+    var(--scrawlix-mosaic-cell) calc(var(--scrawlix-mosaic-cell) + 0.03em),
+    0 calc(
+        var(--scrawlix-mosaic-cell) + var(--scrawlix-mosaic-cell) + 0.03em
+      );
+  background-size:
+    calc(
+        var(--scrawlix-mosaic-cell) + var(--scrawlix-mosaic-cell) +
+          var(--scrawlix-mosaic-cell)
       )
-      0 0 /
-      calc(
-          var(--scrawlix-mosaic-cell) + var(--scrawlix-mosaic-cell) +
-            var(--scrawlix-mosaic-cell)
-        )
       var(--scrawlix-mosaic-cell),
-    linear-gradient(
-        90deg,
-        var(--scrawlix-soft-ink) 0 31%,
-        var(--scrawlix-ink) 31% 55%,
-        var(--scrawlix-fuzzy-ink) 55% 77%,
-        var(--scrawlix-ink) 77% 100%
+    calc(
+        var(--scrawlix-mosaic-cell) + var(--scrawlix-mosaic-cell) +
+          var(--scrawlix-mosaic-cell) + var(--scrawlix-mosaic-cell)
       )
-      var(--scrawlix-mosaic-cell) var(--scrawlix-mosaic-cell) /
-      calc(
-          var(--scrawlix-mosaic-cell) + var(--scrawlix-mosaic-cell) +
-            var(--scrawlix-mosaic-cell) + var(--scrawlix-mosaic-cell)
-        )
+      var(--scrawlix-mosaic-cell),
+    calc(
+        var(--scrawlix-mosaic-cell) + var(--scrawlix-mosaic-cell) +
+          var(--scrawlix-mosaic-cell)
+      )
       var(--scrawlix-mosaic-cell);
+  background-repeat: repeat-x;
   border-radius: 0.035em;
 }
 
