@@ -91,4 +91,6 @@ import '@scrawlix/react/styles.css';
 
 The repository's packed-package smoke suite installs a real Next.js App Router fixture and production-builds this client-wrapper path, so the documented boundary is release-gated.
 
+For first-use failures such as duplicated text, no matches, or App Router serialization errors, see the [Scrawlix troubleshooting guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/troubleshooting.md).
+
 See the repository README for core, rehype, and arbitrary-DOM paths.
