@@ -334,49 +334,84 @@ function mergeCoveredRanges(ranges: readonly CoveredRange[]) {
   return merged;
 }
 
-function revealIdForRange(range: CoveredRange) {
-  const matchIds = [...range.matchIds].sort();
-  if (matchIds.length === 1) return matchIds[0]!;
-  return `g:${range.start}:${range.end}:${matchIds.join('+')}`;
-}
-
-function addCoverageEdges(
+function addDisclosureMetadata(
   ranges: readonly CoveredRange[]
 ): PresentedCoveredRange[] {
-  const prepared = ranges.map(range => ({
-    ...range,
-    revealId: revealIdForRange(range),
-  }));
-  const groupIndexes = new Map<string, number[]>();
+  if (ranges.length === 0) return [];
 
-  prepared.forEach((range, index) => {
-    const indexes = groupIndexes.get(range.revealId) ?? [];
-    indexes.push(index);
-    groupIndexes.set(range.revealId, indexes);
+  const parents = ranges.map((_, index) => index);
+
+  function find(index: number): number {
+    const parent = parents[index]!;
+    if (parent === index) return index;
+    const root = find(parent);
+    parents[index] = root;
+    return root;
+  }
+
+  function union(left: number, right: number) {
+    const leftRoot = find(left);
+    const rightRoot = find(right);
+    if (leftRoot !== rightRoot) parents[rightRoot] = leftRoot;
+  }
+
+  const firstRangeByMatch = new Map<string, number>();
+  ranges.forEach((range, index) => {
+    for (const matchId of range.matchIds) {
+      const firstIndex = firstRangeByMatch.get(matchId);
+      if (firstIndex === undefined) firstRangeByMatch.set(matchId, index);
+      else union(firstIndex, index);
+    }
   });
 
+  const groupIndexes = new Map<number, number[]>();
+  ranges.forEach((_, index) => {
+    const root = find(index);
+    const indexes = groupIndexes.get(root) ?? [];
+    indexes.push(index);
+    groupIndexes.set(root, indexes);
+  });
+
+  const revealIds = new Map<number, string>();
   const edges = new Map<number, ScrawlixCoverageEdge>();
+
   for (const indexes of groupIndexes.values()) {
-    if (indexes.length === 1) {
-      edges.set(indexes[0]!, 'solo');
-      continue;
+    const matchIds = new Set<string>();
+    let start = Number.POSITIVE_INFINITY;
+    let end = Number.NEGATIVE_INFINITY;
+
+    for (const index of indexes) {
+      const range = ranges[index]!;
+      start = Math.min(start, range.start);
+      end = Math.max(end, range.end);
+      for (const matchId of range.matchIds) matchIds.add(matchId);
     }
 
+    const sortedMatchIds = [...matchIds].sort();
+    const revealId =
+      sortedMatchIds.length === 1
+        ? sortedMatchIds[0]!
+        : `g:${start}:${end}:${sortedMatchIds.join('+')}`;
+
     indexes.forEach((index, position) => {
+      revealIds.set(index, revealId);
       edges.set(
         index,
-        position === 0
-          ? 'start'
-          : position === indexes.length - 1
-            ? 'end'
-            : 'middle'
+        indexes.length === 1
+          ? 'solo'
+          : position === 0
+            ? 'start'
+            : position === indexes.length - 1
+              ? 'end'
+              : 'middle'
       );
     });
   }
 
-  return prepared.map((range, index) => ({
+  return ranges.map((range, index) => ({
     ...range,
-    coverageEdge: edges.get(index) ?? 'solo',
+    revealId: revealIds.get(index)!,
+    coverageEdge: edges.get(index)!,
   }));
 }
 
@@ -488,7 +523,7 @@ export function createScrawlix({
       }
 
       const matches = scan(text, compiledRules);
-      const coveredRanges = addCoverageEdges(
+      const coveredRanges = addDisclosureMetadata(
         mergeCoveredRanges(collectCoveredRanges(matches, coverage))
       );
       return segmentFromRanges(text, coveredRanges);
