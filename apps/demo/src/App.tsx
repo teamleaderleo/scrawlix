@@ -4,6 +4,7 @@ import {
   englishVowelCoverage,
 } from '@scrawlix/en';
 import {
+  AliasText,
   CensoredText,
   type ScrawlixAppearance,
   type ScrawlixReveal,
@@ -39,6 +40,16 @@ const specimens = [
   'motherfucker',
   'Well, shit. That actually works.',
 ] as const;
+
+const witnessAliases = [
+  { term: 'Alice Chen', alias: 'Nina Mercer' },
+  { term: 'David Goldberg', alias: 'Felix Arden' },
+  { term: 'Acme Widgets', alias: 'Cedar Industries' },
+  { term: 'Project Velvet', alias: 'Project Lantern' },
+] as const;
+
+const witnessText =
+  'Alice Chen asked David Goldberg to send Acme Widgets the Project Velvet proposal. Alice Chen will present Project Velvet on Friday.';
 
 function selectorForCoverage(coverage: CoverageChoice): CoverageSelector {
   return coverage === 'vowel' ? englishVowelCoverage : coverage;
@@ -238,9 +249,35 @@ export function App() {
         </p>
       </section>
 
+      <section className="alias-section" aria-labelledby="alias-title">
+        <div className="section-heading">
+          <p className="eyebrow">04 / witness protection</p>
+          <h2 id="alias-title">Keep the story. Lose the names.</h2>
+          <p>
+            Stable aliases preserve who did what while private names, clients, and
+            codenames stay disguised. Click the paragraph to reveal the source.
+          </p>
+        </div>
+
+        <div className="alias-demo">
+          <p className="alias-output">
+            <AliasText aliases={witnessAliases} reveal="click" text={witnessText} />
+          </p>
+          <div className="alias-key" aria-label="Witness Protection mappings">
+            {witnessAliases.map(entry => (
+              <div key={entry.term}>
+                <span>{entry.term}</span>
+                <span aria-hidden="true">→</span>
+                <strong>{entry.alias}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="code-section" aria-labelledby="code-title">
         <div>
-          <p className="eyebrow">04 / use it</p>
+          <p className="eyebrow">05 / use it</p>
           <h2 id="code-title">Pick the language. Pick the damage.</h2>
           <p>
             Matching rules live in explicit language or custom packs. The core stays
