@@ -2,6 +2,9 @@
   "name": "scrawlix-workspace",
   "private": true,
   "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "pnpm build:packages && pnpm --filter scrawlix-demo build && pnpm --filter scrawlix-extension build",
     "build:packages": "pnpm --filter @scrawlix/core build && pnpm --filter @scrawlix/en build && pnpm --filter @scrawlix/react build && pnpm --filter @scrawlix/rehype build && pnpm --filter @scrawlix/dom build",

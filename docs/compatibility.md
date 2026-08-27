@@ -13,9 +13,9 @@ Scrawlix publishes ESM and TypeScript declarations targeting modern JavaScript. 
 - RegExp match indices (`d` flag)
 - `Intl.Segmenter` with grapheme segmentation
 
-For published-package execution in Node, **Node 18 and newer** is the supported baseline for core/rehype and SSR contexts that execute package code directly.
+For published-package execution in Node, **Node 18 and newer** is the supported baseline for core/rehype and SSR contexts that execute package code directly. Every public `@scrawlix/*` manifest declares `engines.node: ">=18"` so package managers can surface that requirement before install.
 
-Repository CI and ordinary development verification use **Node 22**. The OIDC npm publication job uses **Node 24** so its release runner comfortably satisfies npm trusted-publishing runtime requirements. The workspace includes current build/test tools with their own Node requirements, so contributors should follow the CI/toolchain baseline instead of treating the package-runtime minimum as the repository-development minimum.
+Repository CI and ordinary development verification use **Node 22**. The private root workspace declares `engines.node: ">=22"`. The OIDC npm publication job uses **Node 24** so its release runner comfortably satisfies npm trusted-publishing runtime requirements. The workspace includes current build/test tools with their own Node requirements, so contributors should follow the CI/toolchain baseline instead of treating the package-runtime minimum as the repository-development minimum.
 
 For browsers, support is capability-based during pre-1.0: the consuming browser must support the features above. Scrawlix's browser CI exercises current Chromium. Add explicit Firefox/Safari version claims only alongside CI or targeted compatibility tests that enforce them.
 
