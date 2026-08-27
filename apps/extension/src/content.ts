@@ -183,4 +183,17 @@ function startWhenReady() {
   else window.addEventListener('DOMContentLoaded', () => void restart(), { once: true });
 }
 
+function watchBodyLifecycle() {
+  let knownBody = document.body;
+  const observer = new MutationObserver(() => {
+    const nextBody = document.body;
+    if (nextBody === knownBody) return;
+    knownBody = nextBody;
+    void restart();
+  });
+
+  observer.observe(document.documentElement, { childList: true });
+}
+
+watchBodyLifecycle();
 startWhenReady();
