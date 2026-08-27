@@ -13,7 +13,6 @@ import {
 import { TEMPORARY_REVEAL_COMMAND } from './actions';
 import {
   effectiveEnabled,
-  normalizeCustomWords,
   setSiteMode,
   siteModeFor,
   type ExtensionAppearance,
@@ -22,12 +21,7 @@ import {
   type SiteMode,
   type SyncSettings,
 } from './config';
-import {
-  loadExtensionState,
-  loadSettings,
-  saveCustomWords,
-  saveSettings,
-} from './storage';
+import { loadExtensionState, loadSettings, saveSettings } from './storage';
 
 function required<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -51,20 +45,21 @@ const revealSelect = required<HTMLSelectElement>('reveal');
 const revealPageButton = required<HTMLButtonElement>('reveal-page');
 const revealShortcut = required<HTMLElement>('reveal-shortcut');
 const revealStatus = required<HTMLSpanElement>('reveal-status');
-const customWordsInput = required<HTMLTextAreaElement>('custom-words');
 const siteHeading = required<HTMLHeadingElement>('site-heading');
 const effectiveStatus = required<HTMLParagraphElement>('effective-status');
 const accessStatus = required<HTMLParagraphElement>('access-status');
 const siteAccessButton = required<HTMLButtonElement>('site-access');
 const allSitesAccessButton = required<HTMLButtonElement>('all-sites-access');
 const settingsStatus = required<HTMLSpanElement>('settings-status');
-const saveStatus = required<HTMLSpanElement>('save-status');
+const customCount = required<HTMLElement>('custom-count');
+const siteExceptionCount = required<HTMLElement>('site-exception-count');
+const openOptionsButton = required<HTMLButtonElement>('open-options');
 
 let settings: SyncSettings;
 let page: ActivePage | null = null;
 let persistentAccess = false;
 let allHostsAccess = false;
-let wordSaveTimer: number | null = null;
+let customWordCount = 0;
 let settingsSaveQueue = Promise.resolve();
 
 async function currentPage(): Promise<ActivePage | null> {
@@ -140,6 +135,11 @@ function renderRevealAction() {
   revealPageButton.disabled = !page || !persistentAccess || !enabledHere;
 }
 
+function renderManageSummary() {
+  customCount.textContent = String(customWordCount);
+  siteExceptionCount.textContent = String(Object.keys(settings.siteOverrides).length);
+}
+
 function renderSettings() {
   activeInput.checked = !settings.paused;
   defaultEnabledSelect.value = settings.enabled ? 'on' : 'off';
@@ -149,6 +149,7 @@ function renderSettings() {
   renderEffectiveStatus();
   renderAccess();
   renderRevealAction();
+  renderManageSummary();
 }
 
 async function refreshAccess() {
@@ -197,32 +198,6 @@ async function persistSettings(next: SyncSettings) {
   settingsSaveQueue = queued.catch(() => undefined);
   await queued.catch(() => undefined);
   await ensureCurrentPageRuntime();
-}
-
-function wordsFromTextarea() {
-  return normalizeCustomWords(customWordsInput.value.split('\n'));
-}
-
-async function persistWords() {
-  if (wordSaveTimer !== null) {
-    window.clearTimeout(wordSaveTimer);
-    wordSaveTimer = null;
-  }
-
-  saveStatus.textContent = 'saving…';
-  try {
-    await saveCustomWords(wordsFromTextarea());
-    saveStatus.textContent = 'saved';
-    await ensureCurrentPageRuntime();
-  } catch {
-    saveStatus.textContent = 'save failed';
-  }
-}
-
-function scheduleWordSave() {
-  if (wordSaveTimer !== null) window.clearTimeout(wordSaveTimer);
-  saveStatus.textContent = 'editing';
-  wordSaveTimer = window.setTimeout(() => void persistWords(), 250);
 }
 
 activeInput.addEventListener('change', () => {
@@ -318,8 +293,10 @@ allSitesAccessButton.addEventListener('click', () => {
   })();
 });
 
-customWordsInput.addEventListener('input', scheduleWordSave);
-customWordsInput.addEventListener('change', () => void persistWords());
+openOptionsButton.addEventListener('click', () => {
+  void chrome.runtime.openOptionsPage();
+  window.close();
+});
 
 async function initialize() {
   const [state, activePage] = await Promise.all([
@@ -328,8 +305,8 @@ async function initialize() {
   ]);
 
   settings = state.settings;
+  customWordCount = state.customWords.length;
   page = activePage;
-  customWordsInput.value = state.customWords.join('\n');
   await Promise.all([refreshAccess(), renderAssignedShortcut()]);
   await ensureCurrentPageRuntime();
 }
