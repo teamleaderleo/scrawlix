@@ -32,6 +32,10 @@ function contentScriptRegistration(
     css: ['content.css'],
     runAt: 'document_start',
     persistAcrossSessions: true,
+    // First-store coverage contract: Scrawlix owns the active top document only.
+    // Expanding into frames requires explicit permission/popup/reveal semantics review.
+    allFrames: false,
+    matchOriginAsFallback: false,
   };
 }
 
