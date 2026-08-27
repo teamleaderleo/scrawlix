@@ -125,5 +125,61 @@
     "profile": "obfuscated",
     "tags": ["false-positive", "word-boundary", "inflection"],
     "matches": []
+  },
+  {
+    "id": "obfuscated-clean-repeat-two-extra",
+    "text": "fuuuck",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "repetition", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-repeat-plus-substitution",
+    "text": "fu*ck",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "repetition", "substitution", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-repeat-plus-separator",
+    "text": "fuu-ck",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "repetition", "punctuation-insertion", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-repeat-canonical-double-over-budget",
+    "text": "asssshole",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "obfuscation", "repetition", "canonical-double", "budget"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-repeat-canonical-double-under-run",
+    "text": "ashole",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "canonical-double"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-repeat-fuckery-boundary",
+    "text": "fuuckery",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "repetition", "word-boundary"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-repeat-assholeish-boundary",
+    "text": "asssholeish",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "repetition", "word-boundary"],
+    "matches": []
+  },
+  {
+    "id": "obfuscated-clean-repeat-country",
+    "text": "cuuntry",
+    "profile": "obfuscated",
+    "tags": ["false-positive", "repetition", "word-boundary", "ordinary-word"],
+    "matches": []
   }
 ]
