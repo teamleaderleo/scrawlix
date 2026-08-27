@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scrawlix settings</title>
+  </head>
+  <body>
+    <main class="options-shell">
+      <header class="options-header">
+        <div>
+          <p class="wordmark">scrawlix<span aria-hidden="true">*</span></p>
+          <p class="tagline">browser settings</p>
+        </div>
+        <div class="header-meta">
+          <span id="version"></span>
+          <a href="https://github.com/teamleaderleo/scrawlix" target="_blank" rel="noreferrer">source ↗</a>
+        </div>
+      </header>
+
+      <section class="panel" aria-labelledby="general-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">general</p>
+            <h1 id="general-heading">How Scrawlix behaves</h1>
+          </div>
+          <span id="settings-status" class="save-status" aria-live="polite"></span>
+        </div>
+
+        <div class="general-grid">
+          <label class="toggle-card">
+            <span>
+              <strong>Active</strong>
+              <small>Master pause across every site</small>
+            </span>
+            <input id="active" type="checkbox" />
+          </label>
+
+          <label>
+            <span>Default sites</span>
+            <select id="default-enabled">
+              <option value="on">on</option>
+              <option value="off">off</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Censor style</span>
+            <select id="appearance">
+              <option value="scrawl">scrawl</option>
+              <option value="bar">bar</option>
+              <option value="blur">blur</option>
+              <option value="asterisk">asterisk</option>
+              <option value="grawlix">grawlix</option>
+            </select>
+          </label>
+
+          <label>
+            <span>How much to hide</span>
+            <select id="coverage">
+              <option value="middle">middle</option>
+              <option value="vowel">vowels</option>
+              <option value="inner">inner letters</option>
+              <option value="tail">after first letter</option>
+              <option value="full">whole word</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Reveal</span>
+            <select id="reveal">
+              <option value="hover">hover</option>
+              <option value="focus">focus</option>
+              <option value="click">click</option>
+              <option value="never">hidden</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="custom-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">your list</p>
+            <h2 id="custom-heading">Custom terms</h2>
+          </div>
+          <span id="custom-count" class="count-label"></span>
+        </div>
+
+        <form id="add-terms-form" class="add-terms">
+          <label for="new-terms">Add words or phrases</label>
+          <textarea
+            id="new-terms"
+            rows="3"
+            placeholder="Project Velvet&#10;Mothbit&#10;spoiler phrase"
+            spellcheck="false"
+          ></textarea>
+          <div class="form-actions">
+            <p class="hint">One per line · up to 200 Unicode code points each</p>
+            <button type="submit">add terms</button>
+          </div>
+          <p id="custom-status" class="save-status" aria-live="polite"></p>
+        </form>
+
+        <label class="filter-row">
+          <span>Filter custom terms</span>
+          <input id="term-filter" type="search" placeholder="Search your list" />
+        </label>
+        <ul id="term-list" class="managed-list"></ul>
+        <p id="term-empty" class="empty-state">Your custom list is empty.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="sites-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">site policy</p>
+            <h2 id="sites-heading">Site exceptions</h2>
+          </div>
+          <span id="site-count" class="count-label"></span>
+        </div>
+        <p class="section-copy">Only explicit always-on / always-off exceptions appear here. Removing one returns that hostname to your default site behavior.</p>
+        <label class="filter-row">
+          <span>Filter site exceptions</span>
+          <input id="site-filter" type="search" placeholder="Search hostnames" />
+        </label>
+        <ul id="site-list" class="managed-list"></ul>
+        <p id="site-empty" class="empty-state">No site exceptions yet.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="access-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">browser access</p>
+            <h2 id="access-heading">Granted websites</h2>
+          </div>
+          <span id="access-count" class="count-label"></span>
+        </div>
+        <p class="section-copy">Grant or remove access for the page you are browsing from the Scrawlix popup. Chrome also exposes site-access controls in the extension menu.</p>
+        <ul id="access-list" class="access-list"></ul>
+        <p id="access-empty" class="empty-state">Scrawlix has no persistent website access yet.</p>
+      </section>
+
+      <section class="panel privacy-panel" aria-labelledby="privacy-heading">
+        <p class="eyebrow">privacy</p>
+        <h2 id="privacy-heading">Local page processing</h2>
+        <p>Page text is matched in the browser and is never sent to a Scrawlix server. Custom terms and hostname exceptions stay in this browser profile. Compact general preferences may sync through Chrome Sync.</p>
+        <a href="https://github.com/teamleaderleo/scrawlix/blob/main/docs/extension-privacy.md" target="_blank" rel="noreferrer">Read the privacy statement ↗</a>
+      </section>
+    </main>
+
+    <script type="module" src="/src/options.ts"></script>
+  </body>
+</html>
