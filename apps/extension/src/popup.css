@@ -24,6 +24,36 @@ textarea {
   font: inherit;
 }
 
+button {
+  color: inherit;
+  background: transparent;
+  border: 1px solid rgba(23, 21, 16, 0.48);
+  border-radius: 0;
+  padding: 7px 9px;
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+button:hover,
+button:focus-visible {
+  color: #f2eddf;
+  background: #171510;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+button:disabled:hover {
+  color: inherit;
+  background: transparent;
+}
+
 .popup-shell {
   width: 340px;
   padding: 14px;
@@ -31,8 +61,9 @@ textarea {
 
 .masthead,
 .site-card,
+.profiles,
 .settings-grid,
-.custom-words,
+.lenses,
 footer {
   border-top: 1px solid #171510;
 }
@@ -68,7 +99,9 @@ footer {
 footer,
 .switch-row span,
 .settings-grid label > span,
-#save-status {
+.stacked-field > span,
+#local-save-status,
+.lens-title span {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -92,7 +125,8 @@ footer,
   letter-spacing: 0.08em;
 }
 
-.switch-row input {
+.switch-row input,
+.lens-toggle input {
   width: 17px;
   height: 17px;
   accent-color: #171510;
@@ -116,7 +150,8 @@ footer,
 }
 
 .site-card h1,
-.custom-words h2 {
+.profiles h2,
+.lenses h2 {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
   font-weight: 600;
@@ -128,6 +163,11 @@ footer,
   font-size: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.profiles h2,
+.lenses h2 {
+  font-size: 16px;
 }
 
 .status-line {
@@ -144,6 +184,7 @@ footer,
   content: '○ ';
 }
 
+input:not([type='checkbox']),
 select,
 textarea {
   width: 100%;
@@ -154,35 +195,22 @@ textarea {
   outline: none;
 }
 
+input:not([type='checkbox']),
 select {
   min-height: 34px;
   padding: 6px 8px;
   font-size: 11px;
 }
 
+input:focus,
 select:focus,
 textarea:focus {
   border-color: #171510;
   box-shadow: 0 0 0 1px #171510;
 }
 
-.settings-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 14px 0;
-}
-
-.settings-grid label > span {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 8px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.custom-words {
+.profiles,
+.lenses {
   padding: 14px 0;
 }
 
@@ -194,12 +222,8 @@ textarea:focus {
   margin-bottom: 9px;
 }
 
-.custom-words h2 {
-  font-size: 16px;
-}
-
-#save-status {
-  min-width: 60px;
+#local-save-status {
+  min-width: 58px;
   font-size: 8px;
   text-align: right;
   text-transform: uppercase;
@@ -207,9 +231,105 @@ textarea:focus {
   opacity: 0.6;
 }
 
+.profile-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
+}
+
+.stacked-field {
+  display: block;
+  margin-top: 8px;
+}
+
+.stacked-field > span,
+.settings-grid label > span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 14px 0;
+}
+
+.lens-list {
+  display: grid;
+  gap: 7px;
+}
+
+.lens-card {
+  border: 1px solid rgba(23, 21, 16, 0.42);
+  background: rgba(255, 255, 255, 0.22);
+  padding: 9px;
+}
+
+.lens-card[data-lens-kind='english-profanity'] {
+  background: rgba(23, 21, 16, 0.045);
+}
+
+.lens-card-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.lens-card-header > .lens-name,
+.lens-card-header > .lens-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.lens-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lens-title strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+}
+
+.lens-title span {
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.52;
+}
+
+.lens-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lens-toggle span {
+  min-width: 18px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 7px;
+  text-transform: uppercase;
+  opacity: 0.58;
+}
+
+.lens-card textarea {
+  margin-top: 8px;
+}
+
+.danger-button {
+  border-color: rgba(23, 21, 16, 0.3);
+  opacity: 0.68;
+}
+
 textarea {
   resize: vertical;
-  min-height: 88px;
+  min-height: 70px;
   padding: 9px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
@@ -217,8 +337,9 @@ textarea {
 }
 
 .hint {
-  margin: 5px 0 0;
+  margin: 8px 0 0;
   font-size: 8px;
+  line-height: 1.4;
   opacity: 0.58;
 }
 
