@@ -13,10 +13,11 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added custom coverage callbacks and per-rule coverage overrides.
 - Added Unicode-aware custom term/phrase rules through `censorRuleFromTerms()` with explicit `word` and `substring` boundary modes.
 - Added rule-pack composition and caller-safe compiled RegExp handling.
+- Added `@scrawlix/core/pack-authoring` with typed manifests, reviewable lexical entries, reusable canonical/aggressive matching profiles, semantic-target forms, and compilation into ordinary `CensorRulePack` rules.
 - Added a custom matcher escape hatch that can return exact original-source match/target ranges for pack-owned normalization, segmentation, or other matching algorithms.
 - Validate custom matcher ranges instead of silently clamping malformed source offsets.
 - Preserve source-pack provenance in composed rules, matches, and coverage callbacks.
-- Reject configured semantic target groups that are unavailable for a produced match instead of silently widening coverage.
+- Reject configured semantic target groups that are unavailable for a produced match instead of silently widening the target to the full match.
 - Treat combining marks, Unicode connector punctuation, ZWNJ, and ZWJ as continuing word context for custom term/phrase boundaries.
 - Added deterministic source-preservation and cursor-state regressions.
 
@@ -66,6 +67,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 
 - Added compiled ESM/declaration artifacts for public packages.
 - Added external tarball consumer smoke tests as a CI release gate, with strict declaration checking, React 18/19 production builds, and a Next.js 16 App Router production build using the documented client-wrapper boundary.
+- Added a non-profanity authored-pack fixture plus packed runtime/typecheck coverage for `@scrawlix/core/pack-authoring`.
 - Added package-local READMEs for every public package, exact install commands, a top-level integration chooser, a docs index, React CSS troubleshooting, Next.js client-boundary guidance, and clearer source/accessibility notes.
 - Added a framework-neutral renderer recipe with plain-DOM, Vue, Svelte, and Solid sketches plus a threshold for when a dedicated adapter package is worth maintaining.
 - Added explicit runtime compatibility and pre-1.0 versioning/public-contract policies.

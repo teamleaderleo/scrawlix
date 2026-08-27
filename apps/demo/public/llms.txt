@@ -6,6 +6,7 @@ Source: https://github.com/teamleaderleo/scrawlix
 
 Packages:
 - @scrawlix/core — language-neutral matching and segmentation
+- @scrawlix/core/pack-authoring — opt-in manifest + lexicon + matching-profile authoring helpers
 - @scrawlix/en — English strong-profanity rules, English vowel coverage, regression corpus
 - @scrawlix/react — React renderer and visual/reveal presets
 - @scrawlix/rehype — HAST/rehype transformer for Markdown-rendered prose
@@ -88,6 +89,47 @@ const privateTerms = censorRuleFromTerms('private', [
   'Mothbit',
 ]);
 ```
+
+Pack authoring:
+
+```ts
+import { rulesFromPacks } from '@scrawlix/core';
+import { defineLexiconPack } from '@scrawlix/core/pack-authoring';
+
+const pack = defineLexiconPack({
+  manifest: {
+    id: 'museum-exhibits',
+    version: '1.0.0',
+    name: 'Museum Exhibit Labels',
+    locale: 'en',
+    reviewStatus: 'reviewed',
+  },
+  matchingProfiles: [
+    { id: 'canonical', mode: 'canonical', boundary: 'unicode-word' },
+    {
+      id: 'aggressive',
+      mode: 'obfuscated',
+      substitutions: { a: ['@'] },
+      maxSubstitutions: 1,
+    },
+  ],
+  lexicon: [
+    {
+      id: 'blue-lantern',
+      lemma: 'Blue Lantern',
+      profiles: ['canonical', 'aggressive'],
+      forms: [
+        { text: 'Blue Lantern', kind: 'base' },
+        { text: 'Blue Lantern Annex', kind: 'compound', target: 'Blue Lantern' },
+      ],
+    },
+  ],
+});
+
+const rules = rulesFromPacks(pack);
+```
+
+Use `defineLexiconPack()` when explicit attested lexical data can express the pack. A manifest stays plain app-facing data. Lexical `target` substrings are explicit semantic targets. One lexical entry can participate in several named matching profiles while retaining one stable rule id; `match.profile` identifies the path. Presentation recommendation strings are metadata hints; core does not execute appearance/reveal policy.
 
 Canonical rehype usage:
 

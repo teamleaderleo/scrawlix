@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { createScrawlix } from '@scrawlix/core';
+import { createScrawlix, rulesFromPacks } from '@scrawlix/core';
+import { defineLexiconPack } from '@scrawlix/core/pack-authoring';
 import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
 import { censorRuleFromWidthObfuscatedTerms } from '@scrawlix/core/width-obfuscated';
@@ -25,6 +26,48 @@ assert.equal(matches.length, 1);
 assert.equal(matches[0]?.targetText.toLowerCase(), 'fuck');
 assert.equal(matches[0]?.profile, 'canonical');
 assert.ok(englishProfanityCorpus.some(testCase => testCase.id === 'fuck-base'));
+
+const authoredPack = defineLexiconPack({
+  manifest: {
+    id: 'runtime-exhibit-labels',
+    version: '1.0.0',
+    name: 'Runtime Exhibit Labels',
+    locale: 'en',
+  },
+  matchingProfiles: [
+    { id: 'canonical', mode: 'canonical', boundary: 'unicode-word' },
+    {
+      id: 'aggressive',
+      mode: 'obfuscated',
+      boundary: 'unicode-word',
+      substitutions: { a: ['@'] },
+      maxSubstitutions: 1,
+    },
+  ],
+  lexicon: [
+    {
+      id: 'blue-lantern',
+      lemma: 'Blue Lantern',
+      profiles: ['canonical', 'aggressive'],
+      forms: [
+        {
+          text: 'Blue Lantern Annex',
+          kind: 'compound',
+          target: 'Blue Lantern',
+        },
+      ],
+    },
+  ],
+});
+const authoredEngine = createScrawlix({ rules: rulesFromPacks(authoredPack) });
+const authoredCanonical = authoredEngine.find('Visit the Blue Lantern Annex.')[0];
+const authoredAggressive = authoredEngine.find('Visit the Blue L@ntern Annex.')[0];
+assert.equal(authoredPack.manifest.name, 'Runtime Exhibit Labels');
+assert.equal(authoredCanonical?.targetText, 'Blue Lantern');
+assert.equal(authoredCanonical?.profile, 'canonical');
+assert.equal(authoredAggressive?.targetText, 'Blue L@ntern');
+assert.equal(authoredAggressive?.profile, 'aggressive');
+assert.equal(authoredAggressive?.packId, 'runtime-exhibit-labels');
 
 const obfuscatedEngine = createScrawlix({
   rules: englishObfuscatedStrongProfanityRules,
