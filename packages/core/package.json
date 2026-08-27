@@ -11,7 +11,8 @@
     "dist",
     "src/index.ts",
     "src/targeted-obfuscated.ts",
-    "src/repeated-obfuscated.ts"
+    "src/repeated-obfuscated.ts",
+    "src/width-obfuscated.ts"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -30,6 +31,11 @@
       "types": "./dist/repeated-obfuscated.d.ts",
       "import": "./dist/repeated-obfuscated.js",
       "default": "./dist/repeated-obfuscated.js"
+    },
+    "./width-obfuscated": {
+      "types": "./dist/width-obfuscated.d.ts",
+      "import": "./dist/width-obfuscated.js",
+      "default": "./dist/width-obfuscated.js"
     }
   },
   "repository": {

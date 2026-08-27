@@ -168,6 +168,37 @@ Semantic targets are supported directly. Extra source graphemes in a repeated ru
 
 This first repetition path is intentionally bounded and corpus-driven. It does not perform blanket edit-distance matching, phonetic equivalence, transliteration, or universal confusable folding.
 
+### Reviewed fullwidth ASCII variants
+
+Fullwidth ASCII evasions have a separate budget and a strict mapping contract:
+
+```ts
+import { createScrawlix } from '@scrawlix/core';
+import { censorRuleFromWidthObfuscatedTerms } from '@scrawlix/core/width-obfuscated';
+
+const widthRule = censorRuleFromWidthObfuscatedTerms(
+  'example-width',
+  [{ term: 'motherfucker', target: 'fuck' }],
+  {
+    widthVariants: {
+      f: ['ｆ'],
+      u: ['ｕ'],
+    },
+    maxWidthVariants: 1,
+    maxRepetitions: 0,
+  }
+);
+
+const engine = createScrawlix({ rules: [widthRule] });
+engine.find('motherｆucker')[0]?.targetText; // "ｆuck"
+```
+
+`widthVariants` reads as canonical printable ASCII grapheme → explicitly reviewed fullwidth ASCII source graphemes. Core validates the direct U+FF01–U+FF5E offset relation. That keeps this class limited to true fullwidth ASCII forms. Circled letters, superscripts, ligatures, and other compatibility characters are rejected by this helper even when NFKC would map them to ASCII.
+
+Every accepted fullwidth grapheme costs one `maxWidthVariants` unit. Width mappings remain distinct from ordinary `substitutions`; the same source grapheme cannot belong to both classes. Width can compose with repeated letters, substitutions, or ignored graphemes, and `maxChanges` is required whenever another transform class is active. The total budget counts all classes together while the wrapper also enforces width and ordinary-substitution budgets separately.
+
+The helper delegates source mapping, semantic targets, repetition semantics, normalization, boundary policy, and coverage to the repeated/source-mapped matcher. Zero-change canonical candidates remain filtered and matches expose `profile: 'obfuscated'` by default.
+
 ## Match profiles
 
 Rules can carry an optional `profile` string. `find()` exposes it as `match.profile`, and coverage callbacks receive the same value in their context. This lets packs distinguish conservative and aggressive matching paths in diagnostics and policy code.
@@ -187,6 +218,7 @@ Profile names describe the matching path. Packs still own linguistic scope, revi
 - bounded aggressive substitution/insertion matching is opt-in through `censorRuleFromObfuscatedTerms()`
 - targeted aggressive matching can preserve a smaller semantic root through `@scrawlix/core/targeted-obfuscated`
 - repeated-letter matching is opt-in through `@scrawlix/core/repeated-obfuscated`
+- reviewed fullwidth ASCII matching is opt-in through `@scrawlix/core/width-obfuscated`
 - every exposed match, target, and covered segment respects extended-grapheme boundaries
 
 Scrawlix deliberately has no built-in language or hidden profanity list. Callers select rules explicitly.

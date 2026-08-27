@@ -97,6 +97,13 @@ function isGeneratedRoot(node: Node) {
   );
 }
 
+function isWithinGeneratedRoot(node: Node) {
+  if (isGeneratedRoot(node)) return true;
+  const element =
+    node.nodeType === ELEMENT_NODE ? (node as Element) : node.parentElement;
+  return element?.closest('[data-scrawlix-dom-root]') !== null;
+}
+
 function hasGeneratedAncestor(node: Text) {
   let element = node.parentElement;
   while (element) {
@@ -184,21 +191,16 @@ export function createDomScrawlix(
   };
 
   const ownedRoots = new WeakSet<Element>();
-  const originalText = new WeakMap<Element, string>();
+  const sourceNodes = new WeakMap<Element, Text>();
+  const ownedSources = new WeakMap<Text, Element>();
+  const sourceText = new WeakMap<Text, string>();
 
-  function transformTextNode(
-    node: Text,
-    knownEligible = false
-  ): DomApplyResult {
-    if (!knownEligible && !isEligibleText(node, prepared)) return emptyResult();
-
-    const segments = engine.segment(node.data);
-    const coveredSegments = segments.filter(segment => segment.covered).length;
-    if (coveredSegments === 0) return emptyResult();
-
-    const document = node.ownerDocument;
-    const wrapper = document.createElement('span');
-    wrapper.setAttribute('data-scrawlix-dom-root', '');
+  function renderWrapper(
+    wrapper: Element,
+    segments: readonly ScrawlixSegment[]
+  ) {
+    const document = wrapper.ownerDocument;
+    wrapper.replaceChildren();
 
     for (const segment of segments) {
       if (segment.covered) {
@@ -207,10 +209,64 @@ export function createDomScrawlix(
         wrapper.append(document.createTextNode(segment.text));
       }
     }
+  }
+
+  function forgetOwnedSource(source: Text, wrapper: Element) {
+    ownedSources.delete(source);
+    sourceNodes.delete(wrapper);
+    sourceText.delete(source);
+    ownedRoots.delete(wrapper);
+  }
+
+  function syncOwnedSource(source: Text) {
+    const wrapper = ownedSources.get(source);
+    if (!wrapper) return;
+
+    const nextSource = source.data;
+    if (!nextSource) {
+      forgetOwnedSource(source, wrapper);
+      wrapper.remove();
+      return;
+    }
+
+    const segments = engine.segment(nextSource);
+    const coveredSegments = segments.filter(segment => segment.covered).length;
+
+    if (coveredSegments === 0) {
+      forgetOwnedSource(source, wrapper);
+      wrapper.remove();
+      return;
+    }
+
+    sourceText.set(source, nextSource);
+    renderWrapper(wrapper, segments);
+    source.data = '';
+  }
+
+  function transformTextNode(
+    node: Text,
+    knownEligible = false
+  ): DomApplyResult {
+    if (ownedSources.has(node)) return emptyResult();
+    if (!knownEligible && !isEligibleText(node, prepared)) return emptyResult();
+
+    const source = node.data;
+    const segments = engine.segment(source);
+    const coveredSegments = segments.filter(segment => segment.covered).length;
+    if (coveredSegments === 0) return emptyResult();
+
+    const document = node.ownerDocument;
+    const wrapper = document.createElement('span');
+    wrapper.setAttribute('data-scrawlix-dom-root', '');
+    renderWrapper(wrapper, segments);
 
     ownedRoots.add(wrapper);
-    originalText.set(wrapper, node.data);
-    node.replaceWith(wrapper);
+    sourceNodes.set(wrapper, node);
+    ownedSources.set(node, wrapper);
+    sourceText.set(node, source);
+
+    node.data = '';
+    node.after(wrapper);
 
     return { transformedTextNodes: 1, coveredSegments };
   }
@@ -266,9 +322,19 @@ export function createDomScrawlix(
 
     for (const wrapper of generatedRootsWithin(root)) {
       if (!ownedRoots.has(wrapper)) continue;
-      const document = wrapper.ownerDocument;
-      const source = originalText.get(wrapper) ?? wrapper.textContent ?? '';
-      wrapper.replaceWith(document.createTextNode(source));
+
+      const source = sourceNodes.get(wrapper);
+      if (!source) continue;
+      const value = sourceText.get(source) ?? wrapper.textContent ?? '';
+      const sharesParent = source.parentNode === wrapper.parentNode;
+      forgetOwnedSource(source, wrapper);
+
+      if (sharesParent) {
+        wrapper.remove();
+        source.data = value;
+      } else {
+        wrapper.replaceWith(wrapper.ownerDocument.createTextNode(value));
+      }
       restored += 1;
     }
 
@@ -289,7 +355,7 @@ export function createDomScrawlix(
     let scheduled = false;
 
     const queue = (node: Node) => {
-      if (isGeneratedRoot(node)) return;
+      if (isWithinGeneratedRoot(node)) return;
 
       for (const existing of pending) {
         if (existing === node || existing.contains(node)) return;
@@ -326,19 +392,65 @@ export function createDomScrawlix(
       });
     };
 
-    const observer = new MutationObserverConstructor(records => {
+    const processRecords = (records: MutationRecord[]) => {
+      const ownedCharacterData = new Map<Text, MutationRecord[]>();
+
       for (const record of records) {
         if (record.type === 'characterData') {
-          queue(record.target);
+          const source = record.target as Text;
+          if (ownedSources.has(source)) {
+            const sourceRecords = ownedCharacterData.get(source) ?? [];
+            sourceRecords.push(record);
+            ownedCharacterData.set(source, sourceRecords);
+          } else {
+            queue(source);
+          }
           continue;
+        }
+
+        for (const removed of Array.from(record.removedNodes)) {
+          if (removed.nodeType === TEXT_NODE) {
+            const source = removed as Text;
+            const wrapper = ownedSources.get(source);
+            if (wrapper) {
+              const value = sourceText.get(source) ?? wrapper.textContent ?? '';
+              forgetOwnedSource(source, wrapper);
+              wrapper.remove();
+              source.data = value;
+            }
+            continue;
+          }
+
+          if (isGeneratedRoot(removed)) {
+            const wrapper = removed as Element;
+            const source = sourceNodes.get(wrapper);
+            if (source && source.parentNode) {
+              const value = sourceText.get(source) ?? wrapper.textContent ?? '';
+              forgetOwnedSource(source, wrapper);
+              source.data = value;
+            }
+          }
         }
 
         for (const added of Array.from(record.addedNodes)) {
           queue(added);
         }
       }
+
+      for (const [source, sourceRecords] of ownedCharacterData) {
+        const expectedInternalOldValue = sourceText.get(source);
+        const internalClearOnly =
+          source.data === '' &&
+          expectedInternalOldValue !== undefined &&
+          sourceRecords.every(record => record.oldValue === expectedInternalOldValue);
+
+        if (!internalClearOnly) syncOwnedSource(source);
+      }
+
       if (pending.size > 0) schedule();
-    });
+    };
+
+    const observer = new MutationObserverConstructor(processRecords);
 
     const initialResult =
       observeOptions.initial === false ? emptyResult() : apply(root);
@@ -347,13 +459,18 @@ export function createDomScrawlix(
       subtree: true,
       childList: true,
       characterData: true,
+      characterDataOldValue: true,
     });
 
     return {
       initialResult,
       flush,
-      disconnect: stop,
+      disconnect() {
+        processRecords(observer.takeRecords());
+        stop();
+      },
       restore() {
+        processRecords(observer.takeRecords());
         stop();
         return restore(root);
       },
