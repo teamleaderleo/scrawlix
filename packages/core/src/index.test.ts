@@ -138,6 +138,25 @@ describe('Scrawlix core', () => {
     expect(third).toEqual(first);
   });
 
+  it('advances zero-width Unicode matches across astral characters', () => {
+    const scrawlix = createScrawlix({
+      rules: [{ id: 'mixed', pattern: /(?=🔥)|a/u }],
+      coverage: 'full',
+    });
+
+    expect(scrawlix.find('🔥a')).toEqual([
+      {
+        ruleId: 'mixed',
+        text: 'a',
+        start: 2,
+        end: 3,
+        targetText: 'a',
+        targetStart: 2,
+        targetEnd: 3,
+      },
+    ]);
+  });
+
   it('merges overlapping covered ranges and keeps contributing rule ids', () => {
     const scrawlix = createScrawlix({
       rules: [semanticRule, { id: 'whole', pattern: /motherfucker/gi }],
