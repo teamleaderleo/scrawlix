@@ -2,8 +2,8 @@ import { createScrawlix, type ScrawlixSegment } from '@scrawlix/core';
 import { describe, expect, it } from 'vitest';
 import { englishCleanCorpus, englishProfanityCorpus } from './corpus';
 import {
-  englishProfanityRules,
   englishStrongProfanityPack,
+  englishStrongProfanityRules,
   englishVowelCoverage,
 } from './index';
 
@@ -15,7 +15,7 @@ function marked(segments: readonly ScrawlixSegment[]) {
 
 describe('@scrawlix/en', () => {
   const engine = createScrawlix({
-    rules: englishProfanityRules,
+    rules: englishStrongProfanityRules,
     coverage: 'full',
   });
 
@@ -36,12 +36,12 @@ describe('@scrawlix/en', () => {
   it('exports a composable language pack with locale metadata', () => {
     expect(englishStrongProfanityPack.id).toBe('en-strong-profanity');
     expect(englishStrongProfanityPack.locale).toBe('en');
-    expect(englishStrongProfanityPack.rules).toBe(englishProfanityRules);
+    expect(englishStrongProfanityPack.rules).toBe(englishStrongProfanityRules);
   });
 
   it('keeps English-specific vowel coverage in the English package', () => {
     const vowelEngine = createScrawlix({
-      rules: englishProfanityRules,
+      rules: englishStrongProfanityRules,
       coverage: englishVowelCoverage,
     });
 
