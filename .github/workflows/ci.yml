@@ -4,9 +4,6 @@ on:
   push:
   pull_request:
 
-permissions:
-  contents: write
-
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -28,17 +25,6 @@ jobs:
         run: pnpm test:browser:demo
       - name: Browser smoke — extension
         run: pnpm test:browser:extension
-      - name: Bootstrap visual baselines on the capture branch
-        if: github.event_name == 'push' && github.ref == 'refs/heads/graphite/visual-baseline-bootstrap'
-        run: |
-          pnpm exec playwright test -c playwright.config.ts tests/browser/visual.spec.ts --update-snapshots
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tests/browser/visual-baselines
-          if ! git diff --cached --quiet; then
-            git commit -m "Add curated Chromium visual baselines"
-            git push
-          fi
       - name: Browser visual regressions
         run: pnpm exec playwright test -c playwright.config.ts tests/browser/visual.spec.ts
       - name: Upload visual regression failures
