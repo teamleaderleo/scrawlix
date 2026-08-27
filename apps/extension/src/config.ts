@@ -1,4 +1,4 @@
-import type { CoverageSelector } from '@scrawlix/core';
+import { graphemeCount, type CoverageSelector } from '@scrawlix/core';
 import { englishVowelCoverage } from '@scrawlix/en';
 
 export type ExtensionAppearance =
@@ -132,7 +132,7 @@ export function coverageSelector(coverage: ExtensionCoverage): CoverageSelector 
 }
 
 export function maskFor(text: string, appearance: ExtensionAppearance) {
-  const length = Array.from(text).length;
+  const length = graphemeCount(text);
   if (appearance === 'asterisk') return '*'.repeat(length);
   if (appearance === 'grawlix') {
     const symbols = '@#$%&!';
