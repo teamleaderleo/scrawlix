@@ -72,6 +72,15 @@ describe('@scrawlix/en', () => {
     expect(obfuscatedEngine.find(corpusCase.text)).toEqual([]);
   });
 
+  it('covers only the semantic root inside obfuscated inflections and compounds', () => {
+    expect(marked(obfuscatedEngine.segment('f*cking mother-fucker'))).toBe(
+      '[f*ck]ing mother-[fuck]er'
+    );
+    expect(marked(obfuscatedEngine.segment('motherf-ucker'))).toBe(
+      'mother[f-uck]er'
+    );
+  });
+
   it('exports composable canonical and opt-in obfuscated packs', () => {
     expect(englishStrongProfanityPack.id).toBe('en-strong-profanity');
     expect(englishStrongProfanityPack.locale).toBe('en');
