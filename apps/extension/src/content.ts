@@ -1,8 +1,10 @@
 import { censorRuleFromWords, type CensorRule } from '@scrawlix/core';
 import { createDomScrawlix, type DomObservation } from '@scrawlix/dom';
 import { englishProfanityRules } from '@scrawlix/en';
+import type { ScrawlixContentMessage } from './access';
 import {
   CUSTOM_WORDS_KEY,
+  SITE_OVERRIDES_KEY,
   SYNC_SETTINGS_KEY,
   coverageSelector,
   maskFor,
@@ -168,9 +170,24 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   const relevantSync =
     areaName === 'sync' && Object.prototype.hasOwnProperty.call(changes, SYNC_SETTINGS_KEY);
   const relevantLocal =
-    areaName === 'local' && Object.prototype.hasOwnProperty.call(changes, CUSTOM_WORDS_KEY);
+    areaName === 'local' &&
+    (Object.prototype.hasOwnProperty.call(changes, CUSTOM_WORDS_KEY) ||
+      Object.prototype.hasOwnProperty.call(changes, SITE_OVERRIDES_KEY));
 
   if (relevantSync || relevantLocal) void reconcile();
+});
+
+chrome.runtime.onMessage.addListener((message: ScrawlixContentMessage) => {
+  if (message?.type === 'scrawlix-disable') {
+    restartGeneration += 1;
+    activeState = null;
+    stopCurrentSession();
+    return;
+  }
+
+  if (message?.type === 'scrawlix-reconcile') {
+    void reconcile();
+  }
 });
 
 function startWhenReady() {

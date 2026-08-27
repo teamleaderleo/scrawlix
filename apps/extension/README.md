@@ -29,40 +29,60 @@ To try it locally in Chromium:
 
 ## Preferences
 
-Small preferences live in `chrome.storage.sync`:
+Compact general preferences live in `chrome.storage.sync`:
 
 - master paused state
-- default site enabled state
+- default site behavior
 - appearance
 - coverage
 - reveal mode
+
+Local browser-profile state lives in `chrome.storage.local`:
+
 - sparse hostname overrides (`on` / `off`)
+- custom words and phrases
 
-Custom words and phrases live in `chrome.storage.local`. They can grow independently of the small synced preference object and stay local to the browser profile.
-
-The popup separates the master state from site policy. **Active** means site policy is allowed to apply; pausing Scrawlix disables it everywhere until the user resumes it. The default-site setting controls hosts without an explicit override.
+Older builds stored hostname overrides inside the synced settings object. The extension service worker migrates that legacy map to local storage and rewrites the synced item without hostnames.
 
 The popup exposes a tri-state site mode:
 
-- **default** — no hostname entry is stored; use the default-site setting
-- **always on** — hostname explicitly overrides the default-site setting
-- **always off** — hostname explicitly overrides the default-site setting
+- **default** — no hostname entry is stored
+- **always on** — hostname explicitly overrides the default site behavior
+- **always off** — hostname explicitly overrides the default site behavior
 
-The master pause always wins over site policy, including an **always on** hostname.
+The master pause remains a true kill switch and wins over every hostname override.
 
-Storage changes are observed by the content script and reconciled with the minimum page work. Appearance/reveal changes redecorate existing Scrawlix roots in place. Policy changes that leave the current page's effective enabled state unchanged are page no-ops. Coverage or custom-term changes restore exact source text with `observation.restore()` before a newly configured controller starts.
+## Browser access
+
+The store-facing manifest requests no HTTP/HTTPS host permission at install time. It declares broad HTTP/HTTPS patterns under `optional_host_permissions` and exposes two explicit runtime choices:
+
+- allow the current HTTP/HTTPS origin
+- allow all HTTP and HTTPS websites
+
+A small Manifest V3 service worker keeps one dynamic content-script registration aligned with the origins Chrome currently grants to Scrawlix. Dynamic registration persists across browser sessions. Removing browser access updates the registration; removing access from the popup also tells the current page session to restore its source text immediately.
+
+Browser access and Scrawlix policy are separate. A site can be configured `on` while Chrome access is still missing; the popup reports that state directly instead of claiming censorship is already active.
 
 ## Page lifecycle
 
 The content script:
 
 1. loads the English pack plus one compiled custom-word rule when custom terms exist
-2. creates one `@scrawlix/dom` controller for the current settings when the page is effectively enabled
+2. creates one `@scrawlix/dom` controller when the effective site policy is enabled
 3. observes `document.body`
 4. decorates only Scrawlix-generated roots with extension presentation metadata
-5. listens for storage changes and chooses among no-op, redecorate, stop, start, or atomic controller restart
+5. listens for sync/local preference changes and reconciles the minimum required work
+6. accepts extension messages to reconcile or restore the current page when browser access changes
 
-The DOM adapter watches mutation roots rather than rescanning the document after every page update.
+Preference reconciliation is incremental:
+
+- effective on -> off: restore and stop
+- effective off -> on: create/start a session
+- coverage/custom-term changes: restore and rebuild the controller
+- appearance/reveal changes: redecorate existing generated roots in place
+- unrelated host/default changes: no page DOM work
+
+The DOM adapter watches mutation roots instead of rescanning the complete document after every page update.
 
 ## Presentation
 
@@ -78,26 +98,29 @@ Asterisk/grawlix masks are presentation metadata on generated cover spans. The s
 
 Hover is the default reveal mode. Focus/click reveal makes a generated wrapper keyboard-focusable only when the wrapper is outside links, buttons, inputs, and other native interactive controls. Scrawlix avoids stealing those controls' interaction semantics.
 
-## Permissions
+## Permissions and privacy
 
-The development manifest requests:
+The manifest uses:
 
 - `storage` — persist preferences
-- `activeTab` — let the popup identify the current HTTP/HTTPS hostname after the user opens it
-- host access to HTTP and HTTPS pages — run the content script automatically on pages where Scrawlix may be enabled
+- `activeTab` — let the popup inspect and act on the current page after the user opens it
+- `scripting` — register/inject the local content script for user-granted origins
+- optional HTTP/HTTPS host access — granted at runtime by the user
 
-The extension has no background service worker and sends no browsing or page text to a server. Matching happens inside the page's content-script context using bundled Scrawlix packages.
+The extension has no Scrawlix-operated network dependency and sends no browsing or page text to a Scrawlix server. Matching happens inside the page's content-script context using bundled Scrawlix packages.
 
-Broad HTTP/HTTPS host access is a meaningful permission and should remain explicit in store-facing documentation. Before a store release, revisit whether optional host permissions or another activation model would deliver the desired persistent per-site behavior with a gentler permission prompt.
+See [`docs/extension-privacy.md`](../../docs/extension-privacy.md) for the current store-facing privacy statement.
 
 ## Build validation
 
 `pnpm --filter scrawlix-extension build` validates that:
 
 - the manifest is MV3
+- `background.js` exists
 - `content.js` exists
 - `content.css` exists
 - `popup.html` exists
-- every JS/CSS/popup path referenced by the manifest exists in `dist`
+- broad HTTP/HTTPS patterns remain optional instead of required host permissions
+- every directly referenced popup/background asset exists in `dist`
 
-Pure preference/mask behavior is covered by `src/config.test.ts`. The workspace browser smoke suite loads the built MV3 extension in real Chromium and covers initial/dynamic transformation plus key native-page exclusions; storage/popup policy E2E coverage continues under the browser-hardening work.
+Unit tests cover preference normalization/reconciliation, browser-access helpers, and the local-vs-sync storage split. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration and real content script without weakening the shipping manifest.
