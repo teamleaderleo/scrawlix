@@ -17,6 +17,11 @@
       "types": "./dist/targeted-obfuscated.d.ts",
       "import": "./dist/targeted-obfuscated.js",
       "default": "./dist/targeted-obfuscated.js"
+    },
+    "./pack-authoring": {
+      "types": "./dist/pack-authoring.d.ts",
+      "import": "./dist/pack-authoring.js",
+      "default": "./dist/pack-authoring.js"
     }
   },
   "repository": {
