@@ -8,7 +8,7 @@ Scrawlix censors configured words and phrases directly inside webpages in the br
 
 ### Webpage text
 
-When Scrawlix has browser access to a site, the content script reads eligible text nodes in that page so the bundled matching engine can find configured terms and render the selected censor treatment. Page text is processed in the page's browser context. Scrawlix does not send page text to a Scrawlix server and does not persist page text in extension storage.
+When Scrawlix has browser access to a site, the content script reads eligible text nodes in the top document so the bundled matching engine can find configured terms and render the selected censor treatment. The current store-facing build does not inject Scrawlix into child frames and does not traverse shadow roots, so text inside those DOM contexts is outside its processing scope. Page text is processed in the page's browser context. Scrawlix does not send page text to a Scrawlix server and does not persist page text in extension storage.
 
 ### Current page address
 
@@ -28,7 +28,7 @@ The master pause/default behavior, censor style, coverage, and reveal preference
 
 ### Browser site access
 
-Scrawlix declares HTTP and HTTPS access as optional host permissions. Users can grant access for the current origin or for all HTTP/HTTPS websites, and can remove that access again. Chrome stores and enforces those grants. Scrawlix dynamically registers its local content script only for currently granted HTTP/HTTPS patterns.
+Scrawlix declares HTTP and HTTPS access as optional host permissions. Users can grant access for the current origin or for all HTTP/HTTPS websites, and can remove that access again. Chrome stores and enforces those grants. Scrawlix dynamically registers its local content script only for currently granted HTTP/HTTPS patterns, with frame expansion disabled in the current store-facing coverage contract.
 
 ### Temporary page reveal
 
