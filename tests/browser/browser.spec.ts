@@ -16,6 +16,36 @@ function extensionWithPregrantedHosts(outputPath: string) {
   return outputPath;
 }
 
+async function launchExtensionContext(profilePath: string, unpackedPath: string) {
+  return chromium.launchPersistentContext(profilePath, {
+    channel: 'chromium',
+    headless: true,
+    args: [
+      `--disable-extensions-except=${unpackedPath}`,
+      `--load-extension=${unpackedPath}`,
+    ],
+  });
+}
+
+async function waitForPageRegistration(worker: import('@playwright/test').Worker) {
+  await expect
+    .poll(async () =>
+      worker.evaluate(async () => {
+        const scripts = await chrome.scripting.getRegisteredContentScripts({
+          ids: ['scrawlix-page'],
+        });
+        return {
+          matches: scripts[0]?.matches?.sort() ?? [],
+          runAt: scripts[0]?.runAt ?? null,
+        };
+      })
+    )
+    .toEqual({
+      matches: ['http://*/*', 'https://*/*'],
+      runAt: 'document_start',
+    });
+}
+
 test('demo controls drive real rendered coverage and reveal state', async ({ page }) => {
   await page.goto('http://127.0.0.1:4173');
 
@@ -50,36 +80,14 @@ test('built extension registers granted hosts and handles page interaction in Ch
   const testExtensionPath = extensionWithPregrantedHosts(
     testInfo.outputPath('extension-under-test')
   );
-  const context = await chromium.launchPersistentContext(
+  const context = await launchExtensionContext(
     testInfo.outputPath('extension-profile'),
-    {
-      channel: 'chromium',
-      headless: true,
-      args: [
-        `--disable-extensions-except=${testExtensionPath}`,
-        `--load-extension=${testExtensionPath}`,
-      ],
-    }
+    testExtensionPath
   );
 
   try {
     const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
-    await expect
-      .poll(async () =>
-        worker.evaluate(async () => {
-          const scripts = await chrome.scripting.getRegisteredContentScripts({
-            ids: ['scrawlix-page'],
-          });
-          return {
-            matches: scripts[0]?.matches?.sort() ?? [],
-            runAt: scripts[0]?.runAt ?? null,
-          };
-        })
-      )
-      .toEqual({
-        matches: ['http://*/*', 'https://*/*'],
-        runAt: 'document_start',
-      });
+    await waitForPageRegistration(worker);
 
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
@@ -219,5 +227,134 @@ test('built extension registers granted hosts and handles page interaction in Ch
     await expect(page.locator('#clicked')).toHaveText('native link worked');
   } finally {
     await context.close();
+  }
+});
+
+test('built extension persists forced-host policy and treatment across browser restart', async ({}, testInfo) => {
+  const testExtensionPath = extensionWithPregrantedHosts(
+    testInfo.outputPath('state-extension-under-test')
+  );
+  const profilePath = testInfo.outputPath('state-extension-profile');
+
+  const firstContext = await launchExtensionContext(profilePath, testExtensionPath);
+  try {
+    const worker =
+      firstContext.serviceWorkers()[0] ??
+      (await firstContext.waitForEvent('serviceworker'));
+    // This synthetic fresh profile starts with broad host access promoted into the test
+    // manifest. Wait for the worker to mirror those pre-granted patterns into the same
+    // dynamic registration production creates immediately after a runtime grant.
+    await waitForPageRegistration(worker);
+
+    const page = firstContext.pages()[0] ?? (await firstContext.newPage());
+    await page.goto('http://127.0.0.1:4174/fixture.html');
+
+    const root = page.locator('#initial [data-scrawlix-dom-root]');
+    await expect(root).toHaveCount(1);
+
+    // Default-off + forced-on is the allowlist configuration. Keep it active while
+    // changing treatment so global/default changes cannot accidentally tear it down.
+    await worker.evaluate(async () => {
+      await chrome.storage.sync.set({
+        scrawlixSettings: {
+          paused: false,
+          enabled: false,
+          appearance: 'bar',
+          coverage: 'full',
+          reveal: 'never',
+        },
+      });
+      await chrome.storage.local.set({
+        scrawlixSiteOverrides: { '127.0.0.1': 'on' },
+      });
+    });
+
+    await expect(root).toHaveAttribute('data-scrawlix-appearance', 'bar');
+    await expect(root).toHaveAttribute('data-scrawlix-reveal', 'never');
+    await expect(page.locator('#initial [data-scrawlix-cover]')).toHaveText('fuck');
+
+    await page.evaluate(() => {
+      (window as typeof window & { __scrawlixRoot?: Element | null }).__scrawlixRoot =
+        document.querySelector('#initial [data-scrawlix-dom-root]');
+    });
+
+    await worker.evaluate(async () => {
+      const stored = (await chrome.storage.sync.get('scrawlixSettings'))
+        .scrawlixSettings as Record<string, unknown>;
+      await chrome.storage.sync.set({
+        scrawlixSettings: { ...stored, appearance: 'blur' },
+      });
+    });
+
+    await expect(root).toHaveAttribute('data-scrawlix-appearance', 'blur');
+    expect(
+      await page.evaluate(() => {
+        const saved = (window as typeof window & { __scrawlixRoot?: Element | null })
+          .__scrawlixRoot;
+        return saved === document.querySelector('#initial [data-scrawlix-dom-root]');
+      })
+    ).toBe(true);
+
+    // Master pause wins even over an explicit forced-on hostname and restores exact source.
+    await worker.evaluate(async () => {
+      const stored = (await chrome.storage.sync.get('scrawlixSettings'))
+        .scrawlixSettings as Record<string, unknown>;
+      await chrome.storage.sync.set({
+        scrawlixSettings: { ...stored, paused: true },
+      });
+    });
+    await expect(root).toHaveCount(0);
+    await expect(page.locator('#initial')).toHaveText('well, fuck this');
+
+    await worker.evaluate(async () => {
+      const stored = (await chrome.storage.sync.get('scrawlixSettings'))
+        .scrawlixSettings as Record<string, unknown>;
+      await chrome.storage.sync.set({
+        scrawlixSettings: { ...stored, paused: false },
+      });
+    });
+    await expect(root).toHaveCount(1);
+    await expect(root).toHaveAttribute('data-scrawlix-appearance', 'blur');
+    await expect(page.locator('#initial [data-scrawlix-cover]')).toHaveText('fuck');
+  } finally {
+    await firstContext.close();
+  }
+
+  // Relaunch Chromium against the exact same persistent profile. The persisted dynamic
+  // registration must be available before navigation, and sync/local state must restore
+  // the same effective page behavior.
+  const secondContext = await launchExtensionContext(profilePath, testExtensionPath);
+  try {
+    const worker =
+      secondContext.serviceWorkers()[0] ??
+      (await secondContext.waitForEvent('serviceworker'));
+    await waitForPageRegistration(worker);
+
+    const page = secondContext.pages()[0] ?? (await secondContext.newPage());
+    await page.goto('http://127.0.0.1:4174/fixture.html');
+
+    const root = page.locator('#initial [data-scrawlix-dom-root]');
+    await expect(root).toHaveCount(1);
+    await expect(root).toHaveAttribute('data-scrawlix-appearance', 'blur');
+    await expect(root).toHaveAttribute('data-scrawlix-reveal', 'never');
+    await expect(page.locator('#initial [data-scrawlix-cover]')).toHaveText('fuck');
+
+    const stored = await worker.evaluate(async () => {
+      const sync = (await chrome.storage.sync.get('scrawlixSettings')).scrawlixSettings;
+      const local = (await chrome.storage.local.get('scrawlixSiteOverrides'))
+        .scrawlixSiteOverrides;
+      return { sync, local };
+    });
+
+    expect(stored.sync).toEqual({
+      paused: false,
+      enabled: false,
+      appearance: 'blur',
+      coverage: 'full',
+      reveal: 'never',
+    });
+    expect(stored.local).toEqual({ '127.0.0.1': 'on' });
+  } finally {
+    await secondContext.close();
   }
 });
