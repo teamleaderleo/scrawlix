@@ -39,6 +39,7 @@ export type CensorRulePack = {
 export type WordBoundaryMode = 'word' | 'substring';
 
 export type ScrawlixMatch = {
+  id: string;
   ruleId: string;
   text: string;
   start: number;
@@ -48,10 +49,17 @@ export type ScrawlixMatch = {
   targetEnd: number;
 };
 
+export type ScrawlixCoverageEdge = 'solo' | 'start' | 'middle' | 'end';
+
 export type ScrawlixSegment = {
   text: string;
   covered: boolean;
+  start: number;
+  end: number;
   ruleIds: readonly string[];
+  matchIds: readonly string[];
+  revealId?: string;
+  coverageEdge?: ScrawlixCoverageEdge;
 };
 
 export type ScrawlixOptions = {
@@ -68,7 +76,14 @@ type CompiledRule = Omit<CensorRule, 'pattern'> & {
   pattern: RegExp;
 };
 
+type MatchWithoutId = Omit<ScrawlixMatch, 'id'>;
+
 type ScannedMatch = {
+  match: MatchWithoutId;
+  rule: CompiledRule;
+};
+
+type IdentifiedScannedMatch = {
   match: ScrawlixMatch;
   rule: CompiledRule;
 };
@@ -77,6 +92,12 @@ type CoveredRange = {
   start: number;
   end: number;
   ruleIds: Set<string>;
+  matchIds: Set<string>;
+};
+
+type PresentedCoveredRange = CoveredRange & {
+  revealId: string;
+  coverageEdge: ScrawlixCoverageEdge;
 };
 
 const graphemeSegmenter =
@@ -204,7 +225,7 @@ function resolveTargetRange(match: RegExpExecArray, rule: CompiledRule) {
   return { start: groupRange[0], end: groupRange[1] };
 }
 
-function scan(text: string, rules: readonly CompiledRule[]): ScannedMatch[] {
+function scan(text: string, rules: readonly CompiledRule[]): IdentifiedScannedMatch[] {
   const matches: ScannedMatch[] = [];
 
   for (const rule of rules) {
@@ -242,11 +263,17 @@ function scan(text: string, rules: readonly CompiledRule[]): ScannedMatch[] {
       left.match.ruleId.localeCompare(right.match.ruleId)
   );
 
-  return matches;
+  return matches.map((scanned, index) => ({
+    rule: scanned.rule,
+    match: {
+      id: `m${index}`,
+      ...scanned.match,
+    },
+  }));
 }
 
 function collectCoveredRanges(
-  matches: readonly ScannedMatch[],
+  matches: readonly IdentifiedScannedMatch[],
   defaultCoverage: CoverageSelector
 ) {
   const ranges: CoveredRange[] = [];
@@ -275,6 +302,7 @@ function collectCoveredRanges(
         start: match.targetStart + relative.start,
         end: match.targetStart + relative.end,
         ruleIds: new Set([match.ruleId]),
+        matchIds: new Set([match.id]),
       });
     }
   }
@@ -293,20 +321,82 @@ function mergeCoveredRanges(ranges: readonly CoveredRange[]) {
         start: range.start,
         end: range.end,
         ruleIds: new Set(range.ruleIds),
+        matchIds: new Set(range.matchIds),
       });
       continue;
     }
 
     previous.end = Math.max(previous.end, range.end);
     for (const ruleId of range.ruleIds) previous.ruleIds.add(ruleId);
+    for (const matchId of range.matchIds) previous.matchIds.add(matchId);
   }
 
   return merged;
 }
 
-function segmentFromRanges(text: string, ranges: readonly CoveredRange[]) {
+function revealIdForRange(range: CoveredRange) {
+  const matchIds = [...range.matchIds].sort();
+  if (matchIds.length === 1) return matchIds[0]!;
+  return `g:${range.start}:${range.end}:${matchIds.join('+')}`;
+}
+
+function addCoverageEdges(
+  ranges: readonly CoveredRange[]
+): PresentedCoveredRange[] {
+  const prepared = ranges.map(range => ({
+    ...range,
+    revealId: revealIdForRange(range),
+  }));
+  const groupIndexes = new Map<string, number[]>();
+
+  prepared.forEach((range, index) => {
+    const indexes = groupIndexes.get(range.revealId) ?? [];
+    indexes.push(index);
+    groupIndexes.set(range.revealId, indexes);
+  });
+
+  const edges = new Map<number, ScrawlixCoverageEdge>();
+  for (const indexes of groupIndexes.values()) {
+    if (indexes.length === 1) {
+      edges.set(indexes[0]!, 'solo');
+      continue;
+    }
+
+    indexes.forEach((index, position) => {
+      edges.set(
+        index,
+        position === 0
+          ? 'start'
+          : position === indexes.length - 1
+            ? 'end'
+            : 'middle'
+      );
+    });
+  }
+
+  return prepared.map((range, index) => ({
+    ...range,
+    coverageEdge: edges.get(index) ?? 'solo',
+  }));
+}
+
+function plainSegment(text: string, start: number, end: number): ScrawlixSegment {
+  return {
+    text: text.slice(start, end),
+    covered: false,
+    start,
+    end,
+    ruleIds: [],
+    matchIds: [],
+  };
+}
+
+function segmentFromRanges(
+  text: string,
+  ranges: readonly PresentedCoveredRange[]
+) {
   if (ranges.length === 0) {
-    return [{ text, covered: false, ruleIds: [] }] satisfies ScrawlixSegment[];
+    return [plainSegment(text, 0, text.length)] satisfies ScrawlixSegment[];
   }
 
   const segments: ScrawlixSegment[] = [];
@@ -314,27 +404,24 @@ function segmentFromRanges(text: string, ranges: readonly CoveredRange[]) {
 
   for (const range of ranges) {
     if (range.start > cursor) {
-      segments.push({
-        text: text.slice(cursor, range.start),
-        covered: false,
-        ruleIds: [],
-      });
+      segments.push(plainSegment(text, cursor, range.start));
     }
 
     segments.push({
       text: text.slice(range.start, range.end),
       covered: true,
+      start: range.start,
+      end: range.end,
       ruleIds: [...range.ruleIds],
+      matchIds: [...range.matchIds],
+      revealId: range.revealId,
+      coverageEdge: range.coverageEdge,
     });
     cursor = range.end;
   }
 
   if (cursor < text.length) {
-    segments.push({
-      text: text.slice(cursor),
-      covered: false,
-      ruleIds: [],
-    });
+    segments.push(plainSegment(text, cursor, text.length));
   }
 
   return segments;
@@ -397,12 +484,12 @@ export function createScrawlix({
 
     segment(text) {
       if (!text || compiledRules.length === 0) {
-        return [{ text, covered: false, ruleIds: [] }];
+        return [plainSegment(text, 0, text.length)];
       }
 
       const matches = scan(text, compiledRules);
-      const coveredRanges = mergeCoveredRanges(
-        collectCoveredRanges(matches, coverage)
+      const coveredRanges = addCoverageEdges(
+        mergeCoveredRanges(collectCoveredRanges(matches, coverage))
       );
       return segmentFromRanges(text, coveredRanges);
     },
