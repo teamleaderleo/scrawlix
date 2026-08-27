@@ -1,7 +1,7 @@
 {
   "name": "@scrawlix/en",
   "version": "0.0.0",
-  "description": "English profanity rules, coverage helpers, and regression corpora for Scrawlix.",
+  "description": "English strong-profanity rules, coverage helpers, and regression corpora for Scrawlix.",
   "type": "module",
   "sideEffects": false,
   "files": ["dist"],
