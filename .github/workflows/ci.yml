@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -25,17 +28,24 @@ jobs:
         run: pnpm test:browser:demo
       - name: Browser smoke — extension
         run: pnpm test:browser:extension
+      - name: Bootstrap context lab baseline
+        if: github.event_name == 'push' && github.ref == 'refs/heads/graphite/context-specimen-lab'
+        run: |
+          pnpm exec playwright test -c playwright.config.ts tests/browser/visual.spec.ts --update-snapshots
+          unexpected="$(git status --porcelain tests/browser/visual-baselines | grep -v '^?? tests/browser/visual-baselines/context-lab-desktop.png$' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "Existing visual baselines changed during context bootstrap:"
+            echo "$unexpected"
+            exit 1
+          fi
+          test -f tests/browser/visual-baselines/context-lab-desktop.png
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/browser/visual-baselines/context-lab-desktop.png
+          git commit -m "Add hostile-context visual baseline"
+          git push
       - name: Browser visual regressions
         run: pnpm exec playwright test -c playwright.config.ts tests/browser/visual.spec.ts
-      - name: Capture context lab candidate
-        run: pnpm exec playwright test -c playwright.config.ts tests/browser/context.capture.spec.ts
-      - name: Upload context lab candidate
-        uses: actions/upload-artifact@v4
-        with:
-          name: scrawlix-context-lab-candidate
-          path: test-results/context-candidate/context-lab-desktop.png
-          if-no-files-found: error
-          retention-days: 7
       - name: Upload visual regression failures
         if: failure()
         uses: actions/upload-artifact@v4
