@@ -9,7 +9,7 @@ Scrawlix separates the interesting parts of censorship so they can be mixed deli
 - **appearance** — how should the covered part look?
 - **reveal** — when, if ever, should the original text show through?
 
-That means the same word can become `████`, `f███`, `f██k`, `f█ck`, `f**k`, a blur, an inked-over scrawl, or a grawlix — while callers keep control of the underlying source text.
+That means the same word can become `████`, `f███`, `f██k`, `f█ck`, `f**k`, a blur, an inked-over scrawl, correction-fluid whiteout, a pixel mosaic, or a grawlix — while callers keep control of the underlying source text.
 
 Scrawlix began as a censor/reveal primitive in [Scrapbook](https://github.com/teamleaderleo/scrapbook). The standalone project turns that experiment into a small language-neutral engine with rule packs and adapters for React, Markdown, arbitrary DOMs, and a browser extension built from the same pieces.
 
@@ -47,9 +47,11 @@ import '@scrawlix/react/styles.css';
 />;
 ```
 
-Current appearances: `scrawl`, `bar`, `blur`, `asterisk`, and `grawlix`.
+Current appearances: `scrawl`, `bar`, `blur`, `whiteout`, `mosaic`, `asterisk`, and `grawlix`.
 
 Current reveal modes: `hover`, `focus`, `click`, and `never`.
+
+The renderer exposes a namespaced presentation contract through `data-scrawlix-root`, `data-scrawlix-appearance`, `data-scrawlix-reveal`, `data-scrawlix-revealed`, `data-scrawlix-cover`, `data-scrawlix-rules`, and optional `data-scrawlix-mask` attributes. Preset styling can be tuned with CSS custom properties including `--scrawlix-ink`, `--scrawlix-surface`, `--scrawlix-bar-height`, `--scrawlix-blur-radius`, and `--scrawlix-mosaic-cell`.
 
 ## Markdown / rehype
 
@@ -120,7 +122,7 @@ The popup currently supports:
 
 - a global on/off switch
 - per-host **follow global / always on / always off** behavior
-- all five appearances
+- all seven appearances
 - all generic coverage modes plus English vowel coverage
 - hover / focus / click / never reveal
 - local custom words and phrases
@@ -171,7 +173,7 @@ pnpm install
 pnpm dev
 ```
 
-The demo includes an editable live proof, coverage and reveal controls, a five-style specimen sheet, semantic-match examples, and a live component snippet.
+The demo includes an editable live proof, coverage and reveal controls, a seven-style specimen sheet, semantic-match examples, and a live component snippet.
 
 ### Vercel
 
@@ -209,6 +211,9 @@ pnpm smoke:packages
 - [Language packs](https://github.com/teamleaderleo/scrawlix/issues/12)
 - [Human and agent adoption ergonomics](https://github.com/teamleaderleo/scrawlix/issues/13)
 - [First public release readiness](https://github.com/teamleaderleo/scrawlix/issues/18)
+- [Appearance DOM/CSS contract](https://github.com/teamleaderleo/scrawlix/issues/26)
+- [Per-match reveal metadata](https://github.com/teamleaderleo/scrawlix/issues/27)
+- [Demo X-ray and specimen lab](https://github.com/teamleaderleo/scrawlix/issues/28)
 
 ## Status
 
