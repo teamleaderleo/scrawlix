@@ -26,17 +26,52 @@ export type CensoredTextProps = {
   title?: string;
 };
 
+type RevealState = {
+  text: string;
+  rules: readonly CensorRule[];
+  coverage: CoverageSelector;
+  reveal: ScrawlixReveal;
+  revealed: boolean;
+};
+
 const GRAWLIX = '@#$%&!';
+const graphemeSegmenter =
+  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    : null;
+
+function graphemeCount(value: string) {
+  if (graphemeSegmenter) {
+    return [...graphemeSegmenter.segment(value)].length;
+  }
+  return Array.from(value).length;
+}
 
 function symbolsFor(text: string, appearance: ScrawlixAppearance) {
-  const characters = Array.from(text);
-  if (appearance === 'asterisk') return characters.map(() => '*').join('');
+  const length = graphemeCount(text);
+  if (appearance === 'asterisk') return '*'.repeat(length);
   if (appearance === 'grawlix') {
-    return characters
-      .map((_, index) => GRAWLIX[index % GRAWLIX.length])
-      .join('');
+    return Array.from(
+      { length },
+      (_, index) => GRAWLIX[index % GRAWLIX.length]
+    ).join('');
   }
   return text;
+}
+
+function sameRevealInputs(
+  state: RevealState,
+  text: string,
+  rules: readonly CensorRule[],
+  coverage: CoverageSelector,
+  reveal: ScrawlixReveal
+) {
+  return (
+    state.text === text &&
+    state.rules === rules &&
+    state.coverage === coverage &&
+    state.reveal === reveal
+  );
 }
 
 export function CensoredText({
@@ -54,17 +89,47 @@ export function CensoredText({
   );
   const segments = engine.segment(text);
   const hasCoveredText = segments.some(segment => segment.covered);
-  const [revealed, setRevealed] = useState(false);
+  const [revealState, setRevealState] = useState<RevealState>(() => ({
+    text,
+    rules,
+    coverage,
+    reveal,
+    revealed: false,
+  }));
+  const sameInputs = sameRevealInputs(
+    revealState,
+    text,
+    rules,
+    coverage,
+    reveal
+  );
+  const revealed = sameInputs ? revealState.revealed : false;
+
+  if (!sameInputs) {
+    setRevealState({ text, rules, coverage, reveal, revealed: false });
+  }
 
   if (!hasCoveredText) return <>{text}</>;
 
   const interactive = reveal === 'focus' || reveal === 'click';
 
+  function toggleReveal() {
+    setRevealState(current => ({
+      text,
+      rules,
+      coverage,
+      reveal,
+      revealed: sameRevealInputs(current, text, rules, coverage, reveal)
+        ? !current.revealed
+        : true,
+    }));
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
     if (reveal !== 'click') return;
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      setRevealed(value => !value);
+      toggleReveal();
     }
   }
 
@@ -75,7 +140,7 @@ export function CensoredText({
       data-reveal={reveal}
       data-revealed={revealed ? 'true' : 'false'}
       tabIndex={interactive ? 0 : undefined}
-      onClick={reveal === 'click' ? () => setRevealed(value => !value) : undefined}
+      onClick={reveal === 'click' ? toggleReveal : undefined}
       onKeyDown={onKeyDown}
     >
       <span data-scrawlix-a11y>{text}</span>
