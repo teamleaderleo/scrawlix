@@ -1,0 +1,181 @@
+[
+  {
+    "id": "fuck-base",
+    "text": "fuck",
+    "profile": "canonical",
+    "tags": ["base"],
+    "matches": [
+      {
+        "ruleId": "fuck",
+        "text": "fuck",
+        "start": 0,
+        "end": 4,
+        "targetText": "fuck",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "fuck-uppercase-inflection",
+    "text": "FUCKING",
+    "profile": "canonical",
+    "tags": ["case", "inflection"],
+    "matches": [
+      {
+        "ruleId": "fuck",
+        "text": "FUCKING",
+        "start": 0,
+        "end": 7,
+        "targetText": "FUCK",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "fuck-mother-compound",
+    "text": "motherfucker",
+    "profile": "canonical",
+    "tags": ["compound", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "fuck",
+        "text": "motherfucker",
+        "start": 0,
+        "end": 12,
+        "targetText": "fuck",
+        "targetStart": 6,
+        "targetEnd": 10
+      }
+    ]
+  },
+  {
+    "id": "fuck-punctuation",
+    "text": "well, fuck!",
+    "profile": "canonical",
+    "tags": ["punctuation"],
+    "matches": [
+      {
+        "ruleId": "fuck",
+        "text": "fuck",
+        "start": 6,
+        "end": 10,
+        "targetText": "fuck",
+        "targetStart": 6,
+        "targetEnd": 10
+      }
+    ]
+  },
+  {
+    "id": "shit-bull-compound",
+    "text": "bullshit",
+    "profile": "canonical",
+    "tags": ["compound", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "shit",
+        "text": "bullshit",
+        "start": 0,
+        "end": 8,
+        "targetText": "shit",
+        "targetStart": 4,
+        "targetEnd": 8
+      }
+    ]
+  },
+  {
+    "id": "shit-inflection",
+    "text": "shitty",
+    "profile": "canonical",
+    "tags": ["inflection", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "shit",
+        "text": "shitty",
+        "start": 0,
+        "end": 6,
+        "targetText": "shit",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "bitch-plural",
+    "text": "bitches",
+    "profile": "canonical",
+    "tags": ["inflection", "plural", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "bitch",
+        "text": "bitches",
+        "start": 0,
+        "end": 7,
+        "targetText": "bitch",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "asshole-plural",
+    "text": "assholes",
+    "profile": "canonical",
+    "tags": ["inflection", "plural", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "asshole",
+        "text": "assholes",
+        "start": 0,
+        "end": 8,
+        "targetText": "asshole",
+        "targetStart": 0,
+        "targetEnd": 7
+      }
+    ]
+  },
+  {
+    "id": "cunt-plural",
+    "text": "cunts",
+    "profile": "canonical",
+    "tags": ["inflection", "plural", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "cunt",
+        "text": "cunts",
+        "start": 0,
+        "end": 5,
+        "targetText": "cunt",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "multiple-rules",
+    "text": "fuck this shit",
+    "profile": "canonical",
+    "tags": ["multiple-matches"],
+    "matches": [
+      {
+        "ruleId": "fuck",
+        "text": "fuck",
+        "start": 0,
+        "end": 4,
+        "targetText": "fuck",
+        "targetStart": 0,
+        "targetEnd": 4
+      },
+      {
+        "ruleId": "shit",
+        "text": "shit",
+        "start": 10,
+        "end": 14,
+        "targetText": "shit",
+        "targetStart": 10,
+        "targetEnd": 14
+      }
+    ]
+  }
+]
