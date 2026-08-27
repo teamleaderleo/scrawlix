@@ -13,7 +13,14 @@ const validProps: CensoredTextProps = {
   rules,
   id: 'copy',
   'aria-describedby': 'hint',
-  style: { '--scrawlix-ink': 'rebeccapurple', marginInlineStart: 4 },
+  style: {
+    '--scrawlix-ink': 'rebeccapurple',
+    '--scrawlix-surface': '#fff8e7',
+    '--scrawlix-bar-height': '0.8em',
+    '--scrawlix-blur-radius': '0.2em',
+    '--scrawlix-mosaic-cell': '0.35em',
+    marginInlineStart: 4,
+  },
 };
 void validProps;
 
@@ -73,7 +80,14 @@ describe('CensoredText span composition', () => {
         onClick={onClick}
         ref={ref}
         rules={rules}
-        style={{ '--scrawlix-ink': 'rebeccapurple', marginLeft: 4 }}
+        style={{
+          '--scrawlix-ink': 'rebeccapurple',
+          '--scrawlix-surface': '#fff8e7',
+          '--scrawlix-bar-height': '0.8em',
+          '--scrawlix-blur-radius': '0.2em',
+          '--scrawlix-mosaic-cell': '0.35em',
+          marginLeft: 4,
+        }}
         text="perfectly ordinary"
         title="Host title"
       />
@@ -91,6 +105,10 @@ describe('CensoredText span composition', () => {
     expect(root.title).toBe('Host title');
     expect(root.style.marginLeft).toBe('4px');
     expect(root.style.getPropertyValue('--scrawlix-ink')).toBe('rebeccapurple');
+    expect(root.style.getPropertyValue('--scrawlix-surface')).toBe('#fff8e7');
+    expect(root.style.getPropertyValue('--scrawlix-bar-height')).toBe('0.8em');
+    expect(root.style.getPropertyValue('--scrawlix-blur-radius')).toBe('0.2em');
+    expect(root.style.getPropertyValue('--scrawlix-mosaic-cell')).toBe('0.35em');
 
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -137,9 +155,13 @@ describe('CensoredText span composition', () => {
 
   it('runs caller click first and then component reveal', () => {
     const order: string[] = [];
+    let seenDuringCaller: string | undefined;
     const container = render(
       <CensoredText
-        onClick={() => order.push('caller')}
+        onClick={event => {
+          order.push('caller');
+          seenDuringCaller = event.currentTarget.dataset.scrawlixRevealed;
+        }}
         reveal="click"
         rules={rules}
         text="fuck"
@@ -150,6 +172,7 @@ describe('CensoredText span composition', () => {
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 
     order.push(root.dataset.scrawlixRevealed === 'true' ? 'revealed' : 'hidden');
+    expect(seenDuringCaller).toBe('false');
     expect(order).toEqual(['caller', 'revealed']);
   });
 
