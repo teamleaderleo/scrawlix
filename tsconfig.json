@@ -15,6 +15,7 @@
       "@scrawlix/core/targeted-obfuscated": [
         "packages/core/src/targeted-obfuscated.ts"
       ],
+      "@scrawlix/core/pack-authoring": ["packages/core/src/pack-authoring.ts"],
       "@scrawlix/en": ["packages/en/src/index.ts"],
       "@scrawlix/en/corpus": ["packages/en/src/corpus.ts"],
       "@scrawlix/react": ["packages/react/src/index.tsx"],
