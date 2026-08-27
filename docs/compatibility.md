@@ -28,7 +28,11 @@ A fallback based on Unicode code points is used when `Intl.Segmenter` is unavail
 
 `@scrawlix/react` supports React **18 and 19**. The packed-package release gate installs, typechecks, and production-builds external consumers against both major versions.
 
-The React entry is a Client Component because interactive reveal uses React state. Next.js App Router users can import it across a normal client boundary. A dedicated Next.js consumer smoke remains tracked separately.
+The React entry is a Client Component because interactive reveal uses React state.
+
+For Next.js App Router, keep rule selection inside a local Client Component. Scrawlix rules contain `RegExp` values and coverage selectors can be functions, so they are unsuitable as Server-to-Client serialized props. The Server Component should pass ordinary serializable values such as the source `text` to an application-owned client wrapper that imports both the rule pack and `CensoredText`.
+
+The packed-package release gate also installs a Next.js 16 App Router fixture from tarballs and production-builds this exact boundary, including the public stylesheet import from the root layout.
 
 ## DOM
 
@@ -44,6 +48,6 @@ The semantic text contract remains in the generated markup. Consumers targeting 
 
 ## TypeScript
 
-Published packages include declarations and use ESM package exports. The external tarball consumer typechecks with `skipLibCheck: false`, so declaration dependencies and public export paths are verified before release.
+Published packages include declarations and use ESM package exports. External tarball consumers typecheck with `skipLibCheck: false`, so declaration dependencies and public export paths are verified before release.
 
 Consumer projects can use their own TypeScript configuration. The Scrawlix workspace itself uses `moduleResolution: "Bundler"`; that setting is not imposed on consumers.
