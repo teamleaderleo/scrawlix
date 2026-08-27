@@ -1,10 +1,21 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 async function openDemo(page: Page) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('http://127.0.0.1:4173');
   await page.evaluate(async () => {
     if ('fonts' in document) await document.fonts.ready;
+  });
+}
+
+async function pinToWholeCssPixels(locator: Locator) {
+  await locator.scrollIntoViewIfNeeded();
+  await locator.evaluate(element => {
+    const node = element as HTMLElement;
+    const rect = node.getBoundingClientRect();
+    const x = Math.round(rect.left) - rect.left;
+    const y = Math.round(rect.top) - rect.top;
+    node.style.translate = `${x}px ${y}px`;
   });
 }
 
@@ -20,6 +31,7 @@ test('curated Scrawlix visual regressions', async ({ page }) => {
 
   const xraySection = page.locator('.xray-section');
   await expect(xraySection).toBeVisible();
+  await pinToWholeCssPixels(xraySection);
   await expect(xraySection).toHaveScreenshot('xray-middle-desktop.png', {
     animations: 'disabled',
   });
