@@ -47,31 +47,31 @@ export const englishStrongProfanityRules: readonly CensorRule[] = [
   {
     id: 'fuck',
     pattern:
-      /(?<![\p{L}\p{N}_])(?:mother)?(?<core>fuck)(?:ing|ed|er|ers|s)?(?![\p{L}\p{N}_])/giu,
+      /(?<![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])(?:mother)?(?<core>fuck)(?:ing|ed|er|ers|s)?(?![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])/giu,
     target: { group: 'core' },
   },
   {
     id: 'shit',
     pattern:
-      /(?<![\p{L}\p{N}_])(?:bull)?(?<core>shit)(?:ting|ted|ter|ters|s|ty)?(?![\p{L}\p{N}_])/giu,
+      /(?<![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])(?:bull)?(?<core>shit)(?:ting|ted|ter|ters|s|ty)?(?![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])/giu,
     target: { group: 'core' },
   },
   {
     id: 'bitch',
     pattern:
-      /(?<![\p{L}\p{N}_])(?<core>bitch)(?:es|ing|ed|y)?(?![\p{L}\p{N}_])/giu,
+      /(?<![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])(?<core>bitch)(?:es|ing|ed|y)?(?![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])/giu,
     target: { group: 'core' },
   },
   {
     id: 'asshole',
     pattern:
-      /(?<![\p{L}\p{N}_])(?<core>asshole)s?(?![\p{L}\p{N}_])/giu,
+      /(?<![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])(?<core>asshole)s?(?![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])/giu,
     target: { group: 'core' },
   },
   {
     id: 'cunt',
     pattern:
-      /(?<![\p{L}\p{N}_])(?<core>cunt)s?(?![\p{L}\p{N}_])/giu,
+      /(?<![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])(?<core>cunt)s?(?![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])/giu,
     target: { group: 'core' },
   },
 ] as const;
