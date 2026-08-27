@@ -7,7 +7,10 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     rollupOptions: {
-      input: fileURLToPath(new URL('./popup.html', import.meta.url)),
+      input: {
+        popup: fileURLToPath(new URL('./popup.html', import.meta.url)),
+        options: fileURLToPath(new URL('./options.html', import.meta.url)),
+      },
     },
   },
 });
