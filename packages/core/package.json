@@ -7,7 +7,12 @@
     "node": ">=18"
   },
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "src/index.ts",
+    "src/targeted-obfuscated.ts",
+    "src/repeated-obfuscated.ts"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
