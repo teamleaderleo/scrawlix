@@ -12,6 +12,8 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added custom coverage callbacks and per-rule coverage overrides.
 - Added Unicode-aware custom word/phrase rules with explicit `word` and `substring` boundary modes.
 - Added rule-pack composition and caller-safe compiled RegExp handling.
+- Added a custom matcher escape hatch that can return exact original-source match/target ranges for pack-owned normalization, segmentation, or other matching algorithms.
+- Validate custom matcher ranges instead of silently clamping malformed source offsets.
 - Preserve source-pack provenance in composed rules, matches, and coverage callbacks.
 - Reject configured semantic target groups that are unavailable for a produced match instead of silently widening coverage.
 - Treat combining marks, Unicode connector punctuation, ZWNJ, and ZWJ as continuing word context for custom word/phrase boundaries.
