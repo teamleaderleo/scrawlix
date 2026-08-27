@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createScrawlix } from '@scrawlix/core';
+import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
 import { createDomScrawlix } from '@scrawlix/dom';
 import {
@@ -70,6 +71,20 @@ const targetedMatch = targetedEngine.find('f*cking')[0];
 assert.equal(targetedMatch?.text, 'f*cking');
 assert.equal(targetedMatch?.targetText, 'f*ck');
 assert.equal(targetedMatch?.profile, 'obfuscated');
+
+const repeatedEngine = createScrawlix({
+  rules: [
+    censorRuleFromRepeatedObfuscatedTerms(
+      'repeated-smoke',
+      [{ term: 'motherfucker', target: 'fuck' }],
+      { maxRepetitions: 1 }
+    ),
+  ],
+});
+const repeatedMatch = repeatedEngine.find('motherfuucker')[0];
+assert.equal(repeatedMatch?.text, 'motherfuucker');
+assert.equal(repeatedMatch?.targetText, 'fuuck');
+assert.equal(repeatedMatch?.profile, 'obfuscated');
 
 const tree = {
   type: 'root',
