@@ -78,6 +78,13 @@ Framework-neutral renderer rule:
 - A dedicated adapter package is justified when it owns reusable framework-specific interaction, accessibility, lifecycle/restoration, SSR/client-boundary behavior, plugin integration, or a tested DOM/CSS contract. A simple segment loop belongs in application code/docs.
 - Custom renderers preserve source text unless they explicitly implement separate sanitized-output semantics; do not market a CSS cover as destructive redaction.
 
+Troubleshooting rule:
+- When output surprises you, inspect `engine.find(text)` before changing rendering code. Empty match output points toward rule selection/boundary/profile issues; correct matches with bad presentation point toward the adapter/CSS/lifecycle layer.
+- Duplicated or visibly uncovered React source usually means `@scrawlix/react/styles.css` is missing.
+- Next.js serialization errors mean rule selection crossed the Server-to-Client boundary; keep RegExp/function-based rules inside a Client Component.
+- DOM `observe()` requires `MutationObserver`; one-time transforms can use `apply()`.
+- Use `docs/troubleshooting.md` for the full symptom-first guide.
+
 Custom terms and phrases:
 
 ```ts
@@ -126,6 +133,7 @@ The browser extension keeps browser state outside reusable packages. Global trea
 
 Use only documented public package exports. Maintainer guidance: https://github.com/teamleaderleo/scrawlix/blob/main/AGENTS.md
 Docs index: https://github.com/teamleaderleo/scrawlix/blob/main/docs/README.md
+Troubleshooting: https://github.com/teamleaderleo/scrawlix/blob/main/docs/troubleshooting.md
 Custom renderers: https://github.com/teamleaderleo/scrawlix/blob/main/docs/custom-renderers.md
 Compatibility: https://github.com/teamleaderleo/scrawlix/blob/main/docs/compatibility.md
 Versioning: https://github.com/teamleaderleo/scrawlix/blob/main/docs/versioning.md
