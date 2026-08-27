@@ -96,21 +96,15 @@
         </label>
       </section>
 
-      <section class="custom-words" aria-labelledby="custom-heading">
-        <div class="section-label">
-          <div>
-            <p class="eyebrow">your list</p>
-            <h2 id="custom-heading">Custom words & phrases</h2>
-          </div>
-          <span id="save-status" class="save-status" aria-live="polite"></span>
+      <section class="manage-card" aria-label="Manage Scrawlix settings">
+        <div>
+          <p class="eyebrow">your rules</p>
+          <p class="manage-summary">
+            <span><strong id="custom-count">0</strong> custom terms</span>
+            <span><strong id="site-exception-count">0</strong> site exceptions</span>
+          </p>
         </div>
-        <textarea
-          id="custom-words"
-          rows="5"
-          placeholder="Project Velvet&#10;Mothbit&#10;spoiler phrase"
-          spellcheck="false"
-        ></textarea>
-        <p class="hint">One per line. Saved locally in this browser.</p>
+        <button id="open-options" type="button">manage…</button>
       </section>
 
       <footer>

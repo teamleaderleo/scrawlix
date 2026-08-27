@@ -124,6 +124,41 @@ test('built extension registers granted hosts and handles page interaction in Ch
       .toBeNull();
     await expect(initialRoot).toHaveCount(1);
 
+    // Full-tab Options uses the real engine for its specimen and edits the live custom list.
+    const optionsUrl = await worker.evaluate(() => chrome.runtime.getURL('options.html'));
+    const options = await context.newPage();
+    await options.goto(optionsUrl);
+    await expect(options.getByRole('heading', { name: 'Custom terms' })).toBeVisible();
+    await expect(
+      options.locator('#preview-stage [data-scrawlix-cover]')
+    ).toHaveText('othb');
+
+    await options.locator('#new-terms').fill('Mothbit');
+    await options.getByRole('button', { name: 'add terms', exact: true }).click();
+    await expect(options.locator('#term-list')).toContainText('Mothbit');
+    await expect(options.locator('#custom-count')).toHaveText('1 term');
+
+    await page.evaluate(() => {
+      const paragraph = document.createElement('p');
+      paragraph.id = 'custom-term-copy';
+      paragraph.textContent = 'Mothbit arrived';
+      document.querySelector('main')?.append(paragraph);
+    });
+    await expect(
+      page.locator('#custom-term-copy [data-scrawlix-dom-root]')
+    ).toHaveCount(1);
+    await expect(
+      page.locator('#custom-term-copy [data-scrawlix-cover]')
+    ).toHaveText('othb');
+
+    await options.getByRole('button', { name: 'Remove Mothbit' }).click();
+    await expect(options.locator('#term-list')).not.toContainText('Mothbit');
+    await expect(options.locator('#custom-count')).toHaveText('0 terms');
+    await expect(
+      page.locator('#custom-term-copy [data-scrawlix-dom-root]')
+    ).toHaveCount(0);
+    await options.close();
+
     await page.locator('#native-link').click();
     await expect(page).toHaveURL('http://127.0.0.1:4174/clicked.html');
     await expect(page.locator('#clicked')).toHaveText('native link worked');

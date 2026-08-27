@@ -12,6 +12,10 @@
     "default_popup": "popup.html",
     "default_title": "Scrawlix"
   },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "commands": {
     "temporary-reveal": {
       "suggested_key": {

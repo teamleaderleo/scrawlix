@@ -52,6 +52,20 @@ The popup exposes a tri-state site mode:
 
 The master pause remains a true kill switch and wins over every hostname override.
 
+## Popup and Options
+
+The popup is the current-page control surface. It owns the master pause, current hostname policy, temporary reveal, current browser access, treatment controls, and a compact count of custom terms/site exceptions.
+
+Long-lived collections live in a full-tab `options.html` page opened through `chrome.runtime.openOptionsPage()`:
+
+- General preferences with a live specimen rendered by the real Scrawlix core/coverage/mask logic
+- explicit Add/Remove custom-term management with filtering and the same 200-code-point limit used by context-menu additions
+- searchable site exceptions with `always on`, `always off`, and **use default** actions
+- a read-only summary of persistent browser host grants
+- concise privacy/source/version information
+
+Moving custom terms out of the popup removes the popup-lifecycle debounce hazard: term changes now persist through explicit Add/Remove actions in a durable browser tab.
+
 ## Browser access
 
 The store-facing manifest requests no HTTP/HTTPS host permission at install time. It declares broad HTTP/HTTPS patterns under `optional_host_permissions` and exposes two explicit runtime choices:
@@ -64,6 +78,8 @@ A small Manifest V3 service worker keeps one dynamic content-script registration
 Browser access and Scrawlix policy are separate. A site can be configured `on` while Chrome access is still missing; the popup reports that state directly instead of claiming censorship is already active.
 
 Opening the popup on a persistently granted site also ensures the current page runtime is present. This covers pages that were already open when access changed and keeps the displayed current-site state aligned with the actual page.
+
+The Options page currently summarizes granted sites without removing them. Multi-site access removal belongs there only after revocation can restore every affected open tab before Chrome drops the grant.
 
 ## Quick interactions
 
@@ -131,7 +147,8 @@ See [`docs/extension-privacy.md`](../../docs/extension-privacy.md) for the curre
 - `content.js` exists
 - `content.css` exists
 - `popup.html` exists
+- `options.html` exists and is registered as a full-tab Options page
 - broad HTTP/HTTPS patterns remain optional instead of required host permissions
-- every directly referenced popup/background asset exists in `dist`
+- every directly referenced popup/background/options asset exists in `dist`
 
-Unit tests cover preference normalization/reconciliation, browser-access helpers, local-vs-sync storage, and selection normalization. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration, real content script, and temporary page reveal without weakening the shipping manifest.
+Unit tests cover preference normalization/reconciliation, browser-access helpers, local-vs-sync storage, and selection normalization. The Chromium smoke build promotes optional host patterns only inside a temporary test copy of the manifest so CI can exercise the same service-worker registration, real content script, temporary page reveal, and Options custom-term round trip without weakening the shipping manifest.

@@ -4,7 +4,14 @@ import { resolve } from 'node:path';
 const dist = resolve(process.cwd(), 'dist');
 const manifestPath = resolve(dist, 'manifest.json');
 
-for (const file of ['manifest.json', 'background.js', 'content.js', 'content.css', 'popup.html']) {
+for (const file of [
+  'manifest.json',
+  'background.js',
+  'content.js',
+  'content.css',
+  'popup.html',
+  'options.html',
+]) {
   if (!existsSync(resolve(dist, file))) {
     throw new Error(`Extension build is missing ${file}.`);
   }
@@ -26,9 +33,14 @@ for (const pattern of ['http://*/*', 'https://*/*']) {
   }
 }
 
+if (manifest.options_ui?.page !== 'options.html' || manifest.options_ui?.open_in_tab !== true) {
+  throw new Error('Extension manifest must register options.html as a full-tab options page.');
+}
+
 const referenced = [
   manifest.action?.default_popup,
   manifest.background?.service_worker,
+  manifest.options_ui?.page,
   ...(manifest.content_scripts ?? []).flatMap(entry => [
     ...(entry.js ?? []),
     ...(entry.css ?? []),
