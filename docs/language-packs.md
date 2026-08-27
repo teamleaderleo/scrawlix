@@ -159,7 +159,25 @@ Run corpus validation with:
 pnpm validate:corpora
 ```
 
-The workspace test command runs that validation before package tests. `@scrawlix/en/corpus` remains the public JavaScript export; the English implementation imports the validated JSON so its tests and public corpus consume the same source data.
+The workspace test command runs that validation plus the corpus-tool unit tests before package tests. `@scrawlix/en/corpus` remains the public JavaScript export; the English implementation imports the validated JSON so its tests and public corpus consume the same source data.
+
+### Review corpus deltas
+
+Use `corpus:diff` to compare the expected corpus behavior between a Git ref and the working tree:
+
+```sh
+pnpm corpus:diff -- main
+```
+
+Or compare two committed refs:
+
+```sh
+pnpm corpus:diff -- main HEAD
+```
+
+Add `--json` for machine-readable output. The diff joins cases by package plus stable case id and classifies newly matching, newly clean, changed semantic target, changed full match, added clean regression, removed case, and metadata-only changes. The command is informational and exits successfully when it finds intentional behavioral changes.
+
+Pull-request CI runs the same command against the PR's exact base SHA and prints the report before the test suite. Checkout uses full git history so the comparison is reproducible from the workflow log.
 
 Useful corpora contain positive matches, semantic targets, casing and punctuation variants, compounds and inflections, false-positive traps, Unicode context, and dialect or severity cases when relevant. Every matcher expansion should ideally arrive with the newly caught form plus plausible clean neighbors that could regress.
 
