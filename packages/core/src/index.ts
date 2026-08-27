@@ -95,6 +95,19 @@ function compilePattern(pattern: RegExp) {
   return new RegExp(pattern.source, [...flags].join(''));
 }
 
+function advanceStringIndex(value: string, index: number, unicode: boolean) {
+  if (!unicode) return index + 1;
+  if (index + 1 >= value.length) return index + 1;
+
+  const first = value.charCodeAt(index);
+  if (first < 0xd800 || first > 0xdbff) return index + 1;
+
+  const second = value.charCodeAt(index + 1);
+  if (second < 0xdc00 || second > 0xdfff) return index + 1;
+
+  return index + 2;
+}
+
 function graphemeRanges(value: string): RelativeRange[] {
   if (!value) return [];
 
@@ -213,7 +226,9 @@ function scan(text: string, rules: readonly CompiledRule[]): ScannedMatch[] {
 
     while ((rawMatch = rule.pattern.exec(text)) !== null) {
       if (!rawMatch[0]) {
-        rule.pattern.lastIndex = rawMatch.index + 1;
+        const unicode =
+          rule.pattern.flags.includes('u') || rule.pattern.flags.includes('v');
+        rule.pattern.lastIndex = advanceStringIndex(text, rawMatch.index, unicode);
         continue;
       }
 
