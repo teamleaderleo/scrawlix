@@ -131,7 +131,8 @@ test('built extension switches lens profiles and restores the live page', async 
     const extensionId = await loadedExtensionId(context);
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await expect(popup.getByLabel('Active profile')).toHaveValue('profile:everyday');
+    const profilePicker = popup.locator('#profile');
+    await expect(profilePicker).toHaveValue('profile:everyday');
 
     await popup.getByRole('button', { name: '+ lens' }).click();
     let customLenses = popup.locator('.lens-card[data-lens-kind="terms"]');
@@ -169,7 +170,7 @@ test('built extension switches lens profiles and restores the live page', async 
     await expect(privateRoot).toHaveAttribute('data-scrawlix-reveal', 'never');
     await expect(privateRoot.locator('[data-scrawlix-cover]')).toHaveText('Mothbit');
 
-    await popup.getByLabel('Active profile').selectOption({ label: 'Everyday' });
+    await profilePicker.selectOption({ label: 'Everyday' });
     await expect(page.locator('#initial [data-scrawlix-dom-root]')).toHaveCount(1);
     await expect(page.locator('#private [data-scrawlix-dom-root]')).toHaveCount(1);
     await expect(page.locator('#private [data-scrawlix-dom-root]')).toHaveAttribute(
