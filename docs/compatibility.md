@@ -11,6 +11,7 @@ Scrawlix publishes ESM and TypeScript declarations targeting modern JavaScript. 
 - RegExp lookbehind
 - Unicode property escapes
 - RegExp match indices (`d` flag)
+- `Intl.Segmenter` with grapheme segmentation
 
 For published-package execution in Node, **Node 18 and newer** is the supported baseline for core/rehype and SSR contexts that execute package code directly.
 
@@ -18,11 +19,21 @@ Repository CI and ordinary development verification use **Node 22**. The OIDC np
 
 For browsers, support is capability-based during pre-1.0: the consuming browser must support the features above. Scrawlix's browser CI exercises current Chromium. Add explicit Firefox/Safari version claims only alongside CI or targeted compatibility tests that enforce them.
 
+## Unicode normalization
+
+`censorRuleFromTerms()` uses NFC canonical normalization by default. Terms and source text are matched through an internal normalized shadow representation, while `find()` and `segment()` continue to report and render exact slices of the caller-owned source string.
+
+This makes canonically equivalent NFC/NFD spellings behave equivalently without rewriting source text. Callers that require exact-form literal behavior can pass `{ normalization: 'none' }` to `censorRuleFromTerms()`.
+
+Raw `RegExp` rules and custom matchers remain caller-defined matching algorithms. Core validates every produced full-match and semantic-target range against original-source grapheme boundaries before exposing it.
+
 ## Grapheme handling
 
-Scrawlix uses `Intl.Segmenter` when the runtime provides it so positional coverage works on extended grapheme clusters.
+Scrawlix uses `Intl.Segmenter` as its extended-grapheme implementation. Match ranges, semantic-target ranges, positional coverage, and exported `graphemeRanges()` all share that implementation.
 
-A fallback based on Unicode code points is used when `Intl.Segmenter` is unavailable. The fallback preserves source text and valid JavaScript string boundaries, but complex grapheme clusters can be treated as several positions. Applications that require grapheme-exact partial coverage should choose runtimes with `Intl.Segmenter` support or use `coverage: 'full'`.
+`Intl.Segmenter` is an explicit runtime requirement. Scrawlix does not fall back to code-point counting because a code-point fallback can split combining sequences, variation-selector emoji, emoji-modifier sequences, regional-indicator flags, and ZWJ sequences.
+
+Coverage callbacks may return arbitrary UTF-16 ranges inside a semantic target. Core sanitizes those ranges and expands their edges to the surrounding extended-grapheme boundaries before segmentation, so generated covered segments never split a grapheme.
 
 ## React
 
