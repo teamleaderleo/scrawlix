@@ -340,9 +340,9 @@ function segmentFromRanges(text: string, ranges: readonly CoveredRange[]) {
   return segments;
 }
 
-export function censorRuleFromWords(
+export function censorRuleFromTerms(
   id: string,
-  words: readonly string[],
+  terms: readonly string[],
   {
     caseSensitive = false,
     coverage,
@@ -353,12 +353,12 @@ export function censorRuleFromWords(
     boundary?: WordBoundaryMode;
   } = {}
 ): CensorRule {
-  const alternatives = [...new Set(words.map(word => word.trim()).filter(Boolean))]
+  const alternatives = [...new Set(terms.map(term => term.trim()).filter(Boolean))]
     .sort((left, right) => right.length - left.length)
     .map(escapeRegExp);
 
   if (alternatives.length === 0) {
-    throw new Error('A censor rule needs at least one non-empty word.');
+    throw new Error('A censor rule needs at least one non-empty term.');
   }
 
   const source = `(?:${alternatives.join('|')})`;
@@ -382,7 +382,7 @@ export function rulesFromPacks(
 
 export function createScrawlix({
   rules = [],
-  coverage = 'middle',
+  coverage = 'full',
 }: ScrawlixOptions = {}): ScrawlixEngine {
   const compiledRules: CompiledRule[] = rules.map(rule => ({
     ...rule,
