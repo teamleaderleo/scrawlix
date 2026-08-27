@@ -4,7 +4,6 @@ import {
   type CoverageSelector,
 } from '@scrawlix/core';
 import {
-  useEffect,
   useMemo,
   useState,
   type FocusEvent,
@@ -35,7 +34,23 @@ export type CensoredTextProps = {
   title?: string;
 };
 
+type ComponentRevealState = {
+  revision: object;
+  revealed: boolean;
+};
+
+type RevealIdsState = {
+  revision: object;
+  ids: ReadonlySet<string>;
+};
+
+type ActiveRevealState = {
+  revision: object;
+  revealId: string | null;
+};
+
 const GRAWLIX = '@#$%&!';
+const EMPTY_REVEAL_IDS: ReadonlySet<string> = new Set();
 const graphemeSegmenter =
   typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
     ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
@@ -83,6 +98,10 @@ export function CensoredText({
     [rules, coverage]
   );
   const segments = useMemo(() => engine.segment(text), [engine, text]);
+  const interactionRevision = useMemo(
+    () => ({}),
+    [engine, text, reveal, revealScope]
+  );
   const hasCoveredText = segments.some(segment => segment.covered);
   const revealIds = useMemo(
     () => [
@@ -94,34 +113,73 @@ export function CensoredText({
     ],
     [segments]
   );
-  const [componentRevealed, setComponentRevealed] = useState(false);
-  const [revealedIds, setRevealedIds] = useState<ReadonlySet<string>>(
-    () => new Set()
-  );
-  const [hoveredRevealId, setHoveredRevealId] = useState<string | null>(null);
-  const [focusedRevealId, setFocusedRevealId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setComponentRevealed(false);
-    setRevealedIds(new Set());
-    setHoveredRevealId(null);
-    setFocusedRevealId(null);
-  }, [engine, text, reveal, revealScope]);
+  const [componentRevealState, setComponentRevealState] =
+    useState<ComponentRevealState>(() => ({
+      revision: interactionRevision,
+      revealed: false,
+    }));
+  const [revealIdsState, setRevealIdsState] = useState<RevealIdsState>(() => ({
+    revision: interactionRevision,
+    ids: new Set(),
+  }));
+  const [hoverState, setHoverState] = useState<ActiveRevealState>(() => ({
+    revision: interactionRevision,
+    revealId: null,
+  }));
+  const [focusState, setFocusState] = useState<ActiveRevealState>(() => ({
+    revision: interactionRevision,
+    revealId: null,
+  }));
 
   if (!hasCoveredText) return <>{text}</>;
 
+  const componentRevealed =
+    componentRevealState.revision === interactionRevision &&
+    componentRevealState.revealed;
+  const revealedIds =
+    revealIdsState.revision === interactionRevision
+      ? revealIdsState.ids
+      : EMPTY_REVEAL_IDS;
+  const hoveredRevealId =
+    hoverState.revision === interactionRevision ? hoverState.revealId : null;
+  const focusedRevealId =
+    focusState.revision === interactionRevision ? focusState.revealId : null;
   const componentInteractive =
     revealScope === 'component' && (reveal === 'focus' || reveal === 'click');
   const matchControls =
     revealScope === 'match' && (reveal === 'focus' || reveal === 'click');
 
+  function setComponentRevealed(
+    update: boolean | ((current: boolean) => boolean)
+  ) {
+    setComponentRevealState(current => {
+      const currentValue =
+        current.revision === interactionRevision ? current.revealed : false;
+      return {
+        revision: interactionRevision,
+        revealed:
+          typeof update === 'function' ? update(currentValue) : update,
+      };
+    });
+  }
+
   function toggleRevealId(revealId: string) {
-    setRevealedIds(current => {
-      const next = new Set(current);
+    setRevealIdsState(current => {
+      const next = new Set(
+        current.revision === interactionRevision ? current.ids : EMPTY_REVEAL_IDS
+      );
       if (next.has(revealId)) next.delete(revealId);
       else next.add(revealId);
-      return next;
+      return { revision: interactionRevision, ids: next };
     });
+  }
+
+  function setHoveredRevealId(revealId: string | null) {
+    setHoverState({ revision: interactionRevision, revealId });
+  }
+
+  function setFocusedRevealId(revealId: string | null) {
+    setFocusState({ revision: interactionRevision, revealId });
   }
 
   function onRootKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
@@ -173,11 +231,12 @@ export function CensoredText({
   ) {
     if (event.key !== 'Escape') return;
     event.preventDefault();
-    setRevealedIds(current => {
-      if (!current.has(revealId)) return current;
-      const next = new Set(current);
+    setRevealIdsState(current => {
+      const next = new Set(
+        current.revision === interactionRevision ? current.ids : EMPTY_REVEAL_IDS
+      );
       next.delete(revealId);
-      return next;
+      return { revision: interactionRevision, ids: next };
     });
   }
 
@@ -220,6 +279,7 @@ export function CensoredText({
             return (
               <button
                 aria-label={`${verb} censored text ${index + 1} of ${revealIds.length}`}
+                aria-pressed={reveal === 'click' ? isRevealed : undefined}
                 data-scrawlix-control
                 data-scrawlix-reveal-id={revealId}
                 key={revealId}
