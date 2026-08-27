@@ -67,10 +67,9 @@
 .context-display {
   margin: auto 0;
   font-family: Arial Black, Impact, ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(27px, 2.6vw, 42px);
+  font-size: clamp(26px, 2.2vw, 36px);
   line-height: 0.92;
   letter-spacing: -0.06em;
-  overflow-wrap: anywhere;
 }
 
 .context-link {
