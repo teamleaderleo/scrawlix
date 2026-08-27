@@ -9,6 +9,10 @@ import {
   maskFor,
   type SyncSettings,
 } from './config';
+import {
+  canReuseSemanticSession,
+  presentationSettingsChanged,
+} from './session';
 import { loadExtensionState } from './storage';
 
 const INTERACTIVE_ANCESTOR =
@@ -17,7 +21,9 @@ const INTERACTIVE_ANCESTOR =
 let observation: DomObservation | null = null;
 let presentationObserver: MutationObserver | null = null;
 let activeSettings: SyncSettings | null = null;
+let activeBody: HTMLElement | null = null;
 let restartGeneration = 0;
+let semanticDirty = false;
 
 function customRule(customTerms: readonly string[]): CensorRule[] {
   if (customTerms.length === 0) return [];
@@ -63,7 +69,7 @@ function decorateSubtree(node: Node, settings: SyncSettings) {
   }
 }
 
-function startPresentationObserver(settings: SyncSettings) {
+function startPresentationObserver(root: HTMLElement, settings: SyncSettings) {
   const observer = new MutationObserver(records => {
     for (const record of records) {
       for (const added of Array.from(record.addedNodes)) {
@@ -72,8 +78,15 @@ function startPresentationObserver(settings: SyncSettings) {
     }
   });
 
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(root, { childList: true, subtree: true });
   presentationObserver = observer;
+}
+
+function refreshPresentation(root: HTMLElement, settings: SyncSettings) {
+  presentationObserver?.disconnect();
+  presentationObserver = null;
+  decorateSubtree(root, settings);
+  startPresentationObserver(root, settings);
 }
 
 function stopCurrentSession() {
@@ -82,6 +95,7 @@ function stopCurrentSession() {
   observation?.restore();
   observation = null;
   activeSettings = null;
+  activeBody = null;
 }
 
 async function restart() {
@@ -89,10 +103,31 @@ async function restart() {
   const state = await loadExtensionState();
   if (generation !== restartGeneration) return;
 
+  const hostname = location.hostname.toLowerCase();
+  const body = document.body;
+  const previousSettings = activeSettings;
+
+  if (
+    body &&
+    observation &&
+    previousSettings &&
+    activeBody === body &&
+    !semanticDirty &&
+    canReuseSemanticSession(previousSettings, state.settings, hostname)
+  ) {
+    if (presentationSettingsChanged(previousSettings, state.settings)) {
+      refreshPresentation(body, state.settings);
+    }
+    activeSettings = state.settings;
+    return;
+  }
+
   stopCurrentSession();
 
-  const hostname = location.hostname.toLowerCase();
-  if (!document.body || !effectiveEnabled(state.settings, hostname)) return;
+  if (!body || !effectiveEnabled(state.settings, hostname)) {
+    semanticDirty = false;
+    return;
+  }
 
   const controller = createDomScrawlix({
     rules: [...englishStrongProfanityRules, ...customRule(state.customWords)],
@@ -100,9 +135,10 @@ async function restart() {
   });
 
   activeSettings = state.settings;
-  observation = controller.observe(document.body);
-  decorateSubtree(document.body, state.settings);
-  startPresentationObserver(state.settings);
+  activeBody = body;
+  observation = controller.observe(body);
+  refreshPresentation(body, state.settings);
+  semanticDirty = false;
 }
 
 function clickRootFromEvent(event: Event) {
@@ -138,6 +174,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   const relevantLocal =
     areaName === 'local' && Object.prototype.hasOwnProperty.call(changes, CUSTOM_WORDS_KEY);
 
+  if (relevantLocal) semanticDirty = true;
   if (relevantSync || relevantLocal) void restart();
 });
 
@@ -147,5 +184,3 @@ function startWhenReady() {
 }
 
 startWhenReady();
-
-void activeSettings;
