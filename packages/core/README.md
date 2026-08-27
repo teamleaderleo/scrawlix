@@ -136,11 +136,43 @@ Each object entry declares a full canonical `term` and one unique exact canonica
 
 String entries are also accepted and use the complete term as their semantic target. This helper lives on a focused subpath while the API is exercised by language packs before a wider pre-1.0 barrel decision.
 
+### Bounded repeated letters
+
+Repeated-letter evasions use another focused subpath while their semantics are reviewed:
+
+```ts
+import { createScrawlix } from '@scrawlix/core';
+import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
+
+const repeated = censorRuleFromRepeatedObfuscatedTerms(
+  'example-repeat',
+  [
+    'fuck',
+    { term: 'motherfucker', target: 'fuck' },
+  ],
+  {
+    maxRepetitions: 1,
+  }
+);
+
+const engine = createScrawlix({ rules: [repeated] });
+engine.find('fuuck')[0]?.targetText; // "fuuck"
+engine.find('motherfuucker')[0]?.targetText; // "fuuck"
+```
+
+Only canonical Unicode letter graphemes are repeatable. Canonical run lengths act as minima, so a real double in a declared spelling stays intact: `asshole` contains a canonical `ss` run, `assshole` costs one repetition, and `ashole` cannot satisfy the term. Every extra source grapheme beyond the canonical run length costs one repetition.
+
+The helper filters zero-change canonical forms, defaults to `profile: 'obfuscated'`, and preserves exact original-source ranges. It accepts the same reviewed `substitutions`, `ignored`, boundary, normalization, and coverage options as the earlier aggressive helper. `maxRepetitions` is always explicit. When repetition is combined with substitutions or ignored graphemes, `maxChanges` is also required and counts all enabled transform classes together.
+
+Semantic targets are supported directly. Extra source graphemes in a repeated run attach to the final canonical grapheme of that run. That rule keeps target mapping deterministic even when a semantic boundary falls inside a canonical double, such as the `shit` target inside canonical `shitting`.
+
+This first repetition path is intentionally bounded and corpus-driven. It does not perform blanket edit-distance matching, phonetic equivalence, transliteration, or universal confusable folding.
+
 ## Match profiles
 
 Rules can carry an optional `profile` string. `find()` exposes it as `match.profile`, and coverage callbacks receive the same value in their context. This lets packs distinguish conservative and aggressive matching paths in diagnostics and policy code.
 
-`censorRuleFromTerms()` labels its rules `canonical` by default, while `censorRuleFromObfuscatedTerms()` and the targeted obfuscated helper label their rules `obfuscated` by default.
+`censorRuleFromTerms()` labels its rules `canonical` by default, while the obfuscated helpers label their rules `obfuscated` by default.
 
 Profile names describe the matching path. Packs still own linguistic scope, reviewed transform tables, budgets, and regression negatives.
 
@@ -152,8 +184,9 @@ Profile names describe the matching path. Packs still own linguistic scope, revi
 - `segment(text)` returns source-preserving covered/uncovered segments
 - generic coverage presets are `full`, `tail`, `middle`, and `inner`
 - literal/custom-term matching defaults to NFC canonical equivalence and `profile: 'canonical'`
-- bounded aggressive term matching is opt-in through `censorRuleFromObfuscatedTerms()`
+- bounded aggressive substitution/insertion matching is opt-in through `censorRuleFromObfuscatedTerms()`
 - targeted aggressive matching can preserve a smaller semantic root through `@scrawlix/core/targeted-obfuscated`
+- repeated-letter matching is opt-in through `@scrawlix/core/repeated-obfuscated`
 - every exposed match, target, and covered segment respects extended-grapheme boundaries
 
 Scrawlix deliberately has no built-in language or hidden profanity list. Callers select rules explicitly.
