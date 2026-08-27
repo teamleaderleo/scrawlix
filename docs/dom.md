@@ -23,19 +23,21 @@ censor.apply(document.body);
 
 Core coverage defaults to `full`. Pass another `coverage` selector explicitly when the page should use partial coverage.
 
-Only text nodes containing covered ranges are replaced. Each transformed text node gets one `data-scrawlix-dom-root` wrapper. Covered fragments inside it carry `data-scrawlix-cover` and `data-scrawlix-rules`; their text content remains the original source substring.
+Only text nodes containing covered ranges get generated output. The original page-owned `Text` node stays in its original parent as an empty ownership anchor while Scrawlix renders the source through a sibling `data-scrawlix-dom-root` wrapper. Covered fragments inside the wrapper carry `data-scrawlix-cover` and `data-scrawlix-rules`; their text content remains the original source substring.
+
+Keeping the original `Text` object in place lets frameworks such as React retain ownership of the node they created. When page code writes new character data to that node, observation mirrors the latest source into the sibling wrapper and clears the anchor again while coverage is still needed.
 
 The returned result reports `transformedTextNodes` and `coveredSegments`.
 
 ## Restore
 
-A controller records the exact source strings for wrappers it creates:
+A controller records the latest page-owned source string for each wrapper it creates:
 
 ```ts
 censor.restore(document.body);
 ```
 
-Restoration only touches wrappers owned by that controller. Author-authored elements that happen to carry similar data attributes remain intact.
+Restoration only touches wrappers owned by that controller. When the page-owned anchor and its wrapper still share a parent, restoration removes the wrapper and restores the source onto that same `Text` object. Author-authored elements that happen to carry similar data attributes remain intact.
 
 ## Dynamic pages
 
@@ -45,7 +47,7 @@ For SPAs, feeds, chats, and infinite-scroll pages:
 const observation = censor.observe(document.body);
 ```
 
-Observation applies to the initial subtree by default, then watches `childList` and `characterData` mutations. Mutation work is queued from the nodes delivered by `MutationObserver`; the adapter does not rescan the complete document after every update.
+Observation applies to the initial subtree by default, then watches `childList` and `characterData` mutations. Mutation work is queued from the nodes delivered by `MutationObserver`; the adapter does not rescan the complete document after every update. Overlapping mutation roots are collapsed, detached queued roots are discarded, and Scrawlix-generated wrappers are skipped when their own mutations come back through the observer.
 
 To observe only future changes:
 
@@ -59,7 +61,7 @@ To disable censorship safely while observation is active:
 observation.restore();
 ```
 
-`observation.restore()` disconnects the observer, clears queued work, and restores controller-owned source text as one lifecycle operation. `disconnect()` leaves current transformed output in place.
+`observation.restore()` first drains pending mutation records so an immediately preceding page/framework text write is preserved, then disconnects observation, clears queued discovery work, and restores controller-owned source text. `disconnect()` also drains already-delivered ownership updates, then leaves current transformed output in place.
 
 ## Safe default exclusions
 

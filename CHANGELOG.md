@@ -71,6 +71,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added a framework-neutral renderer recipe with plain-DOM, Vue, Svelte, and Solid sketches plus a threshold for when a dedicated adapter package is worth maintaining.
 - Added explicit runtime compatibility and pre-1.0 versioning/public-contract policies.
 - Declared Node 18+ in every public package manifest and Node 22+ in the private workspace manifest so package-manager metadata matches the documented runtime/tooling baselines.
+- Publish curated implementation sources alongside JS/declaration maps and verify every local map target against packed tarball contents while excluding source tests.
 - Added explicit privacy/output vocabulary for visual covers, presentation/screenshot guarantees, assistive-tech concealment, and sanitized export.
 - Aligned `README.md`, `AGENTS.md`, `llms.txt`, demo, extension, tests, and smoke consumers on the canonical pre-release public names and conservative defaults.
 - Committed a pnpm 10.34.5 lockfile, pinned the workspace package manager, and switched CI to frozen installs.
