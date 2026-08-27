@@ -6,6 +6,12 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 1,
   reporter: process.env.CI ? 'line' : 'list',
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.001,
+      pathTemplate: '{testDir}/visual-baselines/{arg}{ext}',
+    },
+  },
   use: {
     headless: true,
     trace: 'retain-on-failure',
