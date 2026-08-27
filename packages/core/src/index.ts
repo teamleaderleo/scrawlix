@@ -67,7 +67,12 @@ export type CensorRulePack = {
   rules: readonly CensorRule[];
 };
 
-export type WordBoundaryMode = 'word' | 'substring';
+export type WordBoundaryMode = 'word' | 'unicode-word' | 'substring';
+export type LocaleWordBoundary = {
+  mode: 'locale-word';
+  locale: string | readonly string[];
+};
+export type TermBoundaryStrategy = WordBoundaryMode | LocaleWordBoundary;
 export type UnicodeNormalization = 'none' | 'NFC';
 
 export type ScrawlixMatch = {
@@ -609,9 +614,9 @@ function segmentFromRanges(text: string, ranges: readonly CoveredRange[]) {
   return segments;
 }
 
-function normalizedShadow(
+function sourceShadow(
   value: string,
-  normalization: Exclude<UnicodeNormalization, 'none'>
+  normalization: UnicodeNormalization
 ): NormalizedShadow {
   let shadow = '';
   const sourceOffsets = new Map<number, number>([[0, 0]]);
@@ -619,32 +624,64 @@ function normalizedShadow(
   for (const range of graphemeRanges(value)) {
     const shadowStart = shadow.length;
     sourceOffsets.set(shadowStart, range.start);
-    shadow += value.slice(range.start, range.end).normalize(normalization);
+    const sourceGrapheme = value.slice(range.start, range.end);
+    shadow +=
+      normalization === 'none'
+        ? sourceGrapheme
+        : sourceGrapheme.normalize(normalization);
     sourceOffsets.set(shadow.length, range.end);
   }
 
   return { value: shadow, sourceOffsets };
 }
 
+function isUnicodeWordBoundary(
+  boundary: TermBoundaryStrategy
+): boundary is 'word' | 'unicode-word' {
+  return boundary === 'word' || boundary === 'unicode-word';
+}
+
 function termPatternSource(
   alternatives: readonly string[],
-  boundary: WordBoundaryMode
+  boundary: TermBoundaryStrategy
 ) {
   const source = `(?:${alternatives.map(escapeRegExp).join('|')})`;
-  return boundary === 'word'
+  return isUnicodeWordBoundary(boundary)
     ? `(?<![${wordContextClass}])${source}(?![${wordContextClass}])`
     : source;
 }
 
-function normalizedTermMatcher(
+function localeWordBoundaries(value: string, boundary: LocaleWordBoundary) {
+  const locales =
+    typeof boundary.locale === 'string'
+      ? boundary.locale
+      : [...boundary.locale];
+  const segmenter = new Intl.Segmenter(locales, { granularity: 'word' });
+  const boundaries = new Set<number>();
+
+  for (const part of segmenter.segment(value)) {
+    if (!part.isWordLike) continue;
+    boundaries.add(part.index);
+    boundaries.add(part.index + part.segment.length);
+  }
+
+  return boundaries;
+}
+
+function termMatcher(
   patternSource: string,
   caseSensitive: boolean,
-  normalization: Exclude<UnicodeNormalization, 'none'>
+  normalization: UnicodeNormalization,
+  boundary: TermBoundaryStrategy
 ): CensorMatcher {
   return {
     *find(text) {
-      const shadow = normalizedShadow(text, normalization);
+      const shadow = sourceShadow(text, normalization);
       const pattern = new RegExp(patternSource, caseSensitive ? 'gu' : 'giu');
+      const lexicalBoundaries =
+        typeof boundary === 'object'
+          ? localeWordBoundaries(shadow.value, boundary)
+          : null;
       let match: RegExpExecArray | null;
 
       while ((match = pattern.exec(shadow.value)) !== null) {
@@ -657,8 +694,16 @@ function normalizedTermMatcher(
           continue;
         }
 
+        const shadowEnd = match.index + match[0].length;
+        if (
+          lexicalBoundaries &&
+          (!lexicalBoundaries.has(match.index) || !lexicalBoundaries.has(shadowEnd))
+        ) {
+          continue;
+        }
+
         const start = shadow.sourceOffsets.get(match.index);
-        const end = shadow.sourceOffsets.get(match.index + match[0].length);
+        const end = shadow.sourceOffsets.get(shadowEnd);
         if (start === undefined || end === undefined) continue;
         yield { start, end };
       }
@@ -677,7 +722,7 @@ export function censorRuleFromTerms(
   }: {
     caseSensitive?: boolean;
     coverage?: CoverageSelector;
-    boundary?: WordBoundaryMode;
+    boundary?: TermBoundaryStrategy;
     normalization?: UnicodeNormalization;
   } = {}
 ): CensorRule {
@@ -695,7 +740,7 @@ export function censorRuleFromTerms(
   }
 
   const patternSource = termPatternSource(alternatives, boundary);
-  if (normalization === 'none') {
+  if (normalization === 'none' && typeof boundary === 'string') {
     return {
       id,
       coverage,
@@ -706,7 +751,7 @@ export function censorRuleFromTerms(
   return {
     id,
     coverage,
-    matcher: normalizedTermMatcher(patternSource, caseSensitive, normalization),
+    matcher: termMatcher(patternSource, caseSensitive, normalization, boundary),
   };
 }
 

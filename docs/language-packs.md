@@ -54,21 +54,28 @@ Raw regex rules and custom matchers keep their own matching policy. Core validat
 
 ## Boundaries
 
-`censorRuleFromTerms()` defaults to `boundary: 'word'`, using Unicode-aware lookarounds. Letters, numbers, combining marks, connector punctuation, ZWNJ, and ZWJ keep a candidate attached to surrounding text. This prevents a boundary from appearing inside many decomposed or connected Unicode sequences while still blocking ordinary substring false positives.
+`censorRuleFromTerms()` supports explicit boundary strategies:
 
-Some scripts and phrase lists need direct substring matching:
+- `word` — compatibility spelling for the existing Unicode-aware word-context rule
+- `unicode-word` — the same behavior under its descriptive name; letters, numbers, combining marks, connector punctuation, ZWNJ, and ZWJ keep adjacent text connected
+- `substring` — direct adjacency is accepted
+- `{ mode: 'locale-word', locale: ... }` — candidate edges must coincide with `Intl.Segmenter` word-like segment edges for the locale selected by the pack or caller
+
+For locale-sensitive matching, select the locale explicitly:
 
 ```ts
-import { censorRuleFromTerms } from '@scrawlix/core';
-
-const rule = censorRuleFromTerms('ja-example', ['くそ'], {
-  boundary: 'substring',
+const japaneseRule = censorRuleFromTerms('ja-example', ['くそ'], {
+  boundary: { mode: 'locale-word', locale: 'ja' },
 });
 ```
 
-`substring` means exactly that: a listed phrase may match while adjacent to other letters. A language pack should choose it deliberately and carry regression cases that demonstrate expected behavior.
+With current `Intl.Segmenter` behavior, `くそ` is a lexical segment in `これはくそだ`, while the same characters do not form the same complete segment inside `これはくそったれだ`. A `substring` rule intentionally matches both.
 
-Future packs may need richer tokenization than either mode. Add that capability when a real corpus demonstrates the need; keep the simple path small.
+Locale segmentation also gives punctuation conventions a concrete owner. In English, an apostrophe keeps `don't` together, a hyphen separates the words in `foo-bar`, an underscore keeps `foo_bar` together, and join controls remain attached to their surrounding word. Packs should carry regression cases for the conventions they depend on instead of assuming one universal token model.
+
+Thai and Lao examples are covered in core regressions using explicit `th` and `lo` segmenters. Those cases prove the API path and the runtime's segmentation behavior; a production language pack still needs its own corpus, scope notes, and review before claiming linguistic coverage.
+
+Locale selection is pack/application policy. Scrawlix does not infer a language from the input. A custom matcher remains the escape hatch when a pack needs boundaries beyond these strategies.
 
 ## Semantic targets
 
