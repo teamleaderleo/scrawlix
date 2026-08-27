@@ -12,6 +12,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./pack-authoring": {
+      "types": "./dist/pack-authoring.d.ts",
+      "import": "./dist/pack-authoring.js",
+      "default": "./dist/pack-authoring.js"
     }
   },
   "repository": {
