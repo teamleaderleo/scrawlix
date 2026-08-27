@@ -35,6 +35,74 @@
     ]
   },
   {
+    "id": "obfuscated-fuck-ing-star",
+    "text": "f*cking",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution", "inflection", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "f*cking",
+        "start": 0,
+        "end": 7,
+        "targetText": "f*ck",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-fuck-mother-star",
+    "text": "motherf*cker",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution", "compound", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "motherf*cker",
+        "start": 0,
+        "end": 12,
+        "targetText": "f*ck",
+        "targetStart": 6,
+        "targetEnd": 10
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-fuck-mother-hyphen",
+    "text": "mother-fucker",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "punctuation-insertion", "compound", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "mother-fucker",
+        "start": 0,
+        "end": 13,
+        "targetText": "fuck",
+        "targetStart": 7,
+        "targetEnd": 11
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-fuck-mother-root-hyphen",
+    "text": "motherf-ucker",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "punctuation-insertion", "compound", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "fuck-obfuscated",
+        "text": "motherf-ucker",
+        "start": 0,
+        "end": 13,
+        "targetText": "f-uck",
+        "targetStart": 6,
+        "targetEnd": 11
+      }
+    ]
+  },
+  {
     "id": "obfuscated-shit-digit",
     "text": "sh1t",
     "profile": "obfuscated",
@@ -103,6 +171,40 @@
     ]
   },
   {
+    "id": "obfuscated-shit-bull-digit",
+    "text": "bullsh1t",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution", "compound", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "bullsh1t",
+        "start": 0,
+        "end": 8,
+        "targetText": "sh1t",
+        "targetStart": 4,
+        "targetEnd": 8
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-shit-suffix-hyphen",
+    "text": "shit-ting",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "punctuation-insertion", "inflection", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "shit-obfuscated",
+        "text": "shit-ting",
+        "start": 0,
+        "end": 9,
+        "targetText": "shit",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
     "id": "obfuscated-bitch-bang",
     "text": "b!tch",
     "profile": "obfuscated",
@@ -113,6 +215,23 @@
         "text": "b!tch",
         "start": 0,
         "end": 5,
+        "targetText": "b!tch",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-bitch-plural-bang",
+    "text": "b!tches",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution", "plural", "inflection", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "bitch-obfuscated",
+        "text": "b!tches",
+        "start": 0,
+        "end": 7,
         "targetText": "b!tch",
         "targetStart": 0,
         "targetEnd": 5
@@ -154,6 +273,23 @@
     ]
   },
   {
+    "id": "obfuscated-asshole-plural-zero",
+    "text": "assh0les",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution", "plural", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "asshole-obfuscated",
+        "text": "assh0les",
+        "start": 0,
+        "end": 8,
+        "targetText": "assh0le",
+        "targetStart": 0,
+        "targetEnd": 7
+      }
+    ]
+  },
+  {
     "id": "obfuscated-cunt-star",
     "text": "c*nt",
     "profile": "obfuscated",
@@ -164,6 +300,23 @@
         "text": "c*nt",
         "start": 0,
         "end": 4,
+        "targetText": "c*nt",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "obfuscated-cunt-plural-star",
+    "text": "c*nts",
+    "profile": "obfuscated",
+    "tags": ["obfuscation", "substitution", "plural", "semantic-target"],
+    "matches": [
+      {
+        "ruleId": "cunt-obfuscated",
+        "text": "c*nts",
+        "start": 0,
+        "end": 5,
         "targetText": "c*nt",
         "targetStart": 0,
         "targetEnd": 4

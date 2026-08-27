@@ -21,6 +21,12 @@ export default defineConfig({
         replacement: workspaceFile('../../packages/en/src/index.ts'),
       },
       {
+        find: '@scrawlix/core/targeted-obfuscated',
+        replacement: workspaceFile(
+          '../../packages/core/src/targeted-obfuscated.ts'
+        ),
+      },
+      {
         find: '@scrawlix/core',
         replacement: workspaceFile('../../packages/core/src/index.ts'),
       },

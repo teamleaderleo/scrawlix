@@ -36,14 +36,14 @@ const scrawlix = createScrawlix({
 
 Canonical English rules expose `profile: 'canonical'` in match metadata.
 
-## Opt-in obfuscated base-form pilot
+## Opt-in obfuscated strong-profanity pack
 
-The package also exports a separate aggressive pilot:
+The package also exports a separate aggressive pack:
 
 - `englishObfuscatedStrongProfanityRules`
 - `englishObfuscatedStrongProfanityPack`
 
-It catches a small reviewed set of one-change evasions for the exact base forms `fuck`, `shit`, `bitch`, `asshole`, and `cunt`. The pilot allows one reviewed symbol/digit substitution **or** one internal `.`, `-`, or zero-width-space insertion per candidate.
+It catches a small reviewed set of one-change evasions across the same inflection and compound families declared by the canonical pack for `fuck`, `shit`, `bitch`, `asshole`, and `cunt`. The pack allows one reviewed symbol/digit substitution **or** one internal `.`, `-`, or zero-width-space insertion per candidate.
 
 ```ts
 import { createScrawlix, rulesFromPacks } from '@scrawlix/core';
@@ -60,9 +60,11 @@ const scrawlix = createScrawlix({
 });
 ```
 
-Examples covered by the pilot include `f*ck`, `sh1t`, `sh-it`, `b!tch`, `assh0le`, and `c*nt`. Matches from this pack expose `profile: 'obfuscated'` and `packId: 'en-strong-profanity-obfuscated'` when composed through `rulesFromPacks()`.
+Examples include base forms such as `f*ck` and `sh1t`, inflections such as `f*cking`, `b!tches`, `assh0les`, and `c*nts`, and compounds such as `motherf*cker`, `mother-fucker`, and `bullsh1t`. Matches from this pack expose `profile: 'obfuscated'` and `packId: 'en-strong-profanity-obfuscated'` when composed through `rulesFromPacks()`.
 
-The pilot deliberately caps each candidate at one transform. It covers exact base forms only; inflected and compound evasions need a later semantic-target-aware expansion. The reviewed table lives in ordinary package code, and its positives plus false-positive/over-budget cases live in JSON corpora.
+Full obfuscated forms preserve the canonical semantic root. For example, `f*cking` reports full match text `f*cking` with target text `f*ck`; `mother-fucker` reports the full compound with target text `fuck`; and an inserted separator inside the root, as in `motherf-ucker`, stays inside target text `f-uck`. Coverage therefore follows the same semantic profanity root as the canonical regex pack.
+
+The pack deliberately caps each candidate at one transform. The reviewed table lives in ordinary package code, and its positives plus false-positive/over-budget cases live in JSON corpora. New morphology is added only alongside explicit corpus examples and ordinary-word/boundary negatives.
 
 ## Regression data
 
