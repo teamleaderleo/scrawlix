@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "description": "HAST/rehype adapter for applying Scrawlix coverage throughout Markdown-rendered prose.",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "sideEffects": false,
   "files": ["dist"],
   "main": "./dist/index.js",

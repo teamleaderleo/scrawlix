@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "description": "DOM text-node adapter for applying Scrawlix to arbitrary webpages and dynamic content.",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "sideEffects": false,
   "files": ["dist"],
   "main": "./dist/index.js",

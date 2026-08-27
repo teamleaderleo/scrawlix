@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "description": "React rendering, appearances, and reveal behavior for Scrawlix.",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "sideEffects": ["./dist/styles.css"],
   "files": ["dist"],
   "main": "./dist/index.js",
