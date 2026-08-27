@@ -76,7 +76,18 @@ test('built extension transforms initial and dynamic page text in Chromium', asy
       page.locator('#dynamic-copy [data-scrawlix-cover]')
     ).toHaveText('uc');
 
-    await page.locator('#native-link').click();
+    await page.getByRole('button', { name: 'replace body' }).click();
+    await expect(
+      page.locator('#body-replacement [data-scrawlix-dom-root]')
+    ).toHaveCount(1);
+    await expect(
+      page.locator('#body-replacement [data-scrawlix-cover]')
+    ).toHaveText('uc');
+    await expect(
+      page.locator('#replacement-link [data-scrawlix-dom-root]')
+    ).toHaveCount(1);
+
+    await page.locator('#replacement-link').click();
     await expect(page).toHaveURL('http://127.0.0.1:4174/clicked.html');
     await expect(page.locator('#clicked')).toHaveText('native link worked');
   } finally {
