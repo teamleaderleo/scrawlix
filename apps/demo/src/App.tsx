@@ -1,4 +1,9 @@
-import { type CoveragePreset, type CoverageSelector } from '@scrawlix/core';
+import {
+  createScrawlix,
+  type CoveragePreset,
+  type CoverageSelector,
+  type ScrawlixSegment,
+} from '@scrawlix/core';
 import {
   englishProfanityRules,
   englishVowelCoverage,
@@ -36,6 +41,7 @@ const revealScopes: readonly ScrawlixRevealScope[] = ['match', 'component'];
 
 const defaultText =
   'This fucking delightful little thing can censor shit without flattening every word into the same black rectangle.';
+const xrayText = 'motherfucker';
 
 const specimens = [
   'fuck',
@@ -78,11 +84,32 @@ function SegmentControl<T extends string>({
   );
 }
 
+function CoverageDiagram({
+  matchId,
+  segments,
+}: {
+  matchId: string;
+  segments: readonly ScrawlixSegment[];
+}) {
+  return (
+    <>
+      {segments.map(segment =>
+        segment.covered && segment.matchIds.includes(matchId) ? (
+          <mark key={`${segment.start}-${segment.end}`}>{segment.text}</mark>
+        ) : (
+          <span key={`${segment.start}-${segment.end}`}>{segment.text}</span>
+        )
+      )}
+    </>
+  );
+}
+
 export function App() {
   const [appearance, setAppearance] = useState<ScrawlixAppearance>('scrawl');
   const [coverage, setCoverage] = useState<CoverageChoice>('middle');
   const [reveal, setReveal] = useState<ScrawlixReveal>('hover');
   const [revealScope, setRevealScope] = useState<ScrawlixRevealScope>('match');
+  const [showXray, setShowXray] = useState(true);
   const [text, setText] = useState(defaultText);
   const coverageSelector = selectorForCoverage(coverage);
 
@@ -95,6 +122,23 @@ export function App() {
     return `import { englishProfanityRules${coverage === 'vowel' ? ', englishVowelCoverage' : ''} } from '@scrawlix/en';\nimport { CensoredText } from '@scrawlix/react';\n\n<CensoredText\n  text={copy}\n  rules={englishProfanityRules}\n${coverageLine}\n  appearance="${appearance}"\n  reveal="${reveal}"\n  revealScope="${revealScope}"\n/>`;
   }, [appearance, coverage, reveal, revealScope]);
 
+  const xrayEngine = useMemo(
+    () =>
+      createScrawlix({
+        rules: englishProfanityRules,
+        coverage: coverageSelector,
+      }),
+    [coverageSelector]
+  );
+  const xrayMatch = xrayEngine.find(xrayText)[0];
+  const xraySegments = xrayEngine.segment(xrayText);
+  const xrayCoveredSegments = xrayMatch
+    ? xraySegments.filter(
+        segment => segment.covered && segment.matchIds.includes(xrayMatch.matchId)
+      )
+    : [];
+  const targetStart = xrayMatch ? xrayMatch.targetStart - xrayMatch.start : 0;
+  const targetEnd = xrayMatch ? xrayMatch.targetEnd - xrayMatch.start : 0;
   const proofTarget = revealScope === 'match' ? 'a censored term' : 'the proof';
 
   return (
@@ -225,9 +269,84 @@ export function App() {
         </div>
       </section>
 
+      <section className="xray-section" aria-labelledby="xray-title">
+        <div className="xray-heading">
+          <div>
+            <p className="eyebrow">03 / x-ray</p>
+            <h2 id="xray-title">See the cut before the ink.</h2>
+          </div>
+          <button
+            aria-controls="xray-grid"
+            aria-expanded={showXray}
+            className={showXray ? 'xray-toggle is-active' : 'xray-toggle'}
+            onClick={() => setShowXray(value => !value)}
+            type="button"
+          >
+            x-ray {showXray ? 'on' : 'off'}
+          </button>
+        </div>
+
+        {showXray && xrayMatch && (
+          <div className="xray-grid" id="xray-grid">
+            <article className="xray-card" data-xray-stage="match">
+              <span className="xray-label">match</span>
+              <div className="xray-value">{xrayMatch.text}</div>
+              <small>
+                {xrayMatch.matchId} · {xrayMatch.start}–{xrayMatch.end}
+              </small>
+            </article>
+
+            <article className="xray-card" data-xray-stage="target">
+              <span className="xray-label">target</span>
+              <div className="xray-value xray-target">
+                <span>{xrayMatch.text.slice(0, targetStart)}</span>
+                <mark>{xrayMatch.targetText}</mark>
+                <span>{xrayMatch.text.slice(targetEnd)}</span>
+              </div>
+              <small>
+                semantic core · {xrayMatch.targetStart}–{xrayMatch.targetEnd}
+              </small>
+            </article>
+
+            <article className="xray-card" data-xray-stage="cover">
+              <span className="xray-label">cover</span>
+              <div className="xray-value xray-coverage">
+                <CoverageDiagram
+                  matchId={xrayMatch.matchId}
+                  segments={xraySegments}
+                />
+              </div>
+              <small>
+                {coverage} ·{' '}
+                {xrayCoveredSegments
+                  .map(segment => `${segment.start}–${segment.end}`)
+                  .join(', ')}
+              </small>
+            </article>
+
+            <article className="xray-card xray-output" data-xray-stage="output">
+              <span className="xray-label">output</span>
+              <div className="xray-value">
+                <CensoredText
+                  appearance={appearance}
+                  coverage={coverageSelector}
+                  reveal={reveal}
+                  revealScope={revealScope}
+                  rules={englishProfanityRules}
+                  text={xrayText}
+                />
+              </div>
+              <small>
+                {appearance} · {reveal}/{revealScope}
+              </small>
+            </article>
+          </div>
+        )}
+      </section>
+
       <section className="semantic-section" aria-labelledby="semantic-title">
         <div className="section-heading compact">
-          <p className="eyebrow">03 / the useful bit</p>
+          <p className="eyebrow">04 / the useful bit</p>
           <h2 id="semantic-title">Censor the swear, keep the sentence.</h2>
         </div>
         <div className="semantic-grid">
@@ -256,7 +375,7 @@ export function App() {
 
       <section className="code-section" aria-labelledby="code-title">
         <div>
-          <p className="eyebrow">04 / use it</p>
+          <p className="eyebrow">05 / use it</p>
           <h2 id="code-title">Pick the language. Pick the damage.</h2>
           <p>
             Matching rules live in explicit language or custom packs. The core stays
