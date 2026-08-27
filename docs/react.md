@@ -56,7 +56,7 @@ Those fields are excluded from the TypeScript props. The runtime spread path als
 
 ## Event composition
 
-Application handlers run before Scrawlix reveal behavior. Calling `event.preventDefault()` from the application handler vetoes the corresponding reveal action.
+Application handlers run before Scrawlix reveal behavior. Calling `event.preventDefault()` from the application handler vetoes the corresponding JavaScript-driven reveal action.
 
 ```tsx
 <CensoredText
@@ -71,9 +71,11 @@ Application handlers run before Scrawlix reveal behavior. Calling `event.prevent
 
 `stopPropagation()` controls propagation to ancestors while still allowing Scrawlix to handle the event on its own root. `preventDefault()` is the explicit veto signal for Scrawlix behavior.
 
-For `revealScope="match"`, pointer clicks on the visible censor mark still reach the caller `onClick` before Scrawlix toggles that disclosure group. The visually hidden keyboard reveal buttons are private component controls: their generated clicks and Enter/Space/Escape key events stop inside the control so keyboard reveal cannot activate a clickable or key-handled host card around `CensoredText`.
+For `revealScope="match"`, pointer clicks on the visible censor mark still reach the caller `onClick` before Scrawlix toggles that disclosure group. Per-match focus and blur use the same ordering: caller `onFocus` / `onBlur` runs first, then Scrawlix paints or clears the corresponding reveal state. `preventDefault()` can veto those per-match focus updates.
 
-Focus and blur remain ordinary bubbling React events. A caller `onFocus` can therefore observe focus entering a per-match keyboard reveal control while Scrawlix uses that same focus to paint/reveal the matching censor range.
+The visually hidden keyboard reveal buttons are private component controls. Their generated clicks and Enter/Space/Escape key events stop inside the control so keyboard reveal cannot activate a clickable or key-handled host card around `CensoredText`.
+
+Component-wide `reveal="focus"` follows the browser's native focus state through CSS `:focus`; application focus handlers still receive the ordinary React focus event. Click and keyboard-toggle behavior continues to use the caller-first/veto ordering above.
 
 ## Accessible copy
 
