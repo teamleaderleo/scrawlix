@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 10.34.5
@@ -16,6 +18,9 @@ jobs:
         with:
           node-version: 22
       - run: pnpm install --frozen-lockfile
+      - name: Corpus behavior diff
+        if: github.event_name == 'pull_request'
+        run: pnpm corpus:diff -- "${{ github.event.pull_request.base.sha }}" HEAD
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
