@@ -90,6 +90,13 @@ function ownerDocument(node: Node): Document | null {
   return node.ownerDocument;
 }
 
+function isGeneratedRoot(node: Node) {
+  return (
+    node.nodeType === ELEMENT_NODE &&
+    (node as Element).hasAttribute('data-scrawlix-dom-root')
+  );
+}
+
 function hasGeneratedAncestor(node: Text) {
   let element = node.parentElement;
   while (element) {
@@ -179,8 +186,11 @@ export function createDomScrawlix(
   const ownedRoots = new WeakSet<Element>();
   const originalText = new WeakMap<Element, string>();
 
-  function transformTextNode(node: Text): DomApplyResult {
-    if (!isEligibleText(node, prepared)) return emptyResult();
+  function transformTextNode(
+    node: Text,
+    knownEligible = false
+  ): DomApplyResult {
+    if (!knownEligible && !isEligibleText(node, prepared)) return emptyResult();
 
     const segments = engine.segment(node.data);
     const coveredSegments = segments.filter(segment => segment.covered).length;
@@ -210,10 +220,7 @@ export function createDomScrawlix(
       return transformTextNode(root as Text);
     }
 
-    if (
-      root.nodeType === ELEMENT_NODE &&
-      (root as Element).hasAttribute('data-scrawlix-dom-root')
-    ) {
+    if (isGeneratedRoot(root)) {
       return emptyResult();
     }
 
@@ -232,7 +239,7 @@ export function createDomScrawlix(
     }
 
     return candidates.reduce(
-      (result, node) => addResults(result, transformTextNode(node)),
+      (result, node) => addResults(result, transformTextNode(node, true)),
       emptyResult()
     );
   }
@@ -240,10 +247,7 @@ export function createDomScrawlix(
   function generatedRootsWithin(root: Node): Element[] {
     const roots: Element[] = [];
 
-    if (
-      root.nodeType === ELEMENT_NODE &&
-      (root as Element).hasAttribute('data-scrawlix-dom-root')
-    ) {
+    if (isGeneratedRoot(root)) {
       roots.push(root as Element);
     }
 
@@ -284,9 +288,22 @@ export function createDomScrawlix(
     const pending = new Set<Node>();
     let scheduled = false;
 
+    const queue = (node: Node) => {
+      if (isGeneratedRoot(node)) return;
+
+      for (const existing of pending) {
+        if (existing === node || existing.contains(node)) return;
+        if (node.contains(existing)) pending.delete(existing);
+      }
+
+      pending.add(node);
+    };
+
     const flush = () => {
       scheduled = false;
-      const queued = [...pending];
+      const queued = [...pending].filter(
+        node => node === root || root.contains(node)
+      );
       pending.clear();
 
       return queued.reduce(
@@ -312,12 +329,12 @@ export function createDomScrawlix(
     const observer = new MutationObserverConstructor(records => {
       for (const record of records) {
         if (record.type === 'characterData') {
-          pending.add(record.target);
+          queue(record.target);
           continue;
         }
 
         for (const added of Array.from(record.addedNodes)) {
-          pending.add(added);
+          queue(added);
         }
       }
       if (pending.size > 0) schedule();
