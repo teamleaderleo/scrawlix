@@ -8,7 +8,9 @@ import {
   originPatternForUrl,
   removeHostAccess,
   requestHostAccess,
+  revealTabFor,
 } from './access';
+import { TEMPORARY_REVEAL_COMMAND } from './actions';
 import {
   effectiveEnabled,
   normalizeCustomWords,
@@ -46,6 +48,9 @@ const siteModeSelect = required<HTMLSelectElement>('site-mode');
 const appearanceSelect = required<HTMLSelectElement>('appearance');
 const coverageSelect = required<HTMLSelectElement>('coverage');
 const revealSelect = required<HTMLSelectElement>('reveal');
+const revealPageButton = required<HTMLButtonElement>('reveal-page');
+const revealShortcut = required<HTMLElement>('reveal-shortcut');
+const revealStatus = required<HTMLSpanElement>('reveal-status');
 const customWordsInput = required<HTMLTextAreaElement>('custom-words');
 const siteHeading = required<HTMLHeadingElement>('site-heading');
 const effectiveStatus = required<HTMLParagraphElement>('effective-status');
@@ -130,6 +135,11 @@ function renderAccess() {
     : 'allow all websites';
 }
 
+function renderRevealAction() {
+  const enabledHere = page ? effectiveEnabled(settings, page.hostname) : false;
+  revealPageButton.disabled = !page || !persistentAccess || !enabledHere;
+}
+
 function renderSettings() {
   activeInput.checked = !settings.paused;
   defaultEnabledSelect.value = settings.enabled ? 'on' : 'off';
@@ -138,6 +148,7 @@ function renderSettings() {
   revealSelect.value = settings.reveal;
   renderEffectiveStatus();
   renderAccess();
+  renderRevealAction();
 }
 
 async function refreshAccess() {
@@ -148,6 +159,18 @@ async function refreshAccess() {
   allHostsAccess = all;
   persistentAccess = current;
   renderSettings();
+}
+
+async function renderAssignedShortcut() {
+  const commands = await chrome.commands.getAll();
+  const command = commands.find(item => item.name === TEMPORARY_REVEAL_COMMAND);
+  const shortcut = command?.shortcut?.trim() ?? '';
+  revealShortcut.textContent = shortcut;
+  revealShortcut.hidden = shortcut.length === 0;
+}
+
+async function ensureCurrentPageRuntime() {
+  if (page && persistentAccess) await activateTab(page.tabId);
 }
 
 async function persistSettings(next: SyncSettings) {
@@ -173,6 +196,7 @@ async function persistSettings(next: SyncSettings) {
 
   settingsSaveQueue = queued.catch(() => undefined);
   await queued.catch(() => undefined);
+  await ensureCurrentPageRuntime();
 }
 
 function wordsFromTextarea() {
@@ -189,6 +213,7 @@ async function persistWords() {
   try {
     await saveCustomWords(wordsFromTextarea());
     saveStatus.textContent = 'saved';
+    await ensureCurrentPageRuntime();
   } catch {
     saveStatus.textContent = 'save failed';
   }
@@ -234,6 +259,24 @@ revealSelect.addEventListener('change', () => {
     ...settings,
     reveal: revealSelect.value as ExtensionReveal,
   });
+});
+
+revealPageButton.addEventListener('click', () => {
+  if (!page || revealPageButton.disabled) return;
+
+  void (async () => {
+    revealStatus.textContent = 'revealing…';
+    try {
+      let delivered = await revealTabFor(page.tabId);
+      if (!delivered) {
+        await activateTab(page.tabId);
+        delivered = await revealTabFor(page.tabId);
+      }
+      revealStatus.textContent = delivered ? 'visible for 10s' : 'page unavailable';
+    } catch {
+      revealStatus.textContent = 'reveal failed';
+    }
+  })();
 });
 
 siteAccessButton.addEventListener('click', () => {
@@ -287,7 +330,8 @@ async function initialize() {
   settings = state.settings;
   page = activePage;
   customWordsInput.value = state.customWords.join('\n');
-  await refreshAccess();
+  await Promise.all([refreshAccess(), renderAssignedShortcut()]);
+  await ensureCurrentPageRuntime();
 }
 
 void initialize();
