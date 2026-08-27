@@ -25,4 +25,13 @@ jobs:
         run: pnpm test:browser:demo
       - name: Browser smoke — extension
         run: pnpm test:browser:extension
+      - name: Capture visual baseline candidates
+        run: pnpm exec playwright test -c playwright.config.ts tests/browser/visual.capture.spec.ts
+      - name: Upload visual baseline candidates
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrawlix-visual-baseline-candidates
+          path: test-results/visual-candidates/*.png
+          if-no-files-found: error
+          retention-days: 7
       - run: pnpm smoke:packages
