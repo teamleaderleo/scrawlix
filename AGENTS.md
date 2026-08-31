@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file is the maintainer map for humans and coding agents working on Scrawlix.
+This is the maintainer map for humans and coding agents working on Scrawlix. Keep durable Scrawlix-specific contracts here; follow the linked owner docs for procedures and adoption recipes.
 
 ## Mission
 
@@ -13,34 +13,28 @@ Scrawlix is programmable censorship for text and the web. Keep four concerns ind
 
 A change in one layer should rarely require logic in another.
 
-## Work continuity
-
-Once the maintainer has given a clear objective or said to continue, prefer sustained implementation runs. Keep advancing through concrete, reviewable work while useful next actions remain; a green test, commit, or pull request is a checkpoint, not an automatic stopping point.
-
-Use CI results, review findings, release checklists, open issues, and newly exposed edge cases as prompts for the next focused slice. Keep long runs reviewable with narrow branches, tests, issues, and pull requests.
-
-Stop for a genuine human decision, unavailable credential/external action, safety or privacy boundary needing explicit approval, irreducible product ambiguity, or when further work would become speculative churn. Do not promise background or asynchronous work; this applies to sustained work during the active agent run.
-
-See `docs/agent-work-continuity.md` for the fuller guidance.
-
-## Workspace map
+## Owners and routing
 
 - `packages/core` — language-neutral matching, segmentation, generic coverage, custom-term helpers
-- `packages/en` — English strong-profanity rules, English-specific coverage helpers, English regression corpus
-- `packages/react` — React renderer and appearance/reveal behavior
-- `packages/rehype` — HAST/rehype transformer for syntax-tree prose
-- `packages/dom` — arbitrary-page text-node transformation, restoration, and mutation observation
-- `apps/demo` — public interactive proof sheet and integration consumer
-- `apps/extension` — Manifest V3 application: browser state, popup UI, and injected presentation
-- `fixtures/consumer` — external packed-package React 18/19 smoke consumer
-- `fixtures/next-consumer` — packed-package Next.js App Router smoke consumer
-- `docs` — design, adoption, compatibility, versioning, release, and extension guidance
+- `packages/en` — English rules, English-specific coverage, regression corpus
+- `packages/react` — React rendering plus appearance/reveal behavior
+- `packages/rehype` — HAST transformation
+- `packages/dom` — arbitrary-page transformation, restoration, mutation observation
+- `apps/demo` — public integration/demo application
+- `apps/extension` — Manifest V3 browser application and injected presentation
+- `fixtures/*` — packed-package consumer release gates
+- `docs/README.md` — documentation index and topic owners
+- `docs/dom.md` — DOM lifecycle, exclusions, and restoration details
+- `docs/agent-work-continuity.md` — sustained agent-work guidance
+- `docs/releasing.md` — release runbook, registry bootstrap, trusted publishing, and verification
+- `docs/compatibility.md` — runtime/framework compatibility
+- `docs/versioning.md` — public-contract and release-classification policy
 
-Scrapbook adoption remains tracked separately as a real-consumer integration.
+Keep package behavior in reusable packages and browser state/UI in `apps/extension`. Scrapbook adoption remains a separate consumer integration.
 
 ## Canonical public names and defaults
 
-Use these names in code, docs, examples, and agent-generated changes:
+Use these names in code, docs, examples, and generated changes:
 
 - `createScrawlix`
 - `censorRuleFromTerms`
@@ -53,17 +47,15 @@ Use these names in code, docs, examples, and agent-generated changes:
 - `transformHast`
 - `createDomScrawlix`
 
-Core defaults to `coverage: 'full'`. React defaults to `appearance="scrawl"` and `reveal="never"`. Partial coverage and reveal behavior are deliberate caller choices.
+Core defaults to `coverage: 'full'`. React defaults to `appearance="scrawl"` and `reveal="never"`. Partial coverage and reveal are caller choices.
 
-The reusable packages use named runtime exports as the canonical API. `@scrawlix/rehype` and `@scrawlix/dom` do not carry duplicate default exports.
+Reusable packages use named runtime exports. `@scrawlix/rehype` and `@scrawlix/dom` have no duplicate default export. Keep one canonical API: avoid convenience packages, automatic English selection, compatibility aliases, and alternate spellings.
 
-Do not invent convenience packages, automatic English selection, compatibility aliases, or alternate spellings for the public API.
+## Repository verification
 
-## Toolchain and commands
+The root `packageManager` field pins pnpm. Repository CI uses Node 22 and frozen installs. Use the pinned pnpm/Corepack version.
 
-The root `packageManager` field pins the exact pnpm release used by CI. Use that version through Corepack/pnpm tooling instead of silently changing package-manager versions.
-
-For a verification checkout whose dependency graph should already be committed:
+For a clean verification checkout:
 
 ```sh
 pnpm install --frozen-lockfile
@@ -73,132 +65,82 @@ pnpm build
 pnpm smoke:packages
 ```
 
-When intentionally changing dependencies, run the pinned pnpm install normally, review the resulting `pnpm-lock.yaml`, and commit manifest + lockfile changes together. Never hand-edit lockfile resolutions.
+Dependency changes use a normal pinned-pnpm install; review and commit manifest plus lockfile changes together. Never hand-edit lockfile resolutions.
 
-Repository CI uses Node 22 and frozen installs. The demo and extension builds are part of the workspace build. The packed-package smoke suite installs tarballs into consumers outside the workspace dependency graph, strictly typechecks Scrawlix declarations through React 18 and React 19, production-builds both majors, and production-builds the documented Next.js App Router client-wrapper path.
+`scripts/smoke-packages.mjs` is a release gate for the actual packed public packages: external consumers must receive usable JavaScript, declarations, CSS/exports, and every local source-map target without packed source tests. When adding or splitting a public entrypoint, keep each package `files` list aligned with emitted maps and extend the packed consumer coverage.
 
-Public package builds emit JavaScript and declaration source maps. Each package manifest deliberately includes only the implementation source files those maps target; source tests stay out of tarballs. When adding or splitting a public implementation entrypoint, update the package `files` list so every local `.js.map` / `.d.ts.map` source remains available after packing. `pnpm smoke:packages` parses the packed archives and fails on unresolved local map targets, path escapes, or packed `*.test.*` sources.
+Release procedure belongs in `docs/releasing.md`; runtime baselines belong in `docs/compatibility.md`.
 
-The npm publication workflow uses Node 24 so its OIDC runner comfortably satisfies trusted-publishing runtime requirements. Published runtime compatibility and workspace-tooling expectations live in `docs/compatibility.md`. Release classification and public-contract rules live in `docs/versioning.md`.
+## Product invariants
 
-## Invariants
+### Preserve exact source text
 
-### Preserve source text exactly
+`engine.segment(text).map(segment => segment.text).join('')` must equal the original JavaScript string exactly. Matching and rendering may derive alternate views; caller-owned source remains unchanged.
 
-`engine.segment(text).map(segment => segment.text).join('')` must always equal the original `text` byte-for-byte at the JavaScript string level. Rendering may obscure glyphs; matching must never rewrite the caller's source.
+### Keep core language-neutral and rules explicit
 
-### Keep core language-neutral
+`@scrawlix/core` owns language-neutral matching and generic coverage. Profanity vocabulary, locale morphology, and language-specific character policy belong in language/rule packs.
 
-Do not add profanity lists, locale-specific morphology, or language-specific character classification to `@scrawlix/core`. Put those in a language/rule pack.
+`createScrawlix()` with zero rules is a no-op. Adapters receive rules explicitly; avoid hidden language detection or bundled moderation policy.
 
-Generic coverage belongs in core. A behavior such as “cover English vowels” belongs in `@scrawlix/en`.
+### Keep first use conservative
 
-### Require deliberate rule selection
+Core's default covers the full semantic target. React keeps source concealed by default with `reveal="never"`. Partial coverage and interactive reveal require explicit caller choice.
 
-`createScrawlix()` with zero rules is a no-op. Adapters should receive rules explicitly. Avoid hidden language detection or surprise bundled moderation behavior.
+### Preserve caller-owned matcher state
 
-### Keep first-use coverage conservative
+Compile internal RegExp copies and leave caller `lastIndex` untouched. Repeated `find()` and `segment()` calls on one engine stay stable.
 
-When rules are supplied without a coverage selector, core covers the full semantic target. Renderers may expose richer partial treatments, but those should be explicit choices. React keeps source concealed by default with `reveal="never"`.
-
-### Preserve caller-owned RegExp state
-
-The engine compiles its own RegExp copies. Never mutate a caller's `lastIndex`. Repeated `find()` / `segment()` calls on the same engine must be stable.
-
-### Keep semantic targets explicit
-
-When a larger match contains the meaningful censored core, use a named capture group and `target: { group: '...' }`. Coverage should operate on the target, not blindly on the full inflected or compound match.
+When a larger lexical match contains the semantic censored core, use a named capture group plus `target: { group: '...' }`; coverage operates on the semantic target.
 
 ### Treat accessibility as source truth
 
-Visual censorship is decorative. When text is transformed, React keeps exactly one visually-hidden source copy in the accessibility tree (`data-scrawlix-a11y`) and marks the complete rendered visual tree `aria-hidden="true"`. Preserve that single accessible reading of the source across every appearance and reveal mode.
+React keeps exactly one visually hidden source copy in the accessibility tree (`data-scrawlix-a11y`) and marks the complete decorative visual tree `aria-hidden="true"`. Preserve that single accessible reading across every appearance and reveal mode.
 
-Passive reveal modes (`hover`, `never`) stay outside the tab order. Keyboard-driven reveal modes must retain an operable focus path and regression coverage.
+Passive reveal modes (`hover`, `never`) stay outside the tab order. Keyboard-driven reveal modes retain an operable focus path and regression coverage. `@scrawlix/react/styles.css` is part of the documented adoption path because it owns built-in treatments and the visually hidden helper.
 
-`@scrawlix/react/styles.css` is part of the documented React adoption path because it owns the built-in treatment CSS and the visually-hidden accessibility helper.
+### Keep framework boundaries explicit
 
-### Keep Next.js rule selection inside the client boundary
+Scrawlix rules contain `RegExp` values and coverage selectors can be functions. In Next.js App Router, application-owned Client Components import the rules and `CensoredText`; Server Components pass serializable application data such as `text`. The packed Next consumer release-gates this recipe.
 
-Scrawlix rule packs contain `RegExp` values and coverage selectors can be functions. In Next.js App Router integrations, keep those values inside an application-owned Client Component that imports the rule pack and `CensoredText`. Server Components should pass serializable application data such as `text` into that wrapper.
+### Keep adapters semantic and reversible
 
-The packed Next consumer release-gates this exact pattern. Keep README and `llms.txt` examples aligned with it.
+`@scrawlix/rehype` transforms eligible HAST text nodes into semantic covered spans, preserves source as text content, skips code/pre/script/style/textarea and its own generated output, and leaves appearance/reveal to consumers. Preserve inline element/link boundaries; matching currently stays within each eligible text node and does not cross markup seams.
 
-### Keep syntax-tree adapters semantic
+`@scrawlix/dom` transforms eligible text nodes locally, marks generated roots with `data-scrawlix-dom-root`, and records exact source strings for controller-owned restoration. Mutation handling processes delivered mutation nodes instead of rescanning the whole document. Editable/form/code-like regions, non-HTML namespaces, and generated output remain excluded by default. Observation restoration disconnects before returning source nodes.
 
-`@scrawlix/rehype` operates on HAST text nodes and emits covered spans with stable data attributes. It preserves the original text as text content and leaves appearance/reveal policy to consumers.
+Keep presentation policy above both adapters.
 
-Keep code/pre/script/style/textarea exclusions safe by default. Preserve inline elements and link boundaries. Never match across separate text nodes or markup seams unless a future API explicitly introduces a higher-level tokenization pass with corpus evidence.
+### Keep extension state in the application
 
-The rehype transform must stay idempotent: existing `data-scrawlix-cover` output is an excluded subtree.
+`apps/extension` owns Chrome storage, host policy, permissions, popup/options UI, and injected presentation. Reusable packages remain browser-application agnostic.
 
-### Keep arbitrary-page DOM work local and reversible
+Preserve the extension's documented storage/policy split and atomic page restoration/reconfiguration lifecycle. Reveal interaction must preserve native control activation. Permission/privacy changes travel with their user-facing browser-product tradeoffs; `apps/extension/README.md` owns the current extension contract.
 
-`@scrawlix/dom` collects eligible text nodes with `TreeWalker`, transforms only nodes with covered ranges, and marks generated roots with `data-scrawlix-dom-root`. Applying the same controller again must leave generated output alone.
+### Record learned linguistic behavior in corpora
 
-Mutation observation must process nodes delivered by `MutationObserver`. Never replace this with a complete document rescan after each mutation.
+When a matcher/rule bug teaches a durable positive or false-positive case, add it to the relevant pack corpus. Prefer data cases over one-off matcher test code.
 
-Keep editable/form/code-like regions and non-HTML namespaces safe by default. Treat `contenteditable="false"` as an explicit island inside an editable ancestor.
+## Change routing
 
-Restoration is controller-owned. A controller records exact source strings for roots it creates and must leave author-owned lookalike attributes alone. When observation is active, use the observation handle's atomic `restore()` lifecycle so disconnect happens before source nodes return.
+### Language packs
 
-Presentation remains above the DOM adapter. Keep black bars, blur, grawlix masks, site preferences, and extension UI out of `@scrawlix/dom`.
+Keep locale vocabulary, morphology, coverage helpers, review assumptions, and corpora inside the pack. Exercise semantic targets, casing, punctuation, compounds/inflections, ambiguity, and deliberate boundary policy. Every package README needs an exact install command and canonical snippet. See `docs/language-packs.md`.
 
-### Keep browser-extension state in the application
+### Appearance and reveal
 
-`apps/extension` owns `chrome.storage`, hostname overrides, popup UI, manifest permissions, and injected presentation. Do not move those concerns into reusable packages.
+Keep matching logic out of renderers. Preserve source width/content, accessibility, interaction behavior, and reduced-motion behavior; add demo coverage plus rendered regressions. Shared appearance work is tracked in issue #26.
 
-Small global preferences belong in `storage.sync`; custom terms currently live in `storage.local`. Host overrides are sparse tri-state policy: absence means inherit, explicit values are `on` or `off`.
+### Coverage
 
-A storage change restarts the page session through `DomObservation.restore()` before a new controller starts. Preserve that atomic restore/reconfigure sequence.
+Generic positional coverage can live in core. Language-character classes, syllables, morphology, and locale-specific selectors belong in a pack.
 
-Extension reveal interaction must avoid stealing native page controls. Generated roots inside links, buttons, inputs, or similar controls stay outside the extension's own focus/click-toggle path.
+### Public API
 
-Broad HTTP/HTTPS host access is a deliberate development choice for persistent automatic per-site behavior. Treat permission minimization as a store-release requirement and document any permission change alongside its UX tradeoff.
+`docs/versioning.md` owns public-contract classification. Documented exports/subpaths, defaults, rule ids, adapter attributes, ignore attributes, React render/CSS attributes, and lifecycle behavior are public contracts. Browser-extension internals stay private unless explicitly promoted.
 
-### Add corpus cases for learned linguistic behavior
+Human quickstarts live in root/package READMEs; coding-agent copy/paste usage lives in the demo `llms.txt`. Keep those surfaces synchronized when public names, defaults, package selection, required stylesheet imports, or framework boundaries change.
 
-When a bug or rule change teaches a durable positive or false-positive example, add it to the relevant pack corpus. Prefer data cases over one-off matcher test code.
+## Sustained work
 
-## Adding a language pack
-
-1. Create `packages/<locale-or-pack-name>` with a dependency on `@scrawlix/core`.
-2. Export one or more `CensorRule[]` collections and a `CensorRulePack` value with locale metadata.
-3. Keep morphology and language-specific coverage helpers inside that package.
-4. Add a reviewable positive corpus and a clean/false-positive corpus.
-5. Test semantic target text, casing, punctuation, compounds/inflections, and known ambiguity.
-6. For phrase lists that can sit beside other letters, use `censorRuleFromTerms(..., { boundary: 'substring' })` deliberately.
-7. Document dialect/severity assumptions. Do not imply complete language coverage from a small pack.
-8. Give the package README an exact install command and canonical consumer snippet.
-
-## Adding a visual appearance
-
-1. Coordinate with the shared appearance contract tracked in issue #26.
-2. Add the appearance name to `ScrawlixAppearance` in `packages/react` when it is a built-in preset.
-3. Keep matching logic out of React.
-4. Prefer CSS/data-attribute presentation over rebuilding source strings.
-5. Add the appearance to the demo specimen sheet.
-6. Preserve reveal modes and reduced-motion behavior.
-7. Extend rendered regressions for any new DOM contract or interaction.
-8. If the extension should expose the same appearance, update its presentation union/CSS and test its mask semantics separately.
-
-## Adding a coverage behavior
-
-Ask whether the behavior is language-neutral. Generic positional coverage may live in core. Character classes, syllables, morphology, or locale-specific rules belong in a pack and can be implemented as `CoverageSelector` callbacks.
-
-## Release discipline
-
-`docs/releasing.md` is the release runbook. The five public packages stay synchronized and `scripts/check-release-version.mjs` refuses mismatched release versions or the workspace placeholder `0.0.0`.
-
-`.github/workflows/publish.yml` is the permanent post-bootstrap publication path. It is manually dispatched from `main`, defaults to dry-run, reruns the release gates, preflights npm package/version state, publishes in dependency order, requests provenance, and carries no long-lived npm write token.
-
-npm trusted publishers are configured per package and require an existing registry package. The first package creation therefore remains an explicit human bootstrap step tracked in issue #18; after all five packages exist and trust `publish.yml`, subsequent releases use GitHub OIDC. Never add an npm write token to the permanent publish workflow to bypass that bootstrap requirement.
-
-## Public API discipline
-
-Scrawlix is pre-release, so breaking changes are still possible. Use that freedom to remove surprising defaults and awkward names before publication. `docs/versioning.md` defines how 0.x releases classify fixes, additions, language-pack scope changes, and intentional breaks.
-
-The documented package exports, rule ids, option defaults, adapter data attributes, ignore attributes, and React CSS/render attributes are public contracts. Keep application-only browser-extension state private unless a document explicitly promotes it to a public contract.
-
-Packed-package smoke tests are a release gate: external consumers must receive compiled JavaScript, declarations, CSS exports, valid package metadata, and source-map targets that resolve inside the tarball. Every new public package belongs in `scripts/smoke-packages.mjs` and the relevant external consumer fixture.
-
-Human quickstarts live in the root/package READMEs. Agent quickstarts live in the demo `llms.txt`. Keep those surfaces synchronized whenever public names, defaults, package selection, required side-effect imports, or framework boundaries change.
+When the maintainer gives a clear objective, continue through concrete reviewable work while useful next actions remain. `docs/agent-work-continuity.md` owns the stop conditions and continuation guidance.
