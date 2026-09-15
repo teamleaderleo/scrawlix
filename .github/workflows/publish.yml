@@ -48,7 +48,20 @@ jobs:
           pnpm typecheck
           pnpm test
           pnpm build
-          pnpm smoke:packages
+
+      - name: Use Node 18 for published-runtime smoke
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Published runtime smoke — Node 18
+        run: node scripts/smoke-node18-runtime.mjs
+      - name: Restore Node 24 publication toolchain
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Verify packed packages
+        run: pnpm smoke:packages
 
       - name: Verify synchronized release version
         run: node scripts/check-release-version.mjs "${{ inputs.version }}"
