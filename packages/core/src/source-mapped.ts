@@ -5,6 +5,7 @@ import {
   type TermBoundaryStrategy,
   type UnicodeNormalization,
 } from './index.js';
+import { createPreparedTermMatcher } from './term-matcher.js';
 
 export type SourceMappedGraphemeTransform = (grapheme: string) => string;
 
@@ -54,7 +55,7 @@ export type TransformedTermOptions = {
   profile?: string;
   /**
    * Casing behavior for matching. `unicode-insensitive` preserves the current
-   * ECMAScript Unicode-RegExp case-folding behavior. Locale casing derives a
+   * ECMAScript Unicode-RegExp case-insensitive behavior. Locale casing derives a
    * source-mapped lowercase shadow with the locale selected by the pack.
    */
   casing?: TermCasingPolicy;
@@ -65,61 +66,6 @@ export type TransformedTermOptions = {
    */
   transform?: SourceMappedGraphemeTransform;
 };
-
-const wordContextClass = '\\p{L}\\p{N}\\p{M}\\p{Pc}\\u200C\\u200D';
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function advanceStringIndex(value: string, index: number, unicode: boolean) {
-  if (!unicode) return index + 1;
-  if (index + 1 >= value.length) return index + 1;
-
-  const first = value.charCodeAt(index);
-  if (first < 0xd800 || first > 0xdbff) return index + 1;
-
-  const second = value.charCodeAt(index + 1);
-  if (second < 0xdc00 || second > 0xdfff) return index + 1;
-
-  return index + 2;
-}
-
-function isUnicodeWordBoundary(
-  boundary: TermBoundaryStrategy
-): boundary is 'word' | 'unicode-word' {
-  return boundary === 'word' || boundary === 'unicode-word';
-}
-
-function termPatternSource(
-  alternatives: readonly string[],
-  boundary: TermBoundaryStrategy
-) {
-  const source = `(?:${alternatives.map(escapeRegExp).join('|')})`;
-  return isUnicodeWordBoundary(boundary)
-    ? `(?<![${wordContextClass}])${source}(?![${wordContextClass}])`
-    : source;
-}
-
-function localeWordBoundaries(
-  value: string,
-  boundary: Exclude<TermBoundaryStrategy, string>
-) {
-  const locales =
-    typeof boundary.locale === 'string'
-      ? boundary.locale
-      : [...boundary.locale];
-  const segmenter = new Intl.Segmenter(locales, { granularity: 'word' });
-  const boundaries = new Set<number>();
-
-  for (const part of segmenter.segment(value)) {
-    if (!part.isWordLike) continue;
-    boundaries.add(part.index);
-    boundaries.add(part.index + part.segment.length);
-  }
-
-  return boundaries;
-}
 
 function normalize(value: string, normalization: UnicodeNormalization) {
   return normalization === 'none' ? value : value.normalize(normalization);
@@ -283,8 +229,11 @@ export function censorRuleFromTransformedTerms(
     throw new Error('A censor rule needs at least one non-empty term.');
   }
 
-  const patternSource = termPatternSource(alternatives, boundary);
-  const flags = casing === 'unicode-insensitive' ? 'giu' : 'gu';
+  const prepared = createPreparedTermMatcher(alternatives, {
+    caseSensitive: casing !== 'unicode-insensitive',
+    normalization: 'none',
+    boundary,
+  });
 
   return {
     id,
@@ -293,33 +242,9 @@ export function censorRuleFromTransformedTerms(
     matcher: {
       *find(text) {
         const shadow = sourceMappedGraphemeTransform(text, graphemeTransform);
-        const pattern = new RegExp(patternSource, flags);
-        const lexicalBoundaries =
-          typeof boundary === 'object'
-            ? localeWordBoundaries(shadow.value, boundary)
-            : null;
-        let match: RegExpExecArray | null;
 
-        while ((match = pattern.exec(shadow.value)) !== null) {
-          if (!match[0]) {
-            pattern.lastIndex = advanceStringIndex(
-              shadow.value,
-              match.index,
-              pattern.unicode
-            );
-            continue;
-          }
-
-          const shadowEnd = match.index + match[0].length;
-          if (
-            lexicalBoundaries &&
-            (!lexicalBoundaries.has(match.index) ||
-              !lexicalBoundaries.has(shadowEnd))
-          ) {
-            continue;
-          }
-
-          const range = shadow.sourceRange(match.index, shadowEnd);
+        for (const match of prepared.find(shadow.value)) {
+          const range = shadow.sourceRange(match.start, match.end);
           if (!range) continue;
           yield range;
         }
