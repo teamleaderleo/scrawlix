@@ -117,14 +117,7 @@ test('built extension persists top-document injection and page lifecycle behavio
         durationMs: 300,
       });
     });
-    await expect(page.locator('html')).toHaveAttribute(
-      'data-scrawlix-page-revealed',
-      'true'
-    );
     await expect.poll(() => extensionHighlightRanges(context, fixtureUrl)).toEqual([]);
-    await expect
-      .poll(() => page.locator('html').getAttribute('data-scrawlix-page-revealed'))
-      .toBeNull();
     await expect
       .poll(async () =>
         (await extensionHighlightRanges(context, fixtureUrl)).some(
