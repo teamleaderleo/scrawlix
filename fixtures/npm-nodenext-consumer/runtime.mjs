@@ -3,6 +3,7 @@ import { createScrawlix } from '@scrawlix/core';
 import { createCorpusRunner } from '@scrawlix/core/corpus';
 import { censorRuleFromConfusableObfuscatedTerms } from '@scrawlix/core/confusable-obfuscated';
 import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
+import { censorRuleFromTransformedTerms } from '@scrawlix/core/source-mapped';
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
 import { censorRuleFromWidthObfuscatedTerms } from '@scrawlix/core/width-obfuscated';
 import { createDomScrawlix } from '@scrawlix/dom';
@@ -20,6 +21,16 @@ const canonicalCase = englishCorpus.find(
 );
 assert.ok(canonicalCase);
 createCorpusRunner({ canonical })(canonicalCase);
+
+const turkishLocaleCase = createScrawlix({
+  rules: [
+    censorRuleFromTransformedTerms('tr-npm', ['siktir'], {
+      casing: { mode: 'locale-insensitive', locale: 'tr' },
+      boundary: 'unicode-word',
+    }),
+  ],
+});
+assert.equal(turkishLocaleCase.find('SİKTİR!')[0]?.text, 'SİKTİR');
 
 const aggressive = createScrawlix({ rules: englishObfuscatedStrongProfanityRules });
 assert.equal(aggressive.find('sh1t')[0]?.profile, 'obfuscated');
