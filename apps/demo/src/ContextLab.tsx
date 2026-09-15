@@ -31,11 +31,11 @@ export function ContextLab({
       data-context-lab
     >
       <div className="section-heading context-heading">
-        <p className="eyebrow">02b / hostile contexts</p>
+        <p className="eyebrow">02b / context pressure</p>
         <h2 id="context-title">Same censor. Different host.</h2>
         <p>
           <code>{appearance}</code> with <code>{coverageLabel}</code> coverage,
-          dropped into typography that loves exposing renderer shortcuts.
+          dropped into typography that tends to expose rendering shortcuts.
         </p>
       </div>
 
@@ -69,7 +69,7 @@ export function ContextLab({
         </article>
 
         <article className="context-card context-card-dark" data-context-case="dark">
-          <header>dark / local surface</header>
+          <header>dark / inherited ink</header>
           <p className="context-copy context-dark">
             {censor('white ink, dark shit.')}
           </p>
@@ -85,14 +85,14 @@ export function ContextLab({
         <article className="context-card" data-context-case="emoji">
           <header>unicode / emoji</header>
           <p className="context-copy context-emoji">
-            {censor('🔥fuck🔥 + 👩🏽‍💻 shit + café')}
+            {censor('🔥fuck🔥 + 👩🏽‍💻 shit')}
           </p>
         </article>
 
         <article className="context-card" data-context-case="rtl">
           <header>rtl / bidi</header>
           <p className="context-copy context-rtl" dir="rtl">
-            {censor('هذا shit يحدث، motherfucker هنا')}
+            {censor('هذا shit يحدث')}
           </p>
         </article>
       </div>
