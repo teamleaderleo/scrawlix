@@ -2,7 +2,7 @@
 
 Scrawlix began as reversible censorship. Privacy-oriented uses need precise language about **where the original source still exists** and **which audience receives it**.
 
-The central rule is simple: a visual cover changes presentation. A sanitized export creates a different artifact.
+The central rule is simple: a cover or alias changes presentation while retaining source. Sanitization creates a different artifact.
 
 ## Current guarantees
 
@@ -18,7 +18,7 @@ The central rule is simple: a visual cover changes presentation. A sanitized exp
 
 `@scrawlix/react` intentionally keeps exactly one accessible source copy. The rendered visual tree is decorative and `aria-hidden="true"`. A black bar, blur, scrawl, asterisk mask, or grawlix therefore does **not** remove the source from the component's accessible reading.
 
-`@scrawlix/dom` also preserves the exact source strings required for controller-owned restoration. Extension presentation leaves the covered source substring in the page.
+`@scrawlix/dom` also preserves exact caller-owned source. Extension presentation leaves covered source in page-owned Text and paints semantic ranges separately.
 
 These behaviors are features for reversible censorship, spoilers, editorial treatments, and playful typography.
 
@@ -49,30 +49,57 @@ This is a separate policy. Current `CensoredText` deliberately exposes the exact
 
 A future assistive-tech-safe renderer would need an explicit alternate accessibility value or omission policy and dedicated keyboard/screen-reader regressions. Applications should choose that behavior intentionally because withholding source from assistive technology changes the reading experience.
 
-## Sanitized export
+## Sanitized output
 
-Sanitized export produces a **new output artifact** in which selected source substrings are replaced or removed.
+`@scrawlix/core/sanitize` exposes a deliberately destructive plain-text transform separate from the reversible engine and renderers:
 
-Example:
+```ts
+import { censorRuleFromTerms } from '@scrawlix/core';
+import { sanitizeText } from '@scrawlix/core/sanitize';
 
-```text
-source:    Project Velvet ships Friday to Acme Widgets.
-export:    [REDACTED] ships Friday to [REDACTED].
+const rules = [
+  censorRuleFromTerms('private', ['Project Velvet', 'Acme Widgets']),
+];
+
+const result = sanitizeText(
+  'Project Velvet ships Friday to Acme Widgets.',
+  {
+    rules,
+    replacement: '[REDACTED]',
+    verifySourceAbsence: true,
+  }
+);
+
+result.text;
+// "[REDACTED] ships Friday to [REDACTED]."
+
+result.report.sourceAbsence;
+// { checked: true, absent: true, ... }
 ```
 
-Once that plain-text export has been produced, the selected source terms are absent from that exported string. The original input can still exist in the application that performed the export; callers remain responsible for storage, logs, backups, clipboard history, and other copies outside Scrawlix.
+`sanitizeText()` uses the same matcher rules and exact UTF-16 source ranges as `createScrawlix().find()`. Its default `scope: 'target'` replaces the semantic target inside each match. `scope: 'match'` replaces the complete lexical match. Overlapping selected ranges are coalesced deterministically and receive one replacement per merged range. `replacement: null` omits each selected range.
 
-The public reusable packages do not currently expose a sanitized-export API. The demo includes a local proof of the operation so the contract can be pressure-tested before a package API is chosen.
+Coverage is deliberately absent from this API. A visual policy such as `coverage: 'middle'` has no effect on sanitization and cannot turn a private semantic target into a partial destructive transform.
+
+With `verifySourceAbsence: true`, Scrawlix checks the completed string in two ways before reporting `sourceAbsence.absent: true`:
+
+1. exact and NFC-equivalent selected source fragments must be absent from `result.text`
+2. re-running the same rules against `result.text` must produce zero matches
+
+This guarantee is scoped to **`result.text` from this call**. The report includes source-derived provenance for diagnostics, and the original caller input can remain in application state, logs, browser history, backups, or other copies. A clipboard/export action claiming sanitized output should write only `result.text`.
 
 ## Product vocabulary
 
 Use these terms consistently:
 
-- **cover** — reversible presentation over source text
+- **cover** — reversible visual treatment over source text
 - **reveal** — expose source that was already retained
+- **alias** — show a pseudonym while retaining source
 - **presentation profile** — a visible-output configuration for sharing a screen
 - **screenshot-safe** — a tested pixel-output guarantee for a specific rendered state
 - **assistive-tech-safe** — an explicit policy that also withholds/replaces selected source in accessibility output
 - **sanitize / sanitized export** — create a new artifact with selected source removed or replaced
+- **source retained** — exact original remains recoverable somewhere in the current representation
+- **source absent from this artifact** — strongest useful export claim, scoped to the generated artifact and its format contract
 
 Avoid calling ordinary CSS masking “secure redaction.” Reserve redaction/export language for APIs whose output contract says exactly where the source went.
