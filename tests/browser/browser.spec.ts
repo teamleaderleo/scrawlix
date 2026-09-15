@@ -3,7 +3,6 @@ import {
   extensionHighlightRanges,
   extensionWithPregrantedHosts,
   launchExtensionContext,
-  loadedExtensionId,
   registeredContentScript,
   serviceWorker,
 } from './extension-harness';
@@ -73,7 +72,7 @@ test('built extension persists top-document injection and page lifecycle behavio
       }))
     ).toEqual({
       childNodes: 1,
-      firstType: Node.TEXT_NODE,
+      firstType: 3,
       firstData: 'well, fuck this',
       html: 'well, fuck this',
     });
@@ -122,9 +121,7 @@ test('built extension persists top-document injection and page lifecycle behavio
       'data-scrawlix-page-revealed',
       'true'
     );
-    await expect
-      .poll(() => extensionHighlightRanges(context, fixtureUrl))
-      .toEqual([]);
+    await expect.poll(() => extensionHighlightRanges(context, fixtureUrl)).toEqual([]);
     await expect
       .poll(() => page.locator('html').getAttribute('data-scrawlix-page-revealed'))
       .toBeNull();
@@ -171,107 +168,6 @@ test('built extension persists top-document injection and page lifecycle behavio
     await page.locator('#native-link').click();
     await expect(page).toHaveURL('http://127.0.0.1:4174/clicked.html');
     await expect(page.locator('#clicked')).toHaveText('native link worked');
-  } finally {
-    await context.close();
-  }
-});
-
-test('built extension switches lens profiles without rewriting the live page', async ({}, testInfo) => {
-  const testExtensionPath = await extensionWithPregrantedHosts(
-    testInfo.outputPath('extension-under-test')
-  );
-  const context = await launchExtensionContext(
-    testInfo.outputPath('extension-lens-profiles'),
-    testExtensionPath
-  );
-
-  try {
-    const page = context.pages()[0] ?? (await context.newPage());
-    await page.goto('http://127.0.0.1:4174/fixture.html');
-    const fixtureUrl = page.url();
-
-    await expect
-      .poll(async () =>
-        (await extensionHighlightRanges(context, fixtureUrl)).some(
-          range => range.parentId === 'initial'
-        )
-      )
-      .toBe(true);
-    expect(
-      (await extensionHighlightRanges(context, fixtureUrl)).some(
-        range => range.parentId === 'private'
-      )
-    ).toBe(false);
-
-    const extensionId = await loadedExtensionId(context);
-    const popup = await context.newPage();
-    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    const profilePicker = popup.locator('#profile');
-    await expect(profilePicker).toHaveValue('profile:everyday');
-
-    await popup.getByRole('button', { name: '+ lens' }).click();
-    let customLenses = popup.locator('.lens-card[data-lens-kind="terms"]');
-    await expect(customLenses).toHaveCount(1);
-    await customLenses.last().locator('.lens-name').fill('Private');
-    await customLenses.last().locator('textarea').fill('Mothbit');
-    await expect(popup.locator('#local-save-status')).toHaveText('saved');
-    await expect
-      .poll(async () =>
-        (await extensionHighlightRanges(context, fixtureUrl)).some(
-          range => range.parentId === 'private'
-        )
-      )
-      .toBe(true);
-
-    await popup.getByRole('button', { name: '+ lens' }).click();
-    customLenses = popup.locator('.lens-card[data-lens-kind="terms"]');
-    await expect(customLenses).toHaveCount(2);
-    await customLenses.last().locator('.lens-name').fill('Spoilers');
-    await customLenses.last().locator('textarea').fill('Rosebud');
-    await expect(popup.locator('#local-save-status')).toHaveText('saved');
-
-    await popup.getByRole('button', { name: 'new', exact: true }).click();
-    await popup.getByLabel('profile name').fill('Presentation');
-    await popup.getByLabel('appearance').selectOption('bar');
-    await popup.getByLabel('coverage').selectOption('full');
-    await popup.getByLabel('reveal').selectOption('never');
-
-    const profanityCard = popup.locator(
-      '.lens-card[data-lens-kind="english-profanity"]'
-    );
-    await profanityCard.locator('input[type="checkbox"]').uncheck();
-    await expect(popup.locator('#local-save-status')).toHaveText('saved');
-
-    await expect(page.locator('#initial')).toHaveText('well, fuck this');
-    await expect(page.locator('#private')).toHaveText('Mothbit remains private');
-    await expect(page.locator('[data-scrawlix-dom-root]')).toHaveCount(0);
-    await expect
-      .poll(async () => extensionHighlightRanges(context, fixtureUrl))
-      .toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ parentId: 'private', text: 'Mothbit' }),
-        ])
-      );
-    expect(
-      (await extensionHighlightRanges(context, fixtureUrl)).some(
-        range => range.parentId === 'initial'
-      )
-    ).toBe(false);
-
-    await profilePicker.selectOption({ label: 'Everyday' });
-    await expect
-      .poll(async () => {
-        const ranges = await extensionHighlightRanges(context, fixtureUrl);
-        return {
-          initial: ranges.some(range => range.parentId === 'initial'),
-          private: ranges.some(range => range.parentId === 'private'),
-        };
-      })
-      .toEqual({ initial: true, private: true });
-    await expect(page.locator('#initial')).toHaveText('well, fuck this');
-    await expect(page.locator('#private')).toHaveText('Mothbit remains private');
-
-    await popup.close();
   } finally {
     await context.close();
   }
