@@ -36,12 +36,16 @@ test('demo controls include reversible redaction poetry', async ({ page }) => {
   await expect(poem).toHaveAttribute('data-redaction-revealed', 'true');
   await expect(visual).toHaveText(originalSource!);
 
-  const restoredStyle = await covered.first().evaluate(element => {
-    const style = getComputedStyle(element);
-    return { color: style.color, backgroundImage: style.backgroundImage };
-  });
-  expect(restoredStyle.color).not.toBe('rgba(0, 0, 0, 0)');
-  expect(restoredStyle.backgroundImage).toBe('none');
+  await expect
+    .poll(() =>
+      covered.first().evaluate(element => getComputedStyle(element).color)
+    )
+    .not.toBe('rgba(0, 0, 0, 0)');
+  await expect
+    .poll(() =>
+      covered.first().evaluate(element => getComputedStyle(element).backgroundImage)
+    )
+    .toBe('none');
 
   await page.locator('.poetry-controls textarea').nth(1).fill('desire\nTuesday');
   await expect(visible).toHaveCount(2);
