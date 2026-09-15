@@ -10,6 +10,9 @@
   "files": [
     "dist",
     "src/index.ts",
+    "src/engine.ts",
+    "src/term-rule.ts",
+    "src/term-matcher.ts",
     "src/targeted-obfuscated.ts",
     "src/repeated-obfuscated.ts",
     "src/width-obfuscated.ts",
