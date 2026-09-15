@@ -20,6 +20,7 @@ The same word can become `████`, `f███`, `f██k`, `f█ck`, `f*
 | transform an existing webpage / DOM | `@scrawlix/dom @scrawlix/en` | `createDomScrawlix` |
 | match/segment text or build your own renderer | `@scrawlix/core` plus rules | `createScrawlix` |
 | use packaged English strong-profanity rules | `@scrawlix/en` | `englishStrongProfanityRules` |
+| opt into English evasion matching | `@scrawlix/en` | `englishObfuscatedStrongProfanityRules` from `@scrawlix/en/obfuscated` |
 
 Core contains no hidden language policy; adapters receive rules explicitly.
 
@@ -96,6 +97,17 @@ scrawlix.segment('what the fuck');
 
 The English pack can target the semantic core inside larger matches, so `fuck`, `fucking`, and `motherfucker` can all apply coverage to the `fuck` portion. Generic core presets are `full`, `tail`, `middle`, and `inner`; `full` is the default.
 
+Aggressive one-change evasion matching stays opt-in through its own public subpath:
+
+```ts
+import { createScrawlix } from '@scrawlix/core';
+import { englishObfuscatedStrongProfanityRules } from '@scrawlix/en/obfuscated';
+
+const scrawlix = createScrawlix({
+  rules: englishObfuscatedStrongProfanityRules,
+});
+```
+
 ## Markdown / rehype
 
 ```sh
@@ -159,7 +171,7 @@ const censor = createScrawlix({ rules: [privateTerms] });
 
 `@scrawlix/core` owns matching mechanics and generic positional coverage; linguistic policy lives in packages such as `@scrawlix/en`.
 
-The English package exports `englishStrongProfanityRules`, `englishStrongProfanityPack`, `englishVowelCoverage`, and the `@scrawlix/en/corpus` subpath. Combine packs with `rulesFromPacks(...)`. See [`docs/language-packs.md`](docs/language-packs.md).
+The English root exports the canonical `englishStrongProfanityRules`, `englishStrongProfanityPack`, and `englishVowelCoverage`. Opt-in aggressive English matching lives at `@scrawlix/en/obfuscated`, while regression data lives at `@scrawlix/en/corpus`. Combine packs with `rulesFromPacks(...)`. See [`docs/language-packs.md`](docs/language-packs.md).
 
 ## Browser extension and demo
 
@@ -180,7 +192,7 @@ pnpm build
 pnpm smoke:packages
 ```
 
-The packed-package smoke gate installs real tarballs into external consumers and verifies public exports/declarations plus React 18, React 19, and Next.js App Router production builds.
+The packed-package smoke gate installs real tarballs into external consumers and verifies public exports/declarations through pnpm React 18/19 consumers, a Next.js App Router production build, and an npm-installed TypeScript NodeNext React 19 consumer.
 
 ## Status
 

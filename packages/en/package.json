@@ -10,6 +10,7 @@
   "files": [
     "dist",
     "src/index.ts",
+    "src/obfuscated.ts",
     "src/corpus.ts",
     "src/corpus-data"
   ],
@@ -20,6 +21,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./obfuscated": {
+      "types": "./dist/obfuscated.d.ts",
+      "import": "./dist/obfuscated.js",
+      "default": "./dist/obfuscated.js"
     },
     "./corpus": {
       "types": "./dist/corpus.d.ts",

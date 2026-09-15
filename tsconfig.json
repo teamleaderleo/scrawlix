@@ -26,6 +26,7 @@
       ],
       "@scrawlix/core/corpus": ["packages/core/src/corpus.ts"],
       "@scrawlix/en": ["packages/en/src/index.ts"],
+      "@scrawlix/en/obfuscated": ["packages/en/src/obfuscated.ts"],
       "@scrawlix/en/corpus": ["packages/en/src/corpus.ts"],
       "@scrawlix/react": ["packages/react/src/index.tsx"],
       "@scrawlix/rehype": ["packages/rehype/src/index.ts"],
