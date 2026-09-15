@@ -1,4 +1,5 @@
-import { censorRuleFromTerms, createScrawlix } from '@scrawlix/core';
+import { censorRuleFromTerms } from '@scrawlix/core';
+import { sanitizeText } from '@scrawlix/core/sanitize';
 import { CensoredText } from '@scrawlix/react';
 import { useMemo, useState } from 'react';
 
@@ -6,20 +7,37 @@ const privateText = 'Project Velvet ships Friday to Acme Widgets.';
 const privateTerms = ['Project Velvet', 'Acme Widgets'] as const;
 const privateRules = [censorRuleFromTerms('privacy-lab', privateTerms)];
 
-function sanitizeText(text: string, replacement: string) {
-  const engine = createScrawlix({ rules: privateRules, coverage: 'full' });
-  return engine
-    .segment(text)
-    .map(segment => (segment.covered ? replacement : segment.text))
-    .join('');
-}
+type CopyStatus = 'idle' | 'copied' | 'blocked' | 'failed';
 
 export function PrivacyLab() {
   const [replacement, setReplacement] = useState('[REDACTED]');
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
   const sanitized = useMemo(
-    () => sanitizeText(privateText, replacement),
+    () =>
+      sanitizeText(privateText, {
+        rules: privateRules,
+        replacement,
+        verifySourceAbsence: true,
+      }),
     [replacement]
   );
+  const sourceAbsent =
+    sanitized.report.sourceAbsence.checked &&
+    sanitized.report.sourceAbsence.absent;
+
+  async function copySanitized() {
+    if (!sourceAbsent) {
+      setCopyStatus('blocked');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(sanitized.text);
+      setCopyStatus('copied');
+    } catch {
+      setCopyStatus('failed');
+    }
+  }
 
   return (
     <section className="privacy-section" aria-labelledby="privacy-title">
@@ -91,22 +109,43 @@ export function PrivacyLab() {
           <article className="privacy-channel privacy-channel-export">
             <header>
               <span>04</span>
-              <strong>sanitized export</strong>
-              <em>source removed</em>
+              <strong>sanitized copy</strong>
+              <em>{sourceAbsent ? 'source absent' : 'check failed'}</em>
             </header>
             <code className="privacy-channel-value" data-sanitized-output>
-              {sanitized}
+              {sanitized.text}
             </code>
             <label>
               <span>replacement</span>
               <input
                 aria-label="Sanitized export replacement"
-                onChange={event => setReplacement(event.target.value)}
+                onChange={event => {
+                  setReplacement(event.target.value);
+                  setCopyStatus('idle');
+                }}
                 spellCheck="false"
                 value={replacement}
               />
             </label>
-            <p>This demo creates a new string whose selected terms have been replaced.</p>
+            <p data-sanitized-guarantee>
+              {sourceAbsent
+                ? `Selected source absent from this generated string. ${sanitized.report.rangeCount} ranges replaced.`
+                : 'Source-absence verification failed for this generated string.'}
+            </p>
+            <button
+              data-sanitized-copy
+              disabled={!sourceAbsent}
+              onClick={copySanitized}
+              type="button"
+            >
+              Copy sanitized text
+            </button>
+            <output aria-live="polite" data-sanitized-copy-status>
+              {copyStatus === 'copied' && 'Sanitized string copied.'}
+              {copyStatus === 'blocked' && 'Sanitized copy blocked.'}
+              {copyStatus === 'failed' && 'Clipboard write failed.'}
+            </output>
+            <p>The clipboard action writes only the newly generated sanitized string.</p>
           </article>
         </div>
       </div>

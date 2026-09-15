@@ -18,6 +18,7 @@
       "@scrawlix/core/pack-authoring": [
         "packages/core/src/pack-authoring.ts"
       ],
+      "@scrawlix/core/sanitize": ["packages/core/src/sanitize.ts"],
       "@scrawlix/core/targeted-obfuscated": [
         "packages/core/src/targeted-obfuscated.ts"
       ],
