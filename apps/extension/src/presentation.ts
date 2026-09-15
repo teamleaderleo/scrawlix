@@ -23,11 +23,6 @@ export function highlightPresentationCss(
   background-color: GrayText;
   text-shadow: 0 0 0.35em CanvasText;`;
       case 'bar':
-      case 'asterisk':
-      case 'grawlix':
-        // Custom Highlights cannot synthesize replacement glyphs. Symbol-mask
-        // appearances use the same opaque treatment as the bar while keeping
-        // the page-owned Text and child tree untouched.
         return `
   background-color: CanvasText;`;
     }

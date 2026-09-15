@@ -9,7 +9,6 @@ import {
   coverageSelector,
   createDefaultLocalState,
   effectiveEnabled,
-  maskFor,
   mergeCustomWords,
   normalizeCustomWords,
   normalizeLocalState,
@@ -41,6 +40,27 @@ describe('extension settings', () => {
       reveal: 'click',
       siteOverrides: { 'example.com': 'off' },
     });
+  });
+
+  it('migrates legacy symbol appearances to the opaque bar treatment', () => {
+    expect(normalizeSettings({ appearance: 'asterisk' }).appearance).toBe('bar');
+    expect(normalizeSettings({ appearance: 'grawlix' }).appearance).toBe('bar');
+
+    const state = normalizeLocalState({
+      lenses: [],
+      profiles: [
+        {
+          id: 'legacy',
+          name: 'Legacy',
+          lensIds: [ENGLISH_PROFANITY_LENS_ID],
+          appearance: 'grawlix',
+          coverage: 'middle',
+          reveal: 'hover',
+        },
+      ],
+      activeProfileId: 'legacy',
+    });
+    expect(activeProfile(state).appearance).toBe('bar');
   });
 
   it('treats pause as a true master state before site policy', () => {
@@ -242,13 +262,5 @@ describe('extension settings', () => {
   it('maps the vowel setting to the English coverage helper', () => {
     expect(typeof coverageSelector('vowel')).toBe('function');
     expect(coverageSelector('middle')).toBe('middle');
-  });
-
-  it('generates symbol masks by grapheme count without rewriting source text', () => {
-    expect(maskFor('fuck', 'asterisk')).toBe('****');
-    expect(maskFor('abcdef', 'grawlix')).toBe('@#$%&!');
-    expect(maskFor('e\u0301❤️👍🏽🇺🇸👨‍👩‍👧‍👦', 'asterisk')).toBe('*****');
-    expect(maskFor('e\u0301❤️👍🏽🇺🇸👨‍👩‍👧‍👦', 'grawlix')).toBe('@#$%&');
-    expect(maskFor('fuck', 'bar')).toBe('');
   });
 });

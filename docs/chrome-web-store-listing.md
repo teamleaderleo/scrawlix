@@ -47,7 +47,7 @@ Final icon and screenshot production is tracked in #127.
 >
 > **Choose how it looks**
 >
-> The arbitrary-page renderer provides scrawl, blur, and opaque concealment treatments. Because browser CSS Custom Highlight cannot synthesize replacement glyphs, the bar, asterisk, and grawlix presets share the same opaque treatment on arbitrary webpages. Coverage choices still control how much of each matched target is concealed: middle, inner letters, everything after the first letter, vowels, or the full target.
+> The arbitrary-page renderer provides three distinct treatments: scrawl, an opaque bar, and blur. Coverage choices control how much of each matched target is concealed: middle, inner letters, everything after the first letter, vowels, or the full target.
 >
 > **Control each site**
 >
@@ -150,7 +150,7 @@ Caption direction: **Censor the current page without losing control of the page.
 
 ### Screenshot 2 — Visual treatments
 
-Show readable real specimens for the distinct shipped arbitrary-page treatments: scrawl, blur, and opaque concealment. If the UI still exposes bar/asterisk/grawlix separately, the screenshot/caption must make clear that those symbol-mask presets converge to the same opaque Highlight treatment on webpages.
+Show readable real specimens for the three shipped arbitrary-page treatments: scrawl, opaque bar, and blur.
 
 Caption direction: **Choose the concealment treatment and how much of each match to cover.**
 

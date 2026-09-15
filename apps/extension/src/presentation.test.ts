@@ -12,11 +12,8 @@ describe('extension highlight presentation', () => {
     expect(css).not.toContain('data-scrawlix-cover');
   });
 
-  it('uses an opaque highlight for symbol appearances that cannot synthesize glyphs', () => {
-    expect(highlightPresentationCss('scrawlix-extension', 'asterisk')).toContain(
-      'background-color: CanvasText'
-    );
-    expect(highlightPresentationCss('scrawlix-extension', 'grawlix')).toContain(
+  it('uses an opaque Highlight for the bar treatment', () => {
+    expect(highlightPresentationCss('scrawlix-extension', 'bar')).toContain(
       'background-color: CanvasText'
     );
   });
