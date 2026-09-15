@@ -215,8 +215,14 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function compilePattern(pattern: RegExp) {
-  const flags = new Set(pattern.flags.replaceAll('y', '').split(''));
+function compilePattern(pattern: RegExp, ruleId: string) {
+  if (pattern.sticky || pattern.flags.includes('y')) {
+    throw new Error(
+      `Censor rule "${ruleId}" uses unsupported sticky RegExp flag "y". Use a non-sticky pattern instead.`
+    );
+  }
+
+  const flags = new Set(pattern.flags.split(''));
   flags.add('g');
   flags.add('d');
   return new RegExp(pattern.source, [...flags].join(''));
@@ -1250,7 +1256,7 @@ export function createScrawlix({
       ? rule
       : {
           ...rule,
-          pattern: compilePattern(rule.pattern),
+          pattern: compilePattern(rule.pattern, rule.id),
         }
   );
 
