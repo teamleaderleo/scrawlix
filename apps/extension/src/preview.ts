@@ -1,5 +1,5 @@
 import { createScrawlix } from '@scrawlix/core';
-import { englishProfanityRules } from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
 import {
   coverageSelector,
   maskFor,
@@ -20,7 +20,7 @@ export function renderTreatmentPreview(
   }
 ) {
   const engine = createScrawlix({
-    rules: englishProfanityRules,
+    rules: englishStrongProfanityRules,
     coverage: coverageSelector(coverage),
   });
   const segments = engine.segment(TREATMENT_PREVIEW_TEXT);
