@@ -19,7 +19,7 @@ describe('DOM covered-range scanning', () => {
     document.body.innerHTML = '<p id="copy">well, fuck</p>';
     const paragraph = document.querySelector('#copy')!;
     const source = paragraph.firstChild as Text;
-    const children = [...paragraph.childNodes];
+    const children = Array.from(paragraph.childNodes);
 
     const ranges = scanner().scan(paragraph);
 
@@ -33,7 +33,7 @@ describe('DOM covered-range scanning', () => {
     ]);
     expect(source.data).toBe('well, fuck');
     expect(paragraph.childNodes).toHaveLength(1);
-    expect([...paragraph.childNodes]).toEqual(children);
+    expect(Array.from(paragraph.childNodes)).toEqual(children);
     expect(paragraph.firstChild).toBe(source);
     expect(paragraph.querySelector('[data-scrawlix-dom-root]')).toBeNull();
   });
