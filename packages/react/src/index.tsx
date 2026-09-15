@@ -401,13 +401,6 @@ export const CensoredText = forwardRef<HTMLSpanElement, CensoredTextProps>(
 
     function onRootClick(event: MouseEvent<HTMLSpanElement>) {
       callerOnClick?.(event);
-      if (event.defaultPrevented || !hasCoveredText || reveal !== 'click') return;
-
-      if (revealScope === 'component') {
-        if (hasSelectedText(event.currentTarget)) return;
-        toggleComponentReveal();
-        return;
-      }
 
       const controlRevealId = revealIdForTarget(
         event.currentTarget,
@@ -415,7 +408,24 @@ export const CensoredText = forwardRef<HTMLSpanElement, CensoredTextProps>(
         '[data-scrawlix-control]'
       );
       if (controlRevealId) {
+        event.stopPropagation();
+        if (
+          event.defaultPrevented ||
+          !hasCoveredText ||
+          revealScope !== 'match' ||
+          reveal !== 'click'
+        ) {
+          return;
+        }
         toggleMatchReveal(controlRevealId);
+        return;
+      }
+
+      if (event.defaultPrevented || !hasCoveredText || reveal !== 'click') return;
+
+      if (revealScope === 'component') {
+        if (hasSelectedText(event.currentTarget)) return;
+        toggleComponentReveal();
         return;
       }
 
@@ -430,6 +440,14 @@ export const CensoredText = forwardRef<HTMLSpanElement, CensoredTextProps>(
 
     function onRootKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
       callerOnKeyDown?.(event);
+
+      const controlRevealId = revealIdForTarget(
+        event.currentTarget,
+        event.target,
+        '[data-scrawlix-control]'
+      );
+      if (controlRevealId) event.stopPropagation();
+
       if (event.defaultPrevented || !hasCoveredText || reveal !== 'click') return;
 
       if (revealScope === 'component') {
@@ -444,35 +462,33 @@ export const CensoredText = forwardRef<HTMLSpanElement, CensoredTextProps>(
         return;
       }
 
-      if (event.key !== 'Escape') return;
-      const revealId = revealIdForTarget(
-        event.currentTarget,
-        event.target,
-        '[data-scrawlix-control]'
-      );
-      if (revealId) concealMatch(revealId);
+      if (event.key === 'Escape' && controlRevealId) {
+        concealMatch(controlRevealId);
+      }
     }
 
     function onRootFocus(event: FocusEvent<HTMLSpanElement>) {
       callerOnFocus?.(event);
-      if (event.defaultPrevented || !matchControls) return;
-      const revealId = revealIdForTarget(
+      const controlRevealId = revealIdForTarget(
         event.currentTarget,
         event.target,
         '[data-scrawlix-control]'
       );
-      if (revealId) setTransientId('focusedId', revealId);
+      if (controlRevealId) event.stopPropagation();
+      if (event.defaultPrevented || !matchControls || !controlRevealId) return;
+      setTransientId('focusedId', controlRevealId);
     }
 
     function onRootBlur(event: FocusEvent<HTMLSpanElement>) {
       callerOnBlur?.(event);
-      if (event.defaultPrevented || !matchControls) return;
-      const revealId = revealIdForTarget(
+      const controlRevealId = revealIdForTarget(
         event.currentTarget,
         event.target,
         '[data-scrawlix-control]'
       );
-      if (revealId && currentState.focusedId === revealId) {
+      if (controlRevealId) event.stopPropagation();
+      if (event.defaultPrevented || !matchControls || !controlRevealId) return;
+      if (currentState.focusedId === controlRevealId) {
         setTransientId('focusedId', null);
       }
     }
