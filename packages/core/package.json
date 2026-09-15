@@ -11,6 +11,7 @@
     "dist",
     "src/index.ts",
     "src/engine.ts",
+    "src/scan-context.ts",
     "src/term-rule.ts",
     "src/term-matcher.ts",
     "src/obfuscated-term-rule.ts",
