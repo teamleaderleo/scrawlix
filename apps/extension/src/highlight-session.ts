@@ -156,9 +156,11 @@ export function createExtensionHighlightSession(
   }
 
   function hoverReveal(entry: RenderedRange) {
+    const currentHover = hovered;
     return (
-      hovered?.source === entry.source &&
-      hovered.key === entry.key
+      currentHover !== null &&
+      currentHover.source === entry.source &&
+      currentHover.key === entry.key
     );
   }
 
@@ -191,10 +193,12 @@ export function createExtensionHighlightSession(
     if (stopped || document.body !== root) return;
     entries = scanner.scan(root).map(renderedRange);
 
+    const currentHover = hovered;
     if (
-      hovered &&
+      currentHover &&
       !entries.some(
-        entry => entry.source === hovered?.source && entry.key === hovered.key
+        entry =>
+          entry.source === currentHover.source && entry.key === currentHover.key
       )
     ) {
       hovered = null;
@@ -234,7 +238,16 @@ export function createExtensionHighlightSession(
 
     const entry = entryAtPoint(event.clientX, event.clientY);
     const next = entry ? { source: entry.source, key: entry.key } : null;
-    if (next?.source === hovered?.source && next?.key === hovered?.key) return;
+    const currentHover = hovered;
+    if (
+      (next === null && currentHover === null) ||
+      (next !== null &&
+        currentHover !== null &&
+        next.source === currentHover.source &&
+        next.key === currentHover.key)
+    ) {
+      return;
+    }
     hovered = next;
     render();
   }
