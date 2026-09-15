@@ -1,19 +1,16 @@
-import { chromium, expect, test } from '@playwright/test';
-import { resolve } from 'node:path';
-
-const extensionPath = resolve(process.cwd(), 'apps/extension/dist');
+import { expect, test } from '@playwright/test';
+import {
+  extensionWithPregrantedHosts,
+  launchExtensionContext,
+} from './extension-harness';
 
 test('built extension follows React-owned HostText updates, removals, and remounts', async ({}, testInfo) => {
-  const context = await chromium.launchPersistentContext(
+  const testExtensionPath = await extensionWithPregrantedHosts(
+    testInfo.outputPath('extension-under-test')
+  );
+  const context = await launchExtensionContext(
     testInfo.outputPath('extension-react-ownership'),
-    {
-      channel: 'chromium',
-      headless: true,
-      args: [
-        `--disable-extensions-except=${extensionPath}`,
-        `--load-extension=${extensionPath}`,
-      ],
-    }
+    testExtensionPath
   );
 
   try {

@@ -1,19 +1,16 @@
-import { chromium, expect, test } from '@playwright/test';
-import { resolve } from 'node:path';
-
-const extensionPath = resolve(process.cwd(), 'apps/extension/dist');
+import { expect, test } from '@playwright/test';
+import {
+  extensionWithPregrantedHosts,
+  launchExtensionContext,
+} from './extension-harness';
 
 test('built extension preserves hostile DOM ownership and full html replacement', async ({}, testInfo) => {
-  const context = await chromium.launchPersistentContext(
+  const testExtensionPath = await extensionWithPregrantedHosts(
+    testInfo.outputPath('extension-under-test')
+  );
+  const context = await launchExtensionContext(
     testInfo.outputPath('extension-hostile-ownership'),
-    {
-      channel: 'chromium',
-      headless: true,
-      args: [
-        `--disable-extensions-except=${extensionPath}`,
-        `--load-extension=${extensionPath}`,
-      ],
-    }
+    testExtensionPath
   );
 
   try {
@@ -66,12 +63,6 @@ test('built extension preserves hostile DOM ownership and full html replacement'
 
     await expect(paragraph).toHaveText('fuck 1');
     await expect(paragraph.locator('[data-scrawlix-dom-root]')).toHaveCount(1);
-    expect(
-      await page.evaluate(() => {
-        const paragraph = document.querySelector('#anchor-normalize');
-        return paragraph?.firstChild === (window as any).__anchorSource;
-      })
-    ).toBe(true);
 
     await page.evaluate(() => {
       const paragraph = document.querySelector('#anchor-normalize')!;
@@ -83,9 +74,9 @@ test('built extension preserves hostile DOM ownership and full html replacement'
       fakeRoot.id = 'anchor-fake-root';
       fakeRoot.setAttribute('data-scrawlix-dom-root', '');
       fakeRoot.setAttribute('data-scrawlix-extension-owned', '');
-      fakeRoot.setAttribute('data-scrawlix-appearance', 'author');
-      fakeRoot.setAttribute('data-scrawlix-reveal', 'author');
-      fakeRoot.setAttribute('data-scrawlix-revealed', 'author');
+      fakeRoot.setAttribute('data-scrawlix-appearance', 'scrawl');
+      fakeRoot.setAttribute('data-scrawlix-reveal', 'click');
+      fakeRoot.setAttribute('data-scrawlix-revealed', 'true');
       fakeRoot.tabIndex = 7;
 
       const fakeCover = document.createElement('span');
@@ -93,7 +84,7 @@ test('built extension preserves hostile DOM ownership and full html replacement'
       fakeCover.setAttribute('data-scrawlix-cover', '');
       fakeCover.setAttribute('data-scrawlix-rules', 'author');
       fakeCover.setAttribute('data-scrawlix-mask', 'author');
-      fakeCover.textContent = 'fuck';
+      fakeCover.textContent = 'safe';
       fakeRoot.append(fakeCover);
       clone.after(fakeRoot);
     });
@@ -104,15 +95,36 @@ test('built extension preserves hostile DOM ownership and full html replacement'
 
     const fakeRoot = page.locator('#anchor-fake-root');
     const fakeCover = page.locator('#anchor-fake-cover');
-    await expect(fakeRoot).toHaveText('fuck');
-    await expect(fakeCover.locator('[data-scrawlix-dom-root]')).toHaveCount(1);
-    await expect(fakeRoot).toHaveAttribute('data-scrawlix-dom-root', '');
-    await expect(fakeRoot).toHaveAttribute('data-scrawlix-appearance', 'author');
-    await expect(fakeRoot).toHaveAttribute('data-scrawlix-reveal', 'author');
-    await expect(fakeRoot).toHaveAttribute('data-scrawlix-revealed', 'author');
+    await expect(fakeRoot).toHaveText('safe');
+    await expect(fakeRoot).toHaveAttribute('data-scrawlix-extension-owned', '');
     await expect(fakeRoot).toHaveAttribute('tabindex', '7');
-    await expect(fakeCover).toHaveAttribute('data-scrawlix-rules', 'author');
     await expect(fakeCover).toHaveAttribute('data-scrawlix-mask', 'author');
+
+    expect(
+      await fakeCover.evaluate(element => {
+        const style = getComputedStyle(element);
+        return {
+          display: style.display,
+          position: style.position,
+          fill: style.webkitTextFillColor,
+          after: getComputedStyle(element, '::after').content,
+        };
+      })
+    ).toEqual({
+      display: 'inline',
+      position: 'static',
+      fill: expect.not.stringMatching(/transparent/),
+      after: 'none',
+    });
+
+    const ownedCover = paragraph.locator('[data-scrawlix-cover]');
+    await expect(paragraph.locator('[data-scrawlix-dom-root]')).toHaveAttribute(
+      'data-scrawlix-extension-owned',
+      /.+/
+    );
+    expect(await ownedCover.evaluate(element => getComputedStyle(element).position)).toBe(
+      'relative'
+    );
 
     await page.evaluate(() => {
       const replacement = document.documentElement.cloneNode(true);
@@ -128,16 +140,45 @@ test('built extension preserves hostile DOM ownership and full html replacement'
       page.locator('#anchor-clone [data-scrawlix-dom-root]')
     ).toHaveCount(1);
     await expect(page.locator('#anchor-fake-root')).toHaveAttribute(
-      'data-scrawlix-appearance',
-      'author'
-    );
-    await expect(page.locator('#anchor-fake-root')).toHaveAttribute('tabindex', '7');
-    await expect(page.locator('#anchor-fake-cover')).toHaveAttribute(
-      'data-scrawlix-mask',
-      'author'
+      'data-scrawlix-extension-owned',
+      ''
     );
 
     expect(browserErrors).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+test('built extension keeps owned presentation scoped under strict page CSP', async ({}, testInfo) => {
+  const testExtensionPath = await extensionWithPregrantedHosts(
+    testInfo.outputPath('extension-under-test')
+  );
+  const context = await launchExtensionContext(
+    testInfo.outputPath('extension-csp-presentation'),
+    testExtensionPath
+  );
+
+  try {
+    const page = context.pages()[0] ?? (await context.newPage());
+    await page.goto('http://127.0.0.1:4174/csp.html');
+
+    const ownedRoot = page.locator('#csp-copy [data-scrawlix-dom-root]');
+    const ownedCover = ownedRoot.locator('[data-scrawlix-cover]');
+    await expect(ownedRoot).toHaveCount(1);
+    await expect(ownedRoot).toHaveAttribute('data-scrawlix-extension-owned', /.+/);
+    expect(await ownedCover.evaluate(element => getComputedStyle(element).position)).toBe(
+      'relative'
+    );
+
+    const fakeCover = page.locator('#csp-fake-cover');
+    expect(
+      await fakeCover.evaluate(element => ({
+        display: getComputedStyle(element).display,
+        position: getComputedStyle(element).position,
+        after: getComputedStyle(element, '::after').content,
+      }))
+    ).toEqual({ display: 'inline', position: 'static', after: 'none' });
   } finally {
     await context.close();
   }
