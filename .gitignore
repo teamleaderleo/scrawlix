@@ -1,4 +1,5 @@
 node_modules/
 **/dist/
+apps/extension/release/
 playwright-report/
 test-results/

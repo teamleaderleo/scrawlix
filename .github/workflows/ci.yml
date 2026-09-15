@@ -24,6 +24,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Store package reproducibility
+        run: pnpm --filter scrawlix-extension verify:store-package
       - name: Use Node 18 for published-runtime smoke
         uses: actions/setup-node@v4
         with:
