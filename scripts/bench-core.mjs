@@ -11,6 +11,9 @@ const smoke = process.argv.includes('--smoke');
 const documentSizes = smoke ? [10 * KiB] : [10 * KiB, MiB, 10 * MiB];
 const ruleCounts = smoke ? [5] : [5, 100, 1_000];
 const customTermCounts = smoke ? [10] : [10, 1_000, 10_000];
+const commonPrefixTermCounts = smoke
+  ? [500]
+  : [500, 1_000, 2_000, 5_000, 10_000];
 const iterations = smoke
   ? 1
   : Number(process.env.SCRAWLIX_BENCH_ITERATIONS ?? 3);
@@ -139,7 +142,7 @@ function printRuleScaling() {
 }
 
 function printCustomTermScaling() {
-  console.log('\nCustom-term alternation scaling — one generated rule on 1 MiB');
+  console.log('\nCustom-term dictionary scaling — one generated rule on 1 MiB');
   console.log('terms\trule+compile ms\tscan ms\tMiB/s\tmatches\theap Δ MiB');
   const text = `${repeatToLength('ordinary page copy ', MiB - 128)} private-0 private-999`;
 
@@ -178,6 +181,52 @@ function printCustomTermScaling() {
   }
 }
 
+function printCommonPrefixTermScaling() {
+  console.log('\nCommon-prefix term dictionaries — one generated rule on 1 MiB');
+  console.log('terms\trule+compile ms\tscan ms\tMiB/s\tmatches\theap Δ MiB');
+
+  for (const count of commonPrefixTermCounts) {
+    const terms = Array.from(
+      { length: count },
+      (_, index) => `private-project-${String(index).padStart(5, '0')}`
+    );
+    const needle = terms.at(-1);
+    const text = `${repeatToLength('ordinary page copy ', MiB - 128)} ${needle}`;
+
+    try {
+      const compiled = measure(`compile-prefix-terms-${count}`, () => {
+        const rule = censorRuleFromTerms('private-prefix', terms);
+        return createScrawlix({ rules: [rule], coverage: 'full' });
+      });
+      const scanned = measure(`scan-prefix-terms-${count}`, () =>
+        compiled.result.find(text)
+      );
+
+      console.log(
+        [
+          count,
+          formatNumber(compiled.durationMs),
+          formatNumber(scanned.durationMs),
+          formatNumber(throughputMiB(text.length, scanned.durationMs)),
+          scanned.result.length,
+          formatNumber(scanned.heapDeltaMiB),
+        ].join('\t')
+      );
+    } catch (error) {
+      console.log(
+        [
+          count,
+          'ERROR',
+          'ERROR',
+          '—',
+          '—',
+          error instanceof Error ? error.message : String(error),
+        ].join('\t')
+      );
+    }
+  }
+}
+
 console.log(
   `Scrawlix core benchmark — ${iterations} measured iteration(s), median reported${smoke ? ' [smoke]' : ''}`
 );
@@ -187,3 +236,4 @@ console.log(
 printDocumentScaling();
 printRuleScaling();
 printCustomTermScaling();
+printCommonPrefixTermScaling();

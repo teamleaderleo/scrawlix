@@ -2,6 +2,7 @@ import { createScrawlix } from '@scrawlix/core';
 import { createCorpusRunner } from '@scrawlix/core/corpus';
 import { censorRuleFromConfusableObfuscatedTerms } from '@scrawlix/core/confusable-obfuscated';
 import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
+import { censorRuleFromTransformedTerms } from '@scrawlix/core/source-mapped';
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
 import { censorRuleFromWidthObfuscatedTerms } from '@scrawlix/core/width-obfuscated';
 import { createDomScrawlix } from '@scrawlix/dom';
@@ -26,6 +27,10 @@ if (!canonicalCase) throw new Error('Expected a canonical English corpus case.')
 createCorpusRunner({ canonical })(canonicalCase);
 
 const advancedRules = [
+  censorRuleFromTransformedTerms('tr-browser', ['siktir'], {
+    casing: { mode: 'locale-insensitive', locale: 'tr' },
+    boundary: 'unicode-word',
+  }),
   censorRuleFromTargetedObfuscatedTerms(
     'targeted-browser',
     [{ term: 'fucking', target: 'fuck' }],
@@ -55,7 +60,9 @@ const advancedRules = [
     }
   ),
 ];
-createScrawlix({ rules: advancedRules }).find('motherfuсker');
+const advanced = createScrawlix({ rules: advancedRules });
+advanced.find('motherfuсker');
+advanced.find('SİKTİR!');
 obfuscated.find('sh1t');
 
 const tree: Parameters<typeof transformHast>[0] = {

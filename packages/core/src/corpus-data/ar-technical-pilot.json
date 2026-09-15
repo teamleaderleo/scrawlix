@@ -1,0 +1,108 @@
+[
+  {
+    "id": "ar-plain-canonical",
+    "text": "خرا!",
+    "profile": "ar-pilot",
+    "tags": ["technical-pilot", "ar-EG", "canonical", "pending-native-review"],
+    "note": "Technical fixture from #162 for source-mapping behavior; vocabulary and policy require native-speaker review before publication.",
+    "matches": [
+      {
+        "ruleId": "ar-khara",
+        "text": "خرا",
+        "start": 0,
+        "end": 3,
+        "targetText": "خرا",
+        "targetStart": 0,
+        "targetEnd": 3
+      }
+    ]
+  },
+  {
+    "id": "ar-reviewed-diacritics-rtl-offset",
+    "text": "قال: خَرَا!",
+    "profile": "ar-pilot",
+    "tags": ["technical-pilot", "ar-EG", "reviewed-optional-marks", "rtl-range", "pending-native-review"],
+    "note": "Reviewed pilot marks are removed only in the pack-owned matching shadow; reported UTF-16 offsets remain source-exact.",
+    "matches": [
+      {
+        "ruleId": "ar-khara",
+        "text": "خَرَا",
+        "start": 5,
+        "end": 10,
+        "targetText": "خَرَا",
+        "targetStart": 5,
+        "targetEnd": 10
+      }
+    ]
+  },
+  {
+    "id": "ar-reviewed-tatweel",
+    "text": "خـرا!",
+    "profile": "ar-pilot",
+    "tags": ["technical-pilot", "ar-EG", "reviewed-tatweel", "pending-native-review"],
+    "note": "Tatweel policy lives in the pilot transform; the deleted shadow unit remains inside the exact source match.",
+    "matches": [
+      {
+        "ruleId": "ar-khara",
+        "text": "خـرا",
+        "start": 0,
+        "end": 4,
+        "targetText": "خـرا",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "ar-reviewed-zwj",
+    "text": "خ\u200Dرا!",
+    "profile": "ar-pilot",
+    "tags": ["technical-pilot", "ar-EG", "reviewed-join-control", "pending-native-review"],
+    "note": "The join control participates in a source grapheme and is removed by pack-owned policy without splitting the exposed source range.",
+    "matches": [
+      {
+        "ruleId": "ar-khara",
+        "text": "خ\u200Dرا",
+        "start": 0,
+        "end": 4,
+        "targetText": "خ\u200Dرا",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "ar-reviewed-zwnj",
+    "text": "خ\u200Cرا!",
+    "profile": "ar-pilot",
+    "tags": ["technical-pilot", "ar-EG", "reviewed-join-control", "pending-native-review"],
+    "note": "The zero-width non-joiner is handled by the same pack-owned reviewed transform.",
+    "matches": [
+      {
+        "ruleId": "ar-khara",
+        "text": "خ\u200Cرا",
+        "start": 0,
+        "end": 4,
+        "targetText": "خ\u200Cرا",
+        "targetStart": 0,
+        "targetEnd": 4
+      }
+    ]
+  },
+  {
+    "id": "ar-ordinary-noun-ambiguity-control",
+    "text": "كلب",
+    "profile": "ar-pilot",
+    "tags": ["technical-pilot", "ar-EG", "negative-control", "ambiguity", "pending-native-review"],
+    "note": "The ambiguous ordinary noun candidate is intentionally absent from this tiny pilot lexicon.",
+    "matches": []
+  },
+  {
+    "id": "ar-clitic-remains-pack-owned",
+    "text": "والخرا",
+    "profile": "ar-pilot",
+    "tags": ["technical-pilot", "ar-EG", "negative-control", "morphology", "pending-native-review"],
+    "note": "Core generates no Arabic clitic forms; the selected Unicode word boundary keeps this undeclared form clean.",
+    "matches": []
+  }
+]
