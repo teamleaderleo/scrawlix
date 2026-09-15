@@ -4,7 +4,6 @@ function matchSnapshot(matches) {
   return matches.map(match => ({
     ruleId: match.ruleId,
     ...(match.packId === undefined ? {} : { packId: match.packId }),
-    ...(match.entryId === undefined ? {} : { entryId: match.entryId }),
     text: match.text,
     start: match.start,
     end: match.end,
@@ -18,7 +17,6 @@ function targetSnapshot(matches) {
   return matches.map(match => ({
     ruleId: match.ruleId,
     ...(match.packId === undefined ? {} : { packId: match.packId }),
-    ...(match.entryId === undefined ? {} : { entryId: match.entryId }),
     targetText: match.targetText,
     targetStart: match.targetStart,
     targetEnd: match.targetEnd,
