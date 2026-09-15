@@ -40,8 +40,12 @@ describe('match-local reveal', () => {
       />
     );
     const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
-    const covers = [...container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')];
-    const controls = [...container.querySelectorAll<HTMLButtonElement>('[data-scrawlix-control]')];
+    const covers = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')
+    );
+    const controls = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[data-scrawlix-control]')
+    );
 
     expect(root.getAttribute('data-scrawlix-reveal-scope')).toBe('match');
     expect(root.getAttribute('tabindex')).toBeNull();
@@ -74,7 +78,9 @@ describe('match-local reveal', () => {
         text="fuck"
       />
     );
-    const covers = [...container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')];
+    const covers = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')
+    );
     const controls = container.querySelectorAll('[data-scrawlix-control]');
 
     expect(covers.map(cover => cover.textContent)).toEqual(['f', 'k']);
@@ -125,8 +131,12 @@ describe('match-local reveal', () => {
         text="fuck and shit"
       />
     );
-    const covers = [...container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')];
-    const controls = [...container.querySelectorAll<HTMLButtonElement>('[data-scrawlix-control]')];
+    const covers = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')
+    );
+    const controls = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[data-scrawlix-control]')
+    );
 
     expect(controls[0]?.getAttribute('aria-label')).toBe('Reveal censored text 1 of 2');
     expect(controls[1]?.getAttribute('aria-label')).toBe('Reveal censored text 2 of 2');
@@ -149,8 +159,12 @@ describe('match-local reveal', () => {
         text="fuck and shit"
       />
     );
-    const covers = [...container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')];
-    const controls = [...container.querySelectorAll<HTMLButtonElement>('[data-scrawlix-control]')];
+    const covers = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')
+    );
+    const controls = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[data-scrawlix-control]')
+    );
 
     act(() => controls[0]!.click());
     expect(covers[0]?.getAttribute('data-scrawlix-revealed')).toBe('true');
