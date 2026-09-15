@@ -1,7 +1,8 @@
 {
   "name": "@scrawlix/en",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "English strong-profanity rules, coverage helpers, and regression corpora for Scrawlix.",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=18"

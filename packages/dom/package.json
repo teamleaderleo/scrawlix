@@ -1,7 +1,8 @@
 {
   "name": "@scrawlix/dom",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "DOM text-node adapter for applying Scrawlix to arbitrary webpages and dynamic content.",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=18"

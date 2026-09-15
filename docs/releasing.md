@@ -24,6 +24,24 @@ Before any first registry write, resolve and record in issue #18:
 
 The demo URL can be a release gate or immediate follow-up; record that choice in #18.
 
+## Recorded first-release decisions
+
+The owner-only inputs above are resolved for the first release:
+
+| Decision | Value |
+| --- | --- |
+| License | MIT (`LICENSE` at the repository root and in each public package; SPDX `license: "MIT"` in every manifest) |
+| Synchronized first version | `0.1.0` |
+| dist-tag | publish to `next`, then promote the same version to `latest` after clean-consumer verification |
+| Bootstrap policy | direct intended release — manually publish `0.1.0`, then attach Trusted Publishers so later releases use OIDC with provenance |
+| Public demo URL | not a first-npm-release gate; immediate follow-up |
+
+Promote with `npm dist-tag add <package>@0.1.0 latest` for all five packages once step 8 passes. Do not
+republish to change tags.
+
+Because `workspace:*` packs as an exact `0.1.0` dependency, the five packages must all publish
+successfully at the same version; a partial publish leaves unresolvable dependencies.
+
 ## 1. Verify the exact release commit
 
 From a clean checkout:
@@ -50,7 +68,7 @@ Verify synchronization:
 node scripts/check-release-version.mjs <version>
 ```
 
-For a first-release manual review, dry-run each package with the chosen tag:
+For a first-release manual review, dry-run each package with the chosen tag (`next` for 0.1.0):
 
 ```sh
 pnpm --filter @scrawlix/core publish --dry-run --access public --tag next

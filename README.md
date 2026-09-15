@@ -219,4 +219,8 @@ The packed-package smoke gate installs real tarballs into external consumers and
 
 ## Status
 
-Early development. The public API is being tightened through real consumers before the first npm release. Release readiness is tracked in [issue #18](https://github.com/teamleaderleo/scrawlix/issues/18).
+Pre-1.0. The five public packages share one version and one release train; `docs/versioning.md` owns the pre-1.0 compatibility policy. Release readiness is tracked in [issue #18](https://github.com/teamleaderleo/scrawlix/issues/18).
+
+## License
+
+MIT — see [LICENSE](LICENSE).

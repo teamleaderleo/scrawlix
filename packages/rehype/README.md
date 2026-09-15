@@ -48,3 +48,7 @@ Matching is text-node-local. A configured phrase such as `Project Velvet` matche
 For direct HAST use, import `transformHast`.
 
 See the repository README for the adapter chooser and the [language-pack guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md) for rule-pack authoring. For skipped-subtree or no-match diagnostics, use the [troubleshooting guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/troubleshooting.md).
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

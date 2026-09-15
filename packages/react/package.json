@@ -1,7 +1,8 @@
 {
   "name": "@scrawlix/react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "React rendering, appearances, and reveal behavior for Scrawlix.",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=18"

@@ -121,3 +121,7 @@ for (const corpusCase of englishCorpus) {
 The package's own Vitest suite uses this same runner, so ordinary future corpus-case additions stay data-only once profile engines are registered.
 
 See the [language-pack guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md) for authoring, composition, boundary, Unicode, and obfuscation guidance. Use the [shared corpus-runner guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/corpus-runner.md) for executable corpus tests, the [confusable-matching guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/confusable-matching.md) for reviewed lookalike policy, and the [troubleshooting guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/troubleshooting.md) for edge/boundary or no-match diagnostics.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
