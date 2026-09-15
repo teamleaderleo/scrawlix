@@ -28,7 +28,22 @@ import ReactMarkdown from 'react-markdown';
 
 Covered fragments become spans carrying `data-scrawlix-cover` and `data-scrawlix-rules`. The adapter keeps the original source text as text content and leaves visual treatment/reveal policy to your application CSS or renderer.
 
+Add a minimal treatment to see covered output immediately:
+
+```css
+[data-scrawlix-cover] {
+  background: currentColor;
+  color: transparent;
+}
+```
+
+Scrawlix transforms HAST for censorship. HTML sanitization is a separate pipeline concern; use your application's normal trusted-content or sanitation policy alongside this adapter.
+
 `code`, `pre`, `script`, `style`, and `textarea` subtrees are skipped by default. You can add excluded tags, use `data-scrawlix-ignore`, or provide `shouldSkip` for application-specific exclusions.
+
+## Text-node boundaries
+
+Matching is text-node-local. A configured phrase such as `Project Velvet` matches when both words live in one eligible HAST text node. Inline markup can split a visible phrase across nodes, for example `Project *Velvet*`, so that visible phrase is currently outside the adapter's phrase-matching unit. Cross-inline logical text runs are tracked as future adapter work in #39.
 
 For direct HAST use, import `transformHast`.
 
