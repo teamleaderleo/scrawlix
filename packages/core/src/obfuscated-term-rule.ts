@@ -19,6 +19,7 @@ type CompiledObfuscation = {
 };
 
 type ObfuscatedShadowUnit = {
+  value: string;
   shadowStart: number;
   shadowEnd: number;
   sourceStart: number;
@@ -218,11 +219,13 @@ function obfuscatedShadow(
     }
 
     const replacement = config.substitutionLookup.get(sourceGrapheme);
+    const unitValue = replacement ?? sourceGrapheme;
     const shadowStart = shadow.length;
-    shadow += replacement ?? sourceGrapheme;
+    shadow += unitValue;
     const unitIndex = units.length;
     const substitutionCost = replacement === undefined ? 0 : 1;
     units.push({
+      value: unitValue,
       shadowStart,
       shadowEnd: shadow.length,
       sourceStart,
@@ -283,7 +286,10 @@ function obfuscatedTermMatcher(
     *find(text) {
       const shadow = obfuscatedShadow(text, normalization, config);
 
-      for (const shadowMatch of prepared.find(shadow.value)) {
+      for (const shadowMatch of prepared.findShadow(
+        shadow.value,
+        shadow.units
+      )) {
         const firstUnit = shadow.startUnitByOffset.get(shadowMatch.start);
         const lastUnit = shadow.endUnitByOffset.get(shadowMatch.end);
         if (firstUnit === undefined || lastUnit === undefined) continue;
