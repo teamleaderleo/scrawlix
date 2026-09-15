@@ -1,3 +1,4 @@
+import './content.css';
 import './popup.css';
 import {
   ENGLISH_PROFANITY_LENS_ID,
@@ -17,6 +18,7 @@ import {
   type SiteMode,
   type SyncSettings,
 } from './config';
+import { renderTreatmentPreview } from './preview';
 import {
   loadExtensionState,
   saveLocalState,
@@ -43,6 +45,7 @@ const addLensButton = required<HTMLButtonElement>('add-lens');
 const siteHeading = required<HTMLHeadingElement>('site-heading');
 const effectiveStatus = required<HTMLParagraphElement>('effective-status');
 const localSaveStatus = required<HTMLSpanElement>('local-save-status');
+const treatmentPreview = required<HTMLDivElement>('treatment-preview');
 
 let settings: SyncSettings;
 let localState: ExtensionLocalState;
@@ -226,12 +229,20 @@ function renderLenses() {
   }
 }
 
+function renderTreatment(profile = activeProfile(localState)) {
+  renderTreatmentPreview(treatmentPreview, {
+    appearance: profile.appearance,
+    coverage: profile.coverage,
+  });
+}
+
 function renderLocalState() {
   const profile = activeProfile(localState);
   renderProfiles();
   appearanceSelect.value = profile.appearance;
   coverageSelect.value = profile.coverage;
   revealSelect.value = profile.reveal;
+  renderTreatment(profile);
   renderLenses();
   renderEffectiveStatus();
 }
@@ -334,21 +345,19 @@ deleteProfileButton.addEventListener('click', () => {
 });
 
 appearanceSelect.addEventListener('change', () => {
-  void persistLocal(
-    updateActiveProfile(localState, {
-      appearance: appearanceSelect.value as ExtensionAppearance,
-    }),
-    false
-  );
+  const next = updateActiveProfile(localState, {
+    appearance: appearanceSelect.value as ExtensionAppearance,
+  });
+  renderTreatment(activeProfile(next));
+  void persistLocal(next, false);
 });
 
 coverageSelect.addEventListener('change', () => {
-  void persistLocal(
-    updateActiveProfile(localState, {
-      coverage: coverageSelect.value as ExtensionCoverage,
-    }),
-    false
-  );
+  const next = updateActiveProfile(localState, {
+    coverage: coverageSelect.value as ExtensionCoverage,
+  });
+  renderTreatment(activeProfile(next));
+  void persistLocal(next, false);
 });
 
 revealSelect.addEventListener('change', () => {
