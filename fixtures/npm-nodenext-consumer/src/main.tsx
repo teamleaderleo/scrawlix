@@ -47,17 +47,17 @@ const advancedRules = [
   }),
   censorRuleFromTargetedObfuscatedTerms(
     'targeted-browser',
-    [{ term: 'fucking', target: 'fuck' }],
+    [{ term: 'fucking', targetGraphemes: { start: 0, end: 4 } }],
     { substitutions: { u: ['*'] }, maxSubstitutions: 1 }
   ),
   censorRuleFromRepeatedObfuscatedTerms(
     'repeated-browser',
-    [{ term: 'motherfucker', target: 'fuck' }],
+    [{ term: 'motherfucker', targetGraphemes: { start: 6, end: 10 } }],
     { maxRepetitions: 1 }
   ),
   censorRuleFromWidthObfuscatedTerms(
     'width-browser',
-    [{ term: 'motherfucker', target: 'fuck' }],
+    [{ term: 'motherfucker', targetGraphemes: { start: 6, end: 10 } }],
     {
       widthVariants: { f: ['ｆ'] },
       maxWidthVariants: 1,
@@ -66,7 +66,7 @@ const advancedRules = [
   ),
   censorRuleFromConfusableObfuscatedTerms(
     'confusable-browser',
-    [{ term: 'motherfucker', target: 'fuck' }],
+    [{ term: 'motherfucker', targetGraphemes: { start: 6, end: 10 } }],
     {
       confusables: { c: ['с'] },
       maxConfusables: 1,

@@ -132,7 +132,24 @@ engine.find('f*cking')[0]?.targetText; // "f*ck"
 engine.find('mother-fucker')[0]?.targetText; // "fuck"
 ```
 
-Each object entry declares a full canonical `term` and one unique exact canonical `target` substring. Target edges must align to extended-grapheme boundaries. The helper delegates full matching, transform budgets, boundary policy, and canonical-source matching to `censorRuleFromObfuscatedTerms()`, then maps the declared target through the accepted transformed source slice. Ignored graphemes inside the semantic root remain inside `targetText`; ignored graphemes before or after the root remain outside it.
+Each object entry can declare a full canonical `term` plus one unique exact canonical `target` substring. Target edges must align to extended-grapheme boundaries. The helper delegates full matching, transform budgets, boundary policy, and canonical-source matching to `censorRuleFromObfuscatedTerms()`, then maps the declared target through the accepted transformed source slice. Ignored graphemes inside the semantic root remain inside `targetText`; ignored graphemes before or after the root remain outside it.
+
+When a literal target is ambiguous or a reviewed morphological form should declare its semantic slice directly, use `targetGraphemes` instead:
+
+```ts
+const explicit = censorRuleFromTargetedObfuscatedTerms(
+  'example-explicit-target',
+  [{ term: 'badbad', targetGraphemes: { start: 3, end: 6 } }],
+  {
+    substitutions: { a: ['@'] },
+    maxSubstitutions: 1,
+  }
+);
+
+createScrawlix({ rules: [explicit] }).find('badb@d')[0]?.targetText; // "b@d"
+```
+
+`targetGraphemes` uses zero-based half-open indices over the normalized canonical term's extended graphemes. It avoids rediscovering a root by literal substring and still maps through substitutions, ignored graphemes, repeated letters, reviewed width variants, and confusables to exact caller-owned source ranges. Invalid, empty, fractional, or out-of-bounds ranges are rejected.
 
 String entries are also accepted and use the complete term as their semantic target. This helper lives on a focused subpath while the API is exercised by language packs before a wider pre-1.0 barrel decision.
 
@@ -164,7 +181,7 @@ Only canonical Unicode letter graphemes are repeatable. Canonical run lengths ac
 
 The helper filters zero-change canonical forms, defaults to `profile: 'obfuscated'`, and preserves exact original-source ranges. It accepts the same reviewed `substitutions`, `ignored`, boundary, normalization, and coverage options as the earlier aggressive helper. `maxRepetitions` is always explicit. When repetition is combined with substitutions or ignored graphemes, `maxChanges` is also required and counts all enabled transform classes together.
 
-Semantic targets are supported directly. Extra source graphemes in a repeated run attach to the final canonical grapheme of that run. That rule keeps target mapping deterministic even when a semantic boundary falls inside a canonical double, such as the `shit` target inside canonical `shitting`.
+Semantic targets support both the unique literal `target` form and `targetGraphemes`. Extra source graphemes in a repeated run attach to the final canonical grapheme of that run. That rule keeps target mapping deterministic even when a semantic boundary falls inside a canonical double, such as the `shit` target inside canonical `shitting`.
 
 This first repetition path is intentionally bounded and corpus-driven. It does not perform blanket edit-distance matching, phonetic equivalence, transliteration, or universal confusable folding.
 

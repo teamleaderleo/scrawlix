@@ -259,6 +259,25 @@ function targetIndices(
   return { targetStartIndex: startIndex, targetEndIndex: endIndex + 1 };
 }
 
+function explicitTargetIndices(
+  rawTerm: string,
+  graphemeCount: number,
+  range: { start: number; end: number }
+) {
+  if (
+    !Number.isInteger(range.start) ||
+    !Number.isInteger(range.end) ||
+    range.start < 0 ||
+    range.end <= range.start ||
+    range.end > graphemeCount
+  ) {
+    throw new Error(
+      `targetGraphemes for term ${JSON.stringify(rawTerm)} must be a zero-based half-open grapheme range within the normalized term.`
+    );
+  }
+  return { targetStartIndex: range.start, targetEndIndex: range.end };
+}
+
 function prepareTerm(
   entry: TargetedObfuscatedTerm,
   normalization: UnicodeNormalization,
@@ -278,6 +297,19 @@ function prepareTerm(
       runs: canonicalRuns(graphemes, caseSensitive),
       targetStartIndex: 0,
       targetEndIndex: graphemes.length,
+    };
+  }
+
+  if (entry.targetGraphemes !== undefined) {
+    return {
+      term,
+      graphemes,
+      runs: canonicalRuns(graphemes, caseSensitive),
+      ...explicitTargetIndices(
+        rawTerm,
+        graphemes.length,
+        entry.targetGraphemes
+      ),
     };
   }
 
