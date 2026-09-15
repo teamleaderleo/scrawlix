@@ -20,6 +20,18 @@ if (matches.length !== 1 || matches[0]?.targetText.toLowerCase() !== 'fuck') {
   throw new Error('Scrawlix core/English package smoke assertion failed.');
 }
 
+const identifiedMatches = engine.findWithIdentity('well, fuck');
+const locatedSegments = engine.segmentWithOffsets('well, fuck');
+const locatedCover = locatedSegments.find(segment => segment.covered);
+if (
+  identifiedMatches[0]?.matchId !== 'm0' ||
+  locatedCover?.start !== 7 ||
+  locatedCover?.end !== 9 ||
+  locatedCover.text !== 'uc'
+) {
+  throw new Error('Scrawlix core provenance smoke assertion failed.');
+}
+
 const corpusCase = englishProfanityCorpus.find(entry => entry.id === 'fuck-base');
 if (
   corpusCase?.text !== 'fuck' ||
@@ -105,7 +117,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <CensoredText
       appearance="scrawl"
       coverage="middle"
-      reveal="hover"
+      reveal="click"
+      revealScope="match"
       rules={englishStrongProfanityRules}
       text="well, fuck"
     />
