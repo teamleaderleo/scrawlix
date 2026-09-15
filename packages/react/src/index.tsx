@@ -9,9 +9,12 @@ import {
   type ScrawlixLocatedSegment,
 } from '@scrawlix/core';
 import {
+  forwardRef,
   useMemo,
   useState,
+  type ComponentPropsWithoutRef,
   type CSSProperties,
+  type FocusEvent,
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
@@ -38,16 +41,23 @@ export type ScrawlixCustomProperty =
 export type ScrawlixStyle = CSSProperties &
   Partial<Record<ScrawlixCustomProperty, string>>;
 
-export type CensoredTextProps = {
+type NativeSpanProps = Omit<
+  ComponentPropsWithoutRef<'span'>,
+  | 'aria-hidden'
+  | 'children'
+  | 'contentEditable'
+  | 'dangerouslySetInnerHTML'
+  | 'style'
+>;
+
+export type CensoredTextProps = NativeSpanProps & {
   text: string;
   rules: readonly CensorRule[];
   coverage?: CoverageSelector;
   appearance?: ScrawlixAppearance;
   reveal?: ScrawlixReveal;
   revealScope?: ScrawlixRevealScope;
-  className?: string;
   style?: ScrawlixStyle;
-  title?: string;
 };
 
 type RevealState = {
@@ -142,6 +152,17 @@ function hasSelectedText(root: HTMLElement) {
   );
 }
 
+function revealIdForTarget(
+  root: HTMLSpanElement,
+  target: EventTarget | null,
+  selector: '[data-scrawlix-control]' | '[data-scrawlix-cover]'
+) {
+  if (!(target instanceof Element)) return null;
+  const element = target.closest<HTMLElement>(selector);
+  if (!element || !root.contains(element)) return null;
+  return element.dataset.scrawlixRevealId ?? null;
+}
+
 function matchIdsForSegment(
   segment: ScrawlixLocatedSegment,
   matches: readonly ScrawlixIdentifiedMatch[]
@@ -234,284 +255,355 @@ function deriveDisclosureMap(
   return { bySegment, groups };
 }
 
-export function CensoredText({
-  text,
-  rules,
-  coverage = 'full',
-  appearance = 'scrawl',
-  reveal = 'never',
-  revealScope = 'component',
-  className = '',
-  style,
-  title = 'Censored text',
-}: CensoredTextProps) {
-  const engine = useMemo(
-    () => createScrawlix({ rules, coverage }),
-    [rules, coverage]
-  );
-  const segments = useMemo(() => engine.segmentWithOffsets(text), [engine, text]);
-  const matches = useMemo(
-    () => (revealScope === 'match' ? engine.findWithIdentity(text) : []),
-    [engine, text, revealScope]
-  );
-  const disclosure = useMemo(
-    () =>
-      revealScope === 'match'
-        ? deriveDisclosureMap(segments, matches)
-        : { bySegment: new Map<number, DisclosureSegment>(), groups: [] },
-    [segments, matches, revealScope]
-  );
-  const hasCoveredText = segments.some(segment => segment.covered);
-  const [revealState, setRevealState] = useState<RevealState>(() =>
-    emptyRevealState(text, rules, coverage, reveal, revealScope)
-  );
-  const sameInputs = sameRevealInputs(
-    revealState,
-    text,
-    rules,
-    coverage,
-    reveal,
-    revealScope
-  );
-  const currentState = sameInputs
-    ? revealState
-    : emptyRevealState(text, rules, coverage, reveal, revealScope);
-
-  if (!sameInputs) {
-    setRevealState(currentState);
-  }
-
-  if (!hasCoveredText) return <>{text}</>;
-
-  const componentInteractive =
-    revealScope === 'component' && (reveal === 'focus' || reveal === 'click');
-  const matchControls =
-    revealScope === 'match' && (reveal === 'focus' || reveal === 'click');
-
-  function setComponentRevealed(value: boolean) {
-    setRevealState({
-      ...emptyRevealState(text, rules, coverage, reveal, revealScope),
-      revealed: value,
-    });
-  }
-
-  function toggleComponentReveal() {
-    setRevealState(current => {
-      const base = sameRevealInputs(
-        current,
-        text,
-        rules,
-        coverage,
-        reveal,
-        revealScope
-      )
-        ? current
-        : emptyRevealState(text, rules, coverage, reveal, revealScope);
-      return { ...base, revealed: !base.revealed };
-    });
-  }
-
-  function toggleMatchReveal(revealId: string) {
-    setRevealState(current => {
-      const base = sameRevealInputs(
-        current,
-        text,
-        rules,
-        coverage,
-        reveal,
-        revealScope
-      )
-        ? current
-        : emptyRevealState(text, rules, coverage, reveal, revealScope);
-      const ids = new Set(base.revealedIds);
-      if (ids.has(revealId)) ids.delete(revealId);
-      else ids.add(revealId);
-      return { ...base, revealedIds: [...ids] };
-    });
-  }
-
-  function concealMatch(revealId: string) {
-    setRevealState(current => {
-      const base = sameRevealInputs(
-        current,
-        text,
-        rules,
-        coverage,
-        reveal,
-        revealScope
-      )
-        ? current
-        : emptyRevealState(text, rules, coverage, reveal, revealScope);
-      const ids = new Set(base.revealedIds);
-      ids.delete(revealId);
-      return { ...base, revealedIds: [...ids] };
-    });
-  }
-
-  function setTransientId(
-    field: 'hoveredId' | 'focusedId',
-    revealId: string | null
+export const CensoredText = forwardRef<HTMLSpanElement, CensoredTextProps>(
+  function CensoredText(
+    {
+      text,
+      rules,
+      coverage = 'full',
+      appearance = 'scrawl',
+      reveal = 'never',
+      revealScope = 'component',
+      style,
+      title,
+      tabIndex: callerTabIndex,
+      onBlur: callerOnBlur,
+      onClick: callerOnClick,
+      onFocus: callerOnFocus,
+      onKeyDown: callerOnKeyDown,
+      ...rootProps
+    },
+    ref
   ) {
-    setRevealState(current => {
-      const base = sameRevealInputs(
-        current,
-        text,
-        rules,
-        coverage,
-        reveal,
-        revealScope
-      )
-        ? current
-        : emptyRevealState(text, rules, coverage, reveal, revealScope);
-      return { ...base, [field]: revealId };
-    });
-  }
+    const engine = useMemo(
+      () => createScrawlix({ rules, coverage }),
+      [rules, coverage]
+    );
+    const segments = useMemo(() => engine.segmentWithOffsets(text), [engine, text]);
+    const matches = useMemo(
+      () => (revealScope === 'match' ? engine.findWithIdentity(text) : []),
+      [engine, text, revealScope]
+    );
+    const disclosure = useMemo(
+      () =>
+        revealScope === 'match'
+          ? deriveDisclosureMap(segments, matches)
+          : { bySegment: new Map<number, DisclosureSegment>(), groups: [] },
+      [segments, matches, revealScope]
+    );
+    const hasCoveredText = segments.some(segment => segment.covered);
+    const [revealState, setRevealState] = useState<RevealState>(() =>
+      emptyRevealState(text, rules, coverage, reveal, revealScope)
+    );
+    const sameInputs = sameRevealInputs(
+      revealState,
+      text,
+      rules,
+      coverage,
+      reveal,
+      revealScope
+    );
+    const currentState = sameInputs
+      ? revealState
+      : emptyRevealState(text, rules, coverage, reveal, revealScope);
 
-  function onComponentClick(event: MouseEvent<HTMLSpanElement>) {
-    if (reveal !== 'click' || hasSelectedText(event.currentTarget)) return;
-    toggleComponentReveal();
-  }
-
-  function onComponentKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
-    if (reveal !== 'click') return;
-    if (event.key === 'Escape') {
-      setComponentRevealed(false);
-      return;
+    if (!sameInputs) {
+      setRevealState(currentState);
     }
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      toggleComponentReveal();
+
+    const componentInteractive =
+      hasCoveredText &&
+      revealScope === 'component' &&
+      (reveal === 'focus' || reveal === 'click');
+    const matchControls =
+      hasCoveredText &&
+      revealScope === 'match' &&
+      (reveal === 'focus' || reveal === 'click');
+
+    function setComponentRevealed(value: boolean) {
+      setRevealState({
+        ...emptyRevealState(text, rules, coverage, reveal, revealScope),
+        revealed: value,
+      });
     }
-  }
 
-  function isMatchRevealed(revealId: string) {
-    if (reveal === 'click') return currentState.revealedIds.includes(revealId);
-    if (reveal === 'hover') return currentState.hoveredId === revealId;
-    if (reveal === 'focus') return currentState.focusedId === revealId;
-    return false;
-  }
+    function toggleComponentReveal() {
+      setRevealState(current => {
+        const base = sameRevealInputs(
+          current,
+          text,
+          rules,
+          coverage,
+          reveal,
+          revealScope
+        )
+          ? current
+          : emptyRevealState(text, rules, coverage, reveal, revealScope);
+        return { ...base, revealed: !base.revealed };
+      });
+    }
 
-  return (
-    <span
-      className={className}
-      data-scrawlix-appearance={appearance}
-      data-scrawlix-reveal={reveal}
-      data-scrawlix-reveal-scope={revealScope}
-      data-scrawlix-revealed={
-        revealScope === 'component' && currentState.revealed ? 'true' : 'false'
+    function toggleMatchReveal(revealId: string) {
+      setRevealState(current => {
+        const base = sameRevealInputs(
+          current,
+          text,
+          rules,
+          coverage,
+          reveal,
+          revealScope
+        )
+          ? current
+          : emptyRevealState(text, rules, coverage, reveal, revealScope);
+        const ids = new Set(base.revealedIds);
+        if (ids.has(revealId)) ids.delete(revealId);
+        else ids.add(revealId);
+        return { ...base, revealedIds: [...ids] };
+      });
+    }
+
+    function concealMatch(revealId: string) {
+      setRevealState(current => {
+        const base = sameRevealInputs(
+          current,
+          text,
+          rules,
+          coverage,
+          reveal,
+          revealScope
+        )
+          ? current
+          : emptyRevealState(text, rules, coverage, reveal, revealScope);
+        const ids = new Set(base.revealedIds);
+        ids.delete(revealId);
+        return { ...base, revealedIds: [...ids] };
+      });
+    }
+
+    function setTransientId(
+      field: 'hoveredId' | 'focusedId',
+      revealId: string | null
+    ) {
+      setRevealState(current => {
+        const base = sameRevealInputs(
+          current,
+          text,
+          rules,
+          coverage,
+          reveal,
+          revealScope
+        )
+          ? current
+          : emptyRevealState(text, rules, coverage, reveal, revealScope);
+        return { ...base, [field]: revealId };
+      });
+    }
+
+    function onRootClick(event: MouseEvent<HTMLSpanElement>) {
+      callerOnClick?.(event);
+      if (event.defaultPrevented || !hasCoveredText || reveal !== 'click') return;
+
+      if (revealScope === 'component') {
+        if (hasSelectedText(event.currentTarget)) return;
+        toggleComponentReveal();
+        return;
       }
-      data-scrawlix-root
-      style={style}
-      tabIndex={componentInteractive ? 0 : undefined}
-      onClick={
-        revealScope === 'component' && reveal === 'click'
-          ? onComponentClick
-          : undefined
+
+      const controlRevealId = revealIdForTarget(
+        event.currentTarget,
+        event.target,
+        '[data-scrawlix-control]'
+      );
+      if (controlRevealId) {
+        toggleMatchReveal(controlRevealId);
+        return;
       }
-      onKeyDown={onComponentKeyDown}
-    >
-      <span data-scrawlix-a11y>{text}</span>
-      {matchControls && (
-        <span data-scrawlix-controls onKeyDown={event => event.stopPropagation()}>
-          {disclosure.groups.map((group, index) => (
-            <button
-              aria-label={`Reveal censored text ${index + 1} of ${disclosure.groups.length}`}
-              aria-pressed={
-                reveal === 'click'
-                  ? currentState.revealedIds.includes(group.id)
-                  : undefined
-              }
-              data-scrawlix-control
-              data-scrawlix-matches={group.matchIds.join(',') || undefined}
-              data-scrawlix-reveal-id={group.id}
-              key={group.id}
-              onBlur={() => {
-                if (currentState.focusedId === group.id) {
-                  setTransientId('focusedId', null);
-                }
-              }}
-              onClick={event => {
-                event.stopPropagation();
-                if (reveal === 'click') toggleMatchReveal(group.id);
-              }}
-              onFocus={() => setTransientId('focusedId', group.id)}
-              onKeyDown={event => {
-                if (reveal === 'click' && event.key === 'Escape') {
-                  event.stopPropagation();
-                  concealMatch(group.id);
-                }
-              }}
-              type="button"
-            />
-          ))}
-        </span>
-      )}
-      <span aria-hidden="true" data-scrawlix-visual>
-        {segments.map((segment, index) => {
-          if (!segment.covered) {
-            return <span key={`${index}-${segment.text}`}>{segment.text}</span>;
-          }
 
-          const mask = maskFor(segment.text, appearance);
-          const disclosureSegment = disclosure.bySegment.get(index);
-          const matchRevealed = disclosureSegment
-            ? isMatchRevealed(disclosureSegment.revealId)
-            : false;
-          const focused =
-            disclosureSegment?.revealId === currentState.focusedId;
+      const coverRevealId = revealIdForTarget(
+        event.currentTarget,
+        event.target,
+        '[data-scrawlix-cover]'
+      );
+      if (!coverRevealId || hasSelectedText(event.currentTarget)) return;
+      toggleMatchReveal(coverRevealId);
+    }
 
-          return (
-            <span
-              data-scrawlix-cover
-              data-scrawlix-edge={disclosureSegment?.edge}
-              data-scrawlix-end={segment.end}
-              data-scrawlix-focused={
-                revealScope === 'match' ? (focused ? 'true' : 'false') : undefined
-              }
-              data-scrawlix-mask={mask || undefined}
-              data-scrawlix-matches={
-                disclosureSegment?.matchIds.join(',') || undefined
-              }
-              data-scrawlix-reveal-id={disclosureSegment?.revealId}
-              data-scrawlix-revealed={
-                revealScope === 'match'
-                  ? matchRevealed
-                    ? 'true'
-                    : 'false'
-                  : undefined
-              }
-              data-scrawlix-rules={segment.ruleIds.join(',')}
-              data-scrawlix-start={segment.start}
-              key={`${index}-${segment.text}`}
-              onClick={
-                revealScope === 'match' && reveal === 'click' && disclosureSegment
-                  ? event => {
-                      if (hasSelectedText(event.currentTarget)) return;
-                      toggleMatchReveal(disclosureSegment.revealId);
+    function onRootKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
+      callerOnKeyDown?.(event);
+      if (event.defaultPrevented || !hasCoveredText || reveal !== 'click') return;
+
+      if (revealScope === 'component') {
+        if (event.key === 'Escape') {
+          setComponentRevealed(false);
+          return;
+        }
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleComponentReveal();
+        }
+        return;
+      }
+
+      if (event.key !== 'Escape') return;
+      const revealId = revealIdForTarget(
+        event.currentTarget,
+        event.target,
+        '[data-scrawlix-control]'
+      );
+      if (revealId) concealMatch(revealId);
+    }
+
+    function onRootFocus(event: FocusEvent<HTMLSpanElement>) {
+      callerOnFocus?.(event);
+      if (event.defaultPrevented || !matchControls) return;
+      const revealId = revealIdForTarget(
+        event.currentTarget,
+        event.target,
+        '[data-scrawlix-control]'
+      );
+      if (revealId) setTransientId('focusedId', revealId);
+    }
+
+    function onRootBlur(event: FocusEvent<HTMLSpanElement>) {
+      callerOnBlur?.(event);
+      if (event.defaultPrevented || !matchControls) return;
+      const revealId = revealIdForTarget(
+        event.currentTarget,
+        event.target,
+        '[data-scrawlix-control]'
+      );
+      if (revealId && currentState.focusedId === revealId) {
+        setTransientId('focusedId', null);
+      }
+    }
+
+    function isMatchRevealed(revealId: string) {
+      if (reveal === 'click') return currentState.revealedIds.includes(revealId);
+      if (reveal === 'hover') return currentState.hoveredId === revealId;
+      if (reveal === 'focus') return currentState.focusedId === revealId;
+      return false;
+    }
+
+    return (
+      <span
+        {...rootProps}
+        aria-hidden={undefined}
+        data-scrawlix-appearance={appearance}
+        data-scrawlix-reveal={reveal}
+        data-scrawlix-reveal-scope={revealScope}
+        data-scrawlix-revealed={
+          revealScope === 'component' && currentState.revealed ? 'true' : 'false'
+        }
+        data-scrawlix-root
+        onBlur={onRootBlur}
+        onClick={onRootClick}
+        onFocus={onRootFocus}
+        onKeyDown={onRootKeyDown}
+        ref={ref}
+        style={style}
+        tabIndex={componentInteractive ? 0 : callerTabIndex}
+        title={title}
+      >
+        {hasCoveredText ? (
+          <>
+            <span data-scrawlix-a11y>{text}</span>
+            {matchControls && (
+              <span data-scrawlix-controls>
+                {disclosure.groups.map((group, index) => (
+                  <button
+                    aria-label={`Reveal censored text ${index + 1} of ${disclosure.groups.length}`}
+                    aria-pressed={
+                      reveal === 'click'
+                        ? currentState.revealedIds.includes(group.id)
+                        : undefined
                     }
-                  : undefined
-              }
-              onMouseEnter={
-                revealScope === 'match' && reveal === 'hover' && disclosureSegment
-                  ? () => setTransientId('hoveredId', disclosureSegment.revealId)
-                  : undefined
-              }
-              onMouseLeave={
-                revealScope === 'match' && reveal === 'hover' && disclosureSegment
-                  ? () => {
-                      if (currentState.hoveredId === disclosureSegment.revealId) {
-                        setTransientId('hoveredId', null);
-                      }
+                    data-scrawlix-control
+                    data-scrawlix-matches={group.matchIds.join(',') || undefined}
+                    data-scrawlix-reveal-id={group.id}
+                    key={group.id}
+                    type="button"
+                  />
+                ))}
+              </span>
+            )}
+            <span aria-hidden="true" data-scrawlix-visual>
+              {segments.map((segment, index) => {
+                if (!segment.covered) {
+                  return <span key={`${index}-${segment.text}`}>{segment.text}</span>;
+                }
+
+                const mask = maskFor(segment.text, appearance);
+                const disclosureSegment = disclosure.bySegment.get(index);
+                const matchRevealed = disclosureSegment
+                  ? isMatchRevealed(disclosureSegment.revealId)
+                  : false;
+                const focused =
+                  disclosureSegment?.revealId === currentState.focusedId;
+
+                return (
+                  <span
+                    data-scrawlix-cover
+                    data-scrawlix-edge={disclosureSegment?.edge}
+                    data-scrawlix-end={segment.end}
+                    data-scrawlix-focused={
+                      revealScope === 'match'
+                        ? focused
+                          ? 'true'
+                          : 'false'
+                        : undefined
                     }
-                  : undefined
-              }
-              title={title}
-            >
-              {segment.text}
+                    data-scrawlix-mask={mask || undefined}
+                    data-scrawlix-matches={
+                      disclosureSegment?.matchIds.join(',') || undefined
+                    }
+                    data-scrawlix-reveal-id={disclosureSegment?.revealId}
+                    data-scrawlix-revealed={
+                      revealScope === 'match'
+                        ? matchRevealed
+                          ? 'true'
+                          : 'false'
+                        : undefined
+                    }
+                    data-scrawlix-rules={segment.ruleIds.join(',')}
+                    data-scrawlix-start={segment.start}
+                    key={`${index}-${segment.text}`}
+                    onMouseEnter={
+                      revealScope === 'match' &&
+                      reveal === 'hover' &&
+                      disclosureSegment
+                        ? () =>
+                            setTransientId(
+                              'hoveredId',
+                              disclosureSegment.revealId
+                            )
+                        : undefined
+                    }
+                    onMouseLeave={
+                      revealScope === 'match' &&
+                      reveal === 'hover' &&
+                      disclosureSegment
+                        ? () => {
+                            if (
+                              currentState.hoveredId ===
+                              disclosureSegment.revealId
+                            ) {
+                              setTransientId('hoveredId', null);
+                            }
+                          }
+                        : undefined
+                    }
+                    title={title ?? 'Censored text'}
+                  >
+                    {segment.text}
+                  </span>
+                );
+              })}
             </span>
-          );
-        })}
+          </>
+        ) : (
+          text
+        )}
       </span>
-    </span>
-  );
-}
+    );
+  }
+);
