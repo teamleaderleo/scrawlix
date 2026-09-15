@@ -9,7 +9,7 @@ Scrawlix separates four concerns so applications can combine them deliberately:
 - **appearance** — how should the covered part look?
 - **reveal** — when, if ever, should the original text show through?
 
-The same word can become `████`, `f███`, `f██k`, `f█ck`, `f**k`, a blur, an inked-over scrawl, or a grawlix while the caller keeps the original source text.
+The same word can become `████`, `f███`, `f██k`, `f█ck`, `f**k`, a blur, an inked-over scrawl, a whiteout strip, a mosaic, or a grawlix while the caller keeps the original source text.
 
 ## Choose your path
 
@@ -42,25 +42,51 @@ import '@scrawlix/react/styles.css';
 />;
 ```
 
-Defaults are full semantic-target coverage, `appearance="scrawl"`, and `reveal="never"`. Partial coverage and reveal are explicit:
+Defaults are full semantic-target coverage, `appearance="scrawl"`, `reveal="never"`, and component-scoped reveal. Partial coverage and match-local reveal are explicit:
+
+```tsx
+<CensoredText
+  text="what the fuck and shit"
+  rules={englishStrongProfanityRules}
+  coverage="middle"
+  appearance="grawlix"
+  reveal="click"
+  revealScope="match"
+/>;
+```
+
+Appearances: `scrawl`, `bar`, `blur`, `whiteout`, `mosaic`, `asterisk`, `grawlix`. Reveal modes: `never`, `hover`, `focus`, `click`. Reveal scope can be `component` or `match`.
+
+Match-local `focus` and `click` use native, visually hidden controls outside the decorative tree, so keyboard users can reach each semantic disclosure group without adding focus stops to visual cover fragments. `Escape` conceals a click-revealed match. Symbol treatments keep the exact source text in flow and paint the grapheme-counted mask as an overlay, which keeps reveal width stable.
+
+### House treatments
+
+The built-in stylesheet exposes five typed custom properties through the React `style` prop:
 
 ```tsx
 <CensoredText
   text="what the fuck"
   rules={englishStrongProfanityRules}
-  coverage="middle"
-  appearance="grawlix"
-  reveal="hover"
+  appearance="whiteout"
+  style={{
+    '--scrawlix-ink': '#f4a261',
+    '--scrawlix-surface': '#191919',
+    '--scrawlix-bar-height': '0.72em',
+    '--scrawlix-blur-radius': '0.17em',
+    '--scrawlix-mosaic-cell': '0.3em',
+  }}
 />;
 ```
 
-Appearances: `scrawl`, `bar`, `blur`, `asterisk`, `grawlix`. Reveal modes: `never`, `hover`, `focus`, `click`.
+These variables are intentionally compact: enough to tune a house treatment while keeping the renderer vocabulary recognizable across React, the DOM extension, and other adapters.
 
 ### React CSS, accessibility, and source text
 
 `@scrawlix/react/styles.css` provides the built-in treatments and visually hidden accessibility copy. If text appears duplicated or visibly uncensored, check that import first.
 
 `CensoredText` is reversible presentation: it keeps one exact source copy available to assistive technology and marks the decorative visual tree `aria-hidden="true"`. Secrets or destructive redaction belong upstream. See [`docs/privacy-and-output.md`](docs/privacy-and-output.md).
+
+Covered visual fragments expose namespaced presentation metadata including source offsets, contributing match IDs, reveal group identity, and coverage edge. The same metadata vocabulary is emitted by the DOM and rehype adapters where applicable, so teaching/debug views can inspect renderer output without re-running matching.
 
 ### Next.js App Router
 
@@ -96,6 +122,8 @@ scrawlix.segment('what the fuck');
 
 The English pack can target the semantic core inside larger matches, so `fuck`, `fucking`, and `motherfucker` can all apply coverage to the `fuck` portion. Generic core presets are `full`, `tail`, `middle`, and `inner`; `full` is the default.
 
+`find()` assigns deterministic scan-local `matchId` values. `segment()` preserves exact source slices and includes `start`, `end`, contributing `matchIds`, a connected `revealId`, and `coverageEdge` (`solo`, `start`, `middle`, or `end`) on covered ranges. Multiple disjoint coverage islands from one semantic match share a reveal group; overlapping matches join transitively.
+
 ## Markdown / rehype
 
 ```sh
@@ -114,7 +142,7 @@ import ReactMarkdown from 'react-markdown';
 </ReactMarkdown>;
 ```
 
-Covered fragments carry `data-scrawlix-cover` and `data-scrawlix-rules`; appearance policy stays with the consumer. `code`, `pre`, `script`, `style`, and `textarea` are skipped by default. Applications can extend exclusions, use `data-scrawlix-ignore`, or supply `shouldSkip`. Generated output is skipped on repeat transforms.
+Covered fragments carry `data-scrawlix-cover`, rule/match provenance, source offsets, reveal identity, and coverage-edge metadata; appearance policy stays with the consumer. `code`, `pre`, `script`, `style`, and `textarea` are skipped by default. Applications can extend exclusions, use `data-scrawlix-ignore`, or supply `shouldSkip`. Generated output is skipped on repeat transforms.
 
 ## Arbitrary webpages / DOM
 
@@ -163,9 +191,9 @@ The English package exports `englishStrongProfanityRules`, `englishStrongProfani
 
 ## Browser extension and demo
 
-`apps/extension` is a Manifest V3 application around `@scrawlix/dom` and `@scrawlix/en`; browser storage, host policy, permissions, UI, and injected presentation stay in the application. Build it with `pnpm build`, then load `apps/extension/dist` as an unpacked Chromium extension. See [`apps/extension/README.md`](apps/extension/README.md).
+`apps/extension` is a Manifest V3 application around `@scrawlix/dom` and `@scrawlix/en`; browser storage, host policy, permissions, UI, and injected presentation stay in the application. Its popup includes a compact live treatment proof driven by the real engine. Build it with `pnpm build`, then load `apps/extension/dist` as an unpacked Chromium extension. See [`apps/extension/README.md`](apps/extension/README.md).
 
-`apps/demo` is the interactive React proof sheet. Run `pnpm dev` to use its live text, coverage/reveal controls, appearance specimens, semantic-match examples, and component snippet.
+`apps/demo` is the interactive React proof sheet. Run `pnpm dev` to use its live text controls, seven appearance specimens, MATCH → TARGET → COVER → OUTPUT X-ray, hostile-context proof sheet, semantic-match examples, redaction-poetry/spoiler/privacy labs, and component snippet.
 
 ## Documentation and contributing
 
@@ -180,7 +208,7 @@ pnpm build
 pnpm smoke:packages
 ```
 
-The packed-package smoke gate installs real tarballs into external consumers and verifies public exports/declarations plus React 18, React 19, and Next.js App Router production builds.
+The packed-package smoke gate installs real tarballs into external consumers and verifies public exports/declarations plus React 18, React 19, and Next.js App Router production builds. Chromium also exercises match-local reveal, layout-stable symbol masks, X-ray/context specimens, the built extension, and a three-frame curated screenshot regression set.
 
 ## Status
 
