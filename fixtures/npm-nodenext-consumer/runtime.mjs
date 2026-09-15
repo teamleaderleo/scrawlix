@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import { createScrawlix } from '@scrawlix/core';
+import { createScrawlix, censorRuleFromTerms } from '@scrawlix/core';
 import { createCorpusRunner } from '@scrawlix/core/corpus';
 import { censorRuleFromConfusableObfuscatedTerms } from '@scrawlix/core/confusable-obfuscated';
 import { defineRulePack } from '@scrawlix/core/pack-authoring';
 import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
+import { sanitizeText } from '@scrawlix/core/sanitize';
 import { censorRuleFromTransformedTerms } from '@scrawlix/core/source-mapped';
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
 import { censorRuleFromWidthObfuscatedTerms } from '@scrawlix/core/width-obfuscated';
@@ -16,6 +17,14 @@ import { CensoredText } from '@scrawlix/react';
 
 const canonical = createScrawlix({ rules: englishStrongProfanityRules });
 assert.equal(canonical.find('well, fuck')[0]?.targetText, 'fuck');
+
+const sanitized = sanitizeText('Ship Project Velvet Friday.', {
+  rules: [censorRuleFromTerms('private', ['Project Velvet'])],
+  replacement: '[PRIVATE]',
+  verifySourceAbsence: true,
+});
+assert.equal(sanitized.text, 'Ship [PRIVATE] Friday.');
+assert.equal(sanitized.report.sourceAbsence.absent, true);
 
 const authored = defineRulePack(
   {
