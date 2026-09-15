@@ -15,14 +15,15 @@ import { gunzipSync } from 'node:zlib';
 
 const root = process.cwd();
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'scrawlix-smoke-'));
 const packDirectory = join(temporaryRoot, 'packs');
 let passed = false;
 
 mkdirSync(packDirectory, { recursive: true });
 
-function run(args, cwd = root) {
-  const result = spawnSync(pnpm, args, {
+function runCommand(command, args, cwd = root) {
+  const result = spawnSync(command, args, {
     cwd,
     env: process.env,
     stdio: 'inherit',
@@ -30,8 +31,18 @@ function run(args, cwd = root) {
 
   if (result.error) throw result.error;
   if (result.status !== 0) {
-    throw new Error(`pnpm ${args.join(' ')} failed with exit code ${result.status}`);
+    throw new Error(
+      `${command} ${args.join(' ')} failed with exit code ${result.status}`
+    );
   }
+}
+
+function run(args, cwd = root) {
+  runCommand(pnpm, args, cwd);
+}
+
+function runNpm(args, cwd = root) {
+  runCommand(npm, args, cwd);
 }
 
 function readTarString(buffer, start, length) {
@@ -152,7 +163,12 @@ function packPackage(packageDirectory) {
 
 const asFileDependency = path => `file:${path.replaceAll('\\', '/')}`;
 
-function addPackedDependencies(packageJson, tarballs, packageNames) {
+function addPackedDependencies(
+  packageJson,
+  tarballs,
+  packageNames,
+  { pnpmOverride = true } = {}
+) {
   for (const packageName of packageNames) {
     const tarballKey = {
       '@scrawlix/core': 'core',
@@ -164,11 +180,13 @@ function addPackedDependencies(packageJson, tarballs, packageNames) {
     packageJson.dependencies[packageName] = asFileDependency(tarballs[tarballKey]);
   }
 
-  packageJson.pnpm = {
-    overrides: {
-      '@scrawlix/core': asFileDependency(tarballs.core),
-    },
-  };
+  if (pnpmOverride) {
+    packageJson.pnpm = {
+      overrides: {
+        '@scrawlix/core': asFileDependency(tarballs.core),
+      },
+    };
+  }
 }
 
 function smokeConsumer({ label, reactMajor, tarballs }) {
@@ -229,6 +247,36 @@ function smokeNextConsumer(tarballs) {
   run(['build'], consumerDirectory);
 }
 
+function smokeNpmNodeNextConsumer(tarballs) {
+  const consumerDirectory = join(temporaryRoot, 'consumer-npm-nodenext');
+  cpSync(resolve(root, 'fixtures/npm-nodenext-consumer'), consumerDirectory, {
+    recursive: true,
+  });
+
+  const packageJsonPath = join(consumerDirectory, 'package.json');
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+  addPackedDependencies(
+    packageJson,
+    tarballs,
+    [
+      '@scrawlix/core',
+      '@scrawlix/en',
+      '@scrawlix/react',
+      '@scrawlix/rehype',
+      '@scrawlix/dom',
+    ],
+    { pnpmOverride: false }
+  );
+
+  writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+
+  console.log('\nSmoke consumer: npm + TypeScript NodeNext + React 19');
+  runNpm(['install', '--no-package-lock'], consumerDirectory);
+  runCommand(process.execPath, ['runtime.mjs'], consumerDirectory);
+  runNpm(['run', 'typecheck'], consumerDirectory);
+  runNpm(['run', 'build'], consumerDirectory);
+}
+
 try {
   const tarballs = {
     core: packPackage('packages/core'),
@@ -241,10 +289,11 @@ try {
   smokeConsumer({ label: 'react-18', reactMajor: '18', tarballs });
   smokeConsumer({ label: 'react-19', reactMajor: '19', tarballs });
   smokeNextConsumer(tarballs);
+  smokeNpmNodeNextConsumer(tarballs);
 
   passed = true;
   console.log(
-    'Scrawlix packed-package smoke tests passed for React 18, React 19, and Next.js App Router.'
+    'Scrawlix packed-package smoke tests passed for React 18, React 19, Next.js App Router, and npm + TypeScript NodeNext.'
   );
 } finally {
   if (passed) {
