@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+  extensionHighlightRanges,
   extensionWithPregrantedHosts,
   launchExtensionContext,
   registeredContentScript,
@@ -59,22 +60,53 @@ test('built extension persists top-document injection and page lifecycle behavio
     const worker = await serviceWorker(context);
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
+    const fixtureUrl = page.url();
 
-    const initialRoot = page.locator('#initial [data-scrawlix-dom-root]');
-    await expect(initialRoot).toHaveCount(1);
-    await expect(initialRoot).toHaveAttribute('data-scrawlix-extension-owned', /.+/);
-    await expect(page.locator('#initial [data-scrawlix-cover]')).toHaveText('uc');
-    await expect(page.locator('#private [data-scrawlix-dom-root]')).toHaveCount(0);
-    await expect(page.locator('[data-scrawlix-dom-root][tabindex]')).toHaveCount(0);
+    await expect(page.locator('#initial')).toHaveText('well, fuck this');
+    expect(
+      await page.locator('#initial').evaluate(element => ({
+        childNodes: element.childNodes.length,
+        firstType: element.firstChild?.nodeType,
+        firstData: element.firstChild?.nodeValue,
+        html: element.innerHTML,
+      }))
+    ).toEqual({
+      childNodes: 1,
+      firstType: 3,
+      firstData: 'well, fuck this',
+      html: 'well, fuck this',
+    });
 
-    await expect(page.locator('#code [data-scrawlix-dom-root]')).toHaveCount(0);
-    await expect(page.locator('#editable [data-scrawlix-dom-root]')).toHaveCount(0);
-    await expect(page.locator('#native-button [data-scrawlix-dom-root]')).toHaveCount(0);
-    await expect(page.locator('#native-link [data-scrawlix-dom-root]')).toHaveCount(1);
+    await expect
+      .poll(async () => extensionHighlightRanges(context, fixtureUrl))
+      .toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            parentId: 'initial',
+            text: 'uc',
+            sourceText: 'well, fuck this',
+            sameTextNode: true,
+          }),
+          expect.objectContaining({ parentId: 'native-link', text: 'uc' }),
+        ])
+      );
+
+    const initialRanges = await extensionHighlightRanges(context, fixtureUrl);
+    expect(initialRanges.some(range => range.parentId === 'private')).toBe(false);
+    expect(initialRanges.some(range => range.parentId === 'code')).toBe(false);
+    expect(initialRanges.some(range => range.parentId === 'editable')).toBe(false);
+    expect(initialRanges.some(range => range.parentId === 'native-button')).toBe(false);
+    await expect(page.locator('[data-scrawlix-dom-root]')).toHaveCount(0);
 
     await page.getByRole('button', { name: 'add dynamic' }).click();
-    await expect(page.locator('#dynamic-copy [data-scrawlix-dom-root]')).toHaveCount(1);
-    await expect(page.locator('#dynamic-copy [data-scrawlix-cover]')).toHaveText('uc');
+    await expect(page.locator('#dynamic-copy')).toHaveText('dynamic fuck arrived');
+    await expect
+      .poll(async () => extensionHighlightRanges(context, fixtureUrl))
+      .toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ parentId: 'dynamic-copy', text: 'uc' }),
+        ])
+      );
 
     await worker.evaluate(async () => {
       const tabs = await chrome.tabs.query({ url: 'http://127.0.0.1:4174/*' });
@@ -85,14 +117,14 @@ test('built extension persists top-document injection and page lifecycle behavio
         durationMs: 300,
       });
     });
-    await expect(page.locator('html')).toHaveAttribute(
-      'data-scrawlix-page-revealed',
-      'true'
-    );
+    await expect.poll(() => extensionHighlightRanges(context, fixtureUrl)).toEqual([]);
     await expect
-      .poll(() => page.locator('html').getAttribute('data-scrawlix-page-revealed'))
-      .toBeNull();
-    await expect(initialRoot).toHaveCount(1);
+      .poll(async () =>
+        (await extensionHighlightRanges(context, fixtureUrl)).some(
+          range => range.parentId === 'initial' && range.text === 'uc'
+        )
+      )
+      .toBe(true);
 
     await page.evaluate(() => {
       const iframe = document.createElement('iframe');
@@ -112,10 +144,19 @@ test('built extension persists top-document injection and page lifecycle behavio
       replacement.querySelector('main')?.append(paragraph);
       document.body.replaceWith(replacement);
     });
-    await expect(page.locator('#body-replacement-copy [data-scrawlix-dom-root]')).toHaveCount(1);
-    await expect(page.locator('#body-replacement-copy [data-scrawlix-cover]')).toHaveText('uc');
-    await expect(page.locator('#initial [data-scrawlix-dom-root]')).toHaveCount(1);
-    await expect(page.locator('[data-scrawlix-dom-root][tabindex]')).toHaveCount(0);
+    await expect(page.locator('#body-replacement-copy')).toHaveText(
+      'replacement fuck arrived'
+    );
+    await expect(page.locator('#initial')).toHaveText('well, fuck this');
+    await expect(page.locator('[data-scrawlix-dom-root]')).toHaveCount(0);
+    await expect
+      .poll(async () => extensionHighlightRanges(context, fixtureUrl))
+      .toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ parentId: 'body-replacement-copy', text: 'uc' }),
+          expect.objectContaining({ parentId: 'initial', text: 'uc' }),
+        ])
+      );
 
     await page.locator('#native-link').click();
     await expect(page).toHaveURL('http://127.0.0.1:4174/clicked.html');

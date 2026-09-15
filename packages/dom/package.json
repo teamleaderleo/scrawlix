@@ -10,7 +10,8 @@
   "files": [
     "dist",
     "src/index.ts",
-    "src/pending-roots.ts"
+    "src/pending-roots.ts",
+    "src/scan.ts"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -19,6 +20,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./scan": {
+      "types": "./dist/scan.d.ts",
+      "import": "./dist/scan.js",
+      "default": "./dist/scan.js"
     }
   },
   "repository": {

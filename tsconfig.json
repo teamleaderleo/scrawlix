@@ -33,7 +33,8 @@
       "@scrawlix/en/corpus": ["packages/en/src/corpus.ts"],
       "@scrawlix/react": ["packages/react/src/index.tsx"],
       "@scrawlix/rehype": ["packages/rehype/src/index.ts"],
-      "@scrawlix/dom": ["packages/dom/src/index.ts"]
+      "@scrawlix/dom": ["packages/dom/src/index.ts"],
+      "@scrawlix/dom/scan": ["packages/dom/src/scan.ts"]
     }
   }
 }

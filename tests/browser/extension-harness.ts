@@ -4,6 +4,15 @@ import { resolve } from 'node:path';
 
 const extensionPath = resolve(process.cwd(), 'apps/extension/dist');
 
+export type ExtensionHighlightRangeSnapshot = {
+  text: string;
+  startOffset: number;
+  endOffset: number;
+  sourceText: string | null;
+  parentId: string | null;
+  sameTextNode: boolean;
+};
+
 /**
  * Browser E2E needs deterministic page access without automating Chrome's
  * permission prompt. Copy the built extension and promote its optional host
@@ -98,4 +107,57 @@ export async function registeredContentScript(context: BrowserContext) {
         }
       : null;
   });
+}
+
+export async function extensionHighlightRanges(
+  context: BrowserContext,
+  pageUrl: string
+): Promise<ExtensionHighlightRangeSnapshot[]> {
+  const worker = await serviceWorker(context);
+  return worker.evaluate(async url => {
+    const tabs = await chrome.tabs.query({});
+    const tab = tabs.find(candidate => candidate.url === url);
+    if (tab?.id === undefined) {
+      throw new Error(`Could not resolve extension fixture tab for ${url}.`);
+    }
+
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      world: 'ISOLATED',
+      func: () => {
+        const registry = (
+          CSS as unknown as {
+            highlights?: { get(name: string): unknown };
+          }
+        ).highlights;
+        const highlight = registry?.get('scrawlix-extension');
+        if (!highlight) return [];
+
+        const ranges = Array.from(
+          (
+            highlight as {
+              values(): IterableIterator<Range>;
+            }
+          ).values()
+        );
+
+        return ranges.map(range => {
+          const start = range.startContainer;
+          const end = range.endContainer;
+          const source = start.nodeType === Node.TEXT_NODE ? (start as Text) : null;
+
+          return {
+            text: range.toString(),
+            startOffset: range.startOffset,
+            endOffset: range.endOffset,
+            sourceText: source?.data ?? null,
+            parentId: source?.parentElement?.id ?? null,
+            sameTextNode: start === end && source !== null,
+          };
+        });
+      },
+    });
+
+    return (results[0]?.result ?? []) as ExtensionHighlightRangeSnapshot[];
+  }, pageUrl);
 }

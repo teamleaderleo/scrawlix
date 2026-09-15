@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+  extensionHighlightRanges,
   extensionWithPregrantedHosts,
   launchExtensionContext,
 } from './extension-harness';
@@ -27,42 +28,82 @@ test('built extension preserves hostile DOM ownership and full html replacement'
     page.on('pageerror', error => browserErrors.push(error.message));
 
     await page.goto('http://127.0.0.1:4174/fixture.html');
+    const fixtureUrl = page.url();
 
     await page.evaluate(() => {
       const paragraph = document.createElement('p');
       paragraph.id = 'anchor-normalize';
       paragraph.textContent = 'fuck 0';
       document.body.append(paragraph);
-      (window as any).__anchorSource = paragraph.firstChild;
+      (window as Window & { __anchorSource?: ChildNode | null }).__anchorSource =
+        paragraph.firstChild;
     });
 
     const paragraph = page.locator('#anchor-normalize');
     await expect(paragraph).toHaveText('fuck 0');
-    await expect(paragraph.locator('[data-scrawlix-dom-root]')).toHaveCount(1);
+    await expect(page.locator('[data-scrawlix-dom-root]')).toHaveCount(0);
+    await expect
+      .poll(async () => extensionHighlightRanges(context, fixtureUrl))
+      .toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            parentId: 'anchor-normalize',
+            text: 'uc',
+            sourceText: 'fuck 0',
+          }),
+        ])
+      );
 
     await page.evaluate(() => {
       document.querySelector('#anchor-normalize')?.normalize();
     });
 
     await expect(paragraph).toHaveText('fuck 0');
-    await expect(paragraph.locator('[data-scrawlix-dom-root]')).toHaveCount(1);
     expect(
       await page.evaluate(() => {
         const paragraph = document.querySelector('#anchor-normalize');
-        return paragraph?.firstChild === (window as any).__anchorSource;
+        return {
+          sameSource:
+            paragraph?.firstChild ===
+            (window as Window & { __anchorSource?: ChildNode | null })
+              .__anchorSource,
+          data: paragraph?.firstChild?.nodeValue,
+          children: paragraph?.childNodes.length,
+        };
       })
-    ).toBe(true);
+    ).toEqual({ sameSource: true, data: 'fuck 0', children: 1 });
 
     await page.evaluate(() => {
       const paragraph = document.querySelector('#anchor-normalize')!;
-      const source = (window as any).__anchorSource as Text;
-      source.data = 'fuck 1';
+      const source = (window as Window & { __anchorSource?: Text }).__anchorSource!;
+      source.data = 'fuck stale';
+      source.data = 'fuck latest';
       source.remove();
       paragraph.append(source);
     });
 
-    await expect(paragraph).toHaveText('fuck 1');
-    await expect(paragraph.locator('[data-scrawlix-dom-root]')).toHaveCount(1);
+    await expect(paragraph).toHaveText('fuck latest');
+    expect(
+      await page.evaluate(() => {
+        const paragraph = document.querySelector('#anchor-normalize');
+        const source = (window as Window & { __anchorSource?: Text }).__anchorSource;
+        return {
+          sameSource: paragraph?.firstChild === source,
+          data: source?.data,
+        };
+      })
+    ).toEqual({ sameSource: true, data: 'fuck latest' });
+    await expect
+      .poll(async () => extensionHighlightRanges(context, fixtureUrl))
+      .toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            parentId: 'anchor-normalize',
+            text: 'uc',
+            sourceText: 'fuck latest',
+          }),
+        ])
+      );
 
     await page.evaluate(() => {
       const paragraph = document.querySelector('#anchor-normalize')!;
@@ -90,8 +131,21 @@ test('built extension preserves hostile DOM ownership and full html replacement'
     });
 
     const clone = page.locator('#anchor-clone');
-    await expect(clone).toHaveText('fuck 1');
-    await expect(clone.locator('[data-scrawlix-dom-root]')).toHaveCount(1);
+    await expect(clone).toHaveText('fuck latest');
+    expect(
+      await clone.evaluate(element => ({
+        children: element.childNodes.length,
+        type: element.firstChild?.nodeType,
+        data: element.firstChild?.nodeValue,
+      }))
+    ).toEqual({ children: 1, type: 3, data: 'fuck latest' });
+    await expect
+      .poll(async () => extensionHighlightRanges(context, fixtureUrl))
+      .toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ parentId: 'anchor-clone', text: 'uc' }),
+        ])
+      );
 
     const fakeRoot = page.locator('#anchor-fake-root');
     const fakeCover = page.locator('#anchor-fake-cover');
@@ -116,33 +170,32 @@ test('built extension preserves hostile DOM ownership and full html replacement'
       fill: expect.not.stringMatching(/transparent/),
       after: 'none',
     });
-
-    const ownedCover = paragraph.locator('[data-scrawlix-cover]');
-    await expect(paragraph.locator('[data-scrawlix-dom-root]')).toHaveAttribute(
-      'data-scrawlix-extension-owned',
-      /.+/
-    );
-    expect(await ownedCover.evaluate(element => getComputedStyle(element).position)).toBe(
-      'relative'
-    );
+    expect(
+      (await extensionHighlightRanges(context, fixtureUrl)).some(
+        range => range.parentId === 'anchor-fake-cover'
+      )
+    ).toBe(false);
 
     await page.evaluate(() => {
       const replacement = document.documentElement.cloneNode(true);
       document.replaceChild(replacement, document.documentElement);
     });
 
-    await expect(page.locator('#anchor-normalize')).toHaveText('fuck 1');
-    await expect(
-      page.locator('#anchor-normalize [data-scrawlix-dom-root]')
-    ).toHaveCount(1);
-    await expect(page.locator('#anchor-clone')).toHaveText('fuck 1');
-    await expect(
-      page.locator('#anchor-clone [data-scrawlix-dom-root]')
-    ).toHaveCount(1);
+    await expect(page.locator('#anchor-normalize')).toHaveText('fuck latest');
+    await expect(page.locator('#anchor-clone')).toHaveText('fuck latest');
+    await expect(page.locator('[data-scrawlix-dom-root]')).toHaveCount(1);
     await expect(page.locator('#anchor-fake-root')).toHaveAttribute(
       'data-scrawlix-extension-owned',
       ''
     );
+    await expect
+      .poll(async () => extensionHighlightRanges(context, fixtureUrl))
+      .toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ parentId: 'anchor-normalize', text: 'uc' }),
+          expect.objectContaining({ parentId: 'anchor-clone', text: 'uc' }),
+        ])
+      );
 
     expect(browserErrors).toEqual([]);
   } finally {
@@ -150,7 +203,7 @@ test('built extension preserves hostile DOM ownership and full html replacement'
   }
 });
 
-test('built extension keeps owned presentation scoped under strict page CSP', async ({}, testInfo) => {
+test('built extension keeps highlight presentation active under strict page CSP', async ({}, testInfo) => {
   const testExtensionPath = await extensionWithPregrantedHosts(
     testInfo.outputPath('extension-under-test')
   );
@@ -162,14 +215,17 @@ test('built extension keeps owned presentation scoped under strict page CSP', as
   try {
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto('http://127.0.0.1:4174/csp.html');
+    const fixtureUrl = page.url();
 
-    const ownedRoot = page.locator('#csp-copy [data-scrawlix-dom-root]');
-    const ownedCover = ownedRoot.locator('[data-scrawlix-cover]');
-    await expect(ownedRoot).toHaveCount(1);
-    await expect(ownedRoot).toHaveAttribute('data-scrawlix-extension-owned', /.+/);
-    expect(await ownedCover.evaluate(element => getComputedStyle(element).position)).toBe(
-      'relative'
-    );
+    await expect(page.locator('#csp-copy')).toHaveText(/fuck/);
+    await expect(page.locator('[data-scrawlix-dom-root]')).toHaveCount(1);
+    await expect
+      .poll(async () => extensionHighlightRanges(context, fixtureUrl))
+      .toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ parentId: 'csp-copy', text: 'uc' }),
+        ])
+      );
 
     const fakeCover = page.locator('#csp-fake-cover');
     expect(

@@ -1,6 +1,7 @@
 import { createScrawlix } from '@scrawlix/core';
 import { createCorpusRunner } from '@scrawlix/core/corpus';
 import { createDomScrawlix } from '@scrawlix/dom';
+import { createDomRangeScanner } from '@scrawlix/dom/scan';
 import { englishStrongProfanityRules } from '@scrawlix/en';
 import { englishCorpus, englishProfanityCorpus } from '@scrawlix/en/corpus';
 import { transformHast } from '@scrawlix/rehype';
@@ -80,6 +81,23 @@ if (
   !domHost.querySelector('[data-scrawlix-cover]')
 ) {
   throw new Error('Scrawlix DOM package smoke assertion failed.');
+}
+
+const rangeHost = document.createElement('div');
+rangeHost.textContent = 'well, fuck';
+const rangeSource = rangeHost.firstChild as Text;
+const rangeResult = createDomRangeScanner({
+  rules: englishStrongProfanityRules,
+  coverage: 'full',
+}).scan(rangeHost);
+if (
+  rangeResult.length !== 1 ||
+  rangeResult[0]?.source !== rangeSource ||
+  rangeResult[0]?.startOffset !== 6 ||
+  rangeResult[0]?.endOffset !== 10 ||
+  rangeHost.textContent !== 'well, fuck'
+) {
+  throw new Error('Scrawlix DOM range-scan package smoke assertion failed.');
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
