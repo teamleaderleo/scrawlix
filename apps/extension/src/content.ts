@@ -1,9 +1,11 @@
 import { censorRuleFromTerms, type CensorRule } from '@scrawlix/core';
 import { createDomScrawlix, type DomObservation } from '@scrawlix/dom';
 import { englishStrongProfanityRules } from '@scrawlix/en';
+import type { ScrawlixContentMessage } from './access';
 import {
   CUSTOM_WORDS_KEY,
   LOCAL_STATE_KEY,
+  SITE_OVERRIDES_KEY,
   SYNC_SETTINGS_KEY,
   activeProfile,
   coverageSelector,
@@ -22,15 +24,17 @@ import { loadExtensionState } from './storage';
 
 const INTERACTIVE_ANCESTOR =
   'a,button,input,select,textarea,summary,[role="button"],[role="link"]';
+const MIN_REVEAL_MS = 250;
+const MAX_REVEAL_MS = 60_000;
 
 let observation: DomObservation | null = null;
 let presentationObserver: MutationObserver | null = null;
 let documentElementObserver: MutationObserver | null = null;
 let observedDocumentElement: HTMLElement | null = null;
-let observedBody: HTMLElement | null = null;
+let sessionBody: HTMLElement | null = null;
 let activeState: ExtensionSessionState | null = null;
-let activeBody: HTMLElement | null = null;
 let restartGeneration = 0;
+let pageRevealTimer: number | null = null;
 
 function customRule(customTerms: readonly string[]): CensorRule[] {
   if (customTerms.length === 0) return [];
@@ -41,19 +45,50 @@ function canOwnInteraction(root: HTMLElement) {
   return root.closest(INTERACTIVE_ANCESTOR) === null;
 }
 
+function pageIsTemporarilyRevealed() {
+  return document.documentElement?.dataset.scrawlixPageRevealed === 'true';
+}
+
+function clearPageReveal() {
+  if (pageRevealTimer !== null) {
+    window.clearTimeout(pageRevealTimer);
+    pageRevealTimer = null;
+  }
+  if (document.documentElement) {
+    delete document.documentElement.dataset.scrawlixPageRevealed;
+  }
+}
+
+function revealPageFor(durationMs: number) {
+  const documentElement = document.documentElement;
+  if (!documentElement) return;
+
+  const duration = Number.isFinite(durationMs)
+    ? Math.min(MAX_REVEAL_MS, Math.max(MIN_REVEAL_MS, durationMs))
+    : MIN_REVEAL_MS;
+
+  if (pageRevealTimer !== null) window.clearTimeout(pageRevealTimer);
+  documentElement.dataset.scrawlixPageRevealed = 'true';
+  pageRevealTimer = window.setTimeout(clearPageReveal, duration);
+}
+
 function decorateGeneratedRoot(root: HTMLElement, profile: ExtensionProfile) {
   if (observation?.ownsGeneratedRoot(root) !== true) return;
 
+  const previousReveal = root.dataset.scrawlixReveal;
+  root.dataset.scrawlixExtensionOwned = '';
   root.dataset.scrawlixAppearance = profile.appearance;
   root.dataset.scrawlixReveal = profile.reveal;
-  root.dataset.scrawlixRevealed = 'false';
-
-  const interactiveReveal = profile.reveal === 'focus' || profile.reveal === 'click';
-  if (interactiveReveal && canOwnInteraction(root)) {
-    root.tabIndex = 0;
-  } else {
-    root.removeAttribute('tabindex');
+  if (
+    previousReveal !== profile.reveal ||
+    root.dataset.scrawlixRevealed === undefined
+  ) {
+    root.dataset.scrawlixRevealed = 'false';
   }
+
+  // Arbitrary-page generated text stays out of the native tab order. Keyboard
+  // users get one page-level reveal command; pointer click reveal stays local.
+  root.removeAttribute('tabindex');
 
   for (const cover of Array.from(
     root.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')
@@ -78,8 +113,12 @@ function decorateSubtree(node: Node, profile: ExtensionProfile) {
   }
 }
 
-function startPresentationObserver(root: HTMLElement, profile: ExtensionProfile) {
+function startPresentationObserver(body: HTMLElement) {
   const observer = new MutationObserver(records => {
+    const state = activeState;
+    if (!state) return;
+    const profile = activeProfile(state.localState);
+
     for (const record of records) {
       for (const added of Array.from(record.addedNodes)) {
         decorateSubtree(added, profile);
@@ -87,15 +126,15 @@ function startPresentationObserver(root: HTMLElement, profile: ExtensionProfile)
     }
   });
 
-  observer.observe(root, { childList: true, subtree: true });
+  observer.observe(body, { childList: true, subtree: true });
   presentationObserver = observer;
 }
 
-function refreshPresentation(root: HTMLElement, profile: ExtensionProfile) {
+function refreshPresentation(body: HTMLElement, profile: ExtensionProfile) {
   presentationObserver?.disconnect();
   presentationObserver = null;
-  decorateSubtree(root, profile);
-  startPresentationObserver(root, profile);
+  decorateSubtree(body, profile);
+  startPresentationObserver(body);
 }
 
 function stopCurrentSession() {
@@ -103,36 +142,11 @@ function stopCurrentSession() {
   presentationObserver = null;
   observation?.restore();
   observation = null;
-  activeState = null;
-  activeBody = null;
+  sessionBody = null;
 }
 
-async function restart() {
-  const generation = ++restartGeneration;
-  const state = await loadExtensionState();
-  if (generation !== restartGeneration) return;
-
-  const hostname = location.hostname.toLowerCase();
-  const body = document.body;
-  const previousState = activeState;
-
-  if (
-    body &&
-    observation &&
-    previousState &&
-    activeBody === body &&
-    canReuseSemanticSession(previousState, state, hostname)
-  ) {
-    if (presentationSettingsChanged(previousState, state)) {
-      refreshPresentation(body, activeProfile(state.localState));
-    }
-    activeState = state;
-    return;
-  }
-
-  stopCurrentSession();
-
-  if (!body || !effectiveEnabled(state.settings, hostname)) return;
+function startSession(state: ExtensionSessionState, body: HTMLElement) {
+  if (document.body !== body) return;
 
   const profile = activeProfile(state.localState);
   const rules: CensorRule[] = [
@@ -141,7 +155,6 @@ async function restart() {
       : []),
     ...customRule(profileTerms(state.localState)),
   ];
-
   if (rules.length === 0) return;
 
   const controller = createDomScrawlix({
@@ -149,17 +162,119 @@ async function restart() {
     coverage: coverageSelector(profile.coverage),
   });
 
-  activeState = state;
-  activeBody = body;
   observation = controller.observe(body);
+  sessionBody = body;
   refreshPresentation(body, profile);
 }
 
-function handleBodyLifecycleChange() {
+async function reconcile() {
+  const generation = ++restartGeneration;
+  const state = await loadExtensionState();
+  if (generation !== restartGeneration) return;
+
   const body = document.body;
-  if (body === observedBody) return;
-  observedBody = body;
-  void restart();
+  if (sessionBody !== null && sessionBody !== body) {
+    stopCurrentSession();
+  }
+
+  const hostname = location.hostname.toLowerCase();
+  const previous = activeState;
+  const enabled = effectiveEnabled(state.settings, hostname);
+  activeState = state;
+
+  if (!body) return;
+  if (!enabled) {
+    clearPageReveal();
+    stopCurrentSession();
+    return;
+  }
+
+  if (
+    observation &&
+    previous &&
+    sessionBody === body &&
+    canReuseSemanticSession(previous, state, hostname)
+  ) {
+    if (presentationSettingsChanged(previous, state)) {
+      refreshPresentation(body, activeProfile(state.localState));
+    }
+    return;
+  }
+
+  stopCurrentSession();
+  startSession(state, body);
+}
+
+async function revealWhenReady(durationMs: number) {
+  if (observation === null) await reconcile();
+  if (observation !== null) revealPageFor(durationMs);
+}
+
+function clickRootFromEvent(event: Event) {
+  if (pageIsTemporarilyRevealed()) return null;
+
+  const target = event.target;
+  if (!(target instanceof Element)) return null;
+  const root = target.closest<HTMLElement>(
+    '[data-scrawlix-dom-root][data-scrawlix-reveal="click"]'
+  );
+  if (
+    !root ||
+    observation?.ownsGeneratedRoot(root) !== true ||
+    !canOwnInteraction(root)
+  ) {
+    return null;
+  }
+  return root;
+}
+
+document.addEventListener('click', event => {
+  const root = clickRootFromEvent(event);
+  if (!root) return;
+  root.dataset.scrawlixRevealed =
+    root.dataset.scrawlixRevealed === 'true' ? 'false' : 'true';
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  const relevantSync =
+    areaName === 'sync' &&
+    Object.prototype.hasOwnProperty.call(changes, SYNC_SETTINGS_KEY);
+  const relevantLocal =
+    areaName === 'local' &&
+    (Object.prototype.hasOwnProperty.call(changes, LOCAL_STATE_KEY) ||
+      Object.prototype.hasOwnProperty.call(changes, CUSTOM_WORDS_KEY) ||
+      Object.prototype.hasOwnProperty.call(changes, SITE_OVERRIDES_KEY));
+
+  if (relevantSync || relevantLocal) void reconcile();
+});
+
+chrome.runtime.onMessage.addListener((message: ScrawlixContentMessage) => {
+  if (message?.type === 'scrawlix-disable') {
+    restartGeneration += 1;
+    activeState = null;
+    clearPageReveal();
+    stopCurrentSession();
+    return;
+  }
+
+  if (message?.type === 'scrawlix-reconcile') {
+    void reconcile();
+    return;
+  }
+
+  if (message?.type === 'scrawlix-reveal-for') {
+    void revealWhenReady(message.durationMs);
+  }
+});
+
+function handleBodyLifecycleChange() {
+  if (sessionBody !== null && document.body !== sessionBody) {
+    stopCurrentSession();
+  }
+
+  if (document.body && sessionBody === null) {
+    void reconcile();
+  }
 }
 
 function observeCurrentDocumentElement() {
@@ -181,51 +296,9 @@ function observeCurrentDocumentElement() {
   handleBodyLifecycleChange();
 }
 
-function clickRootFromEvent(event: Event) {
-  const target = event.target;
-  if (!(target instanceof Element)) return null;
-  const root = target.closest<HTMLElement>(
-    '[data-scrawlix-dom-root][data-scrawlix-reveal="click"]'
-  );
-  if (
-    !root ||
-    observation?.ownsGeneratedRoot(root) !== true ||
-    root.tabIndex !== 0
-  ) {
-    return null;
-  }
-  return root;
-}
-
-document.addEventListener('click', event => {
-  const root = clickRootFromEvent(event);
-  if (!root) return;
-  root.dataset.scrawlixRevealed =
-    root.dataset.scrawlixRevealed === 'true' ? 'false' : 'true';
-});
-
-document.addEventListener('keydown', event => {
-  if (event.key !== 'Enter' && event.key !== ' ') return;
-  const root = clickRootFromEvent(event);
-  if (!root) return;
-
-  event.preventDefault();
-  root.dataset.scrawlixRevealed =
-    root.dataset.scrawlixRevealed === 'true' ? 'false' : 'true';
-});
-
-chrome.storage.onChanged.addListener((changes, areaName) => {
-  const relevantSync =
-    areaName === 'sync' &&
-    Object.prototype.hasOwnProperty.call(changes, SYNC_SETTINGS_KEY);
-  const relevantLocal =
-    areaName === 'local' &&
-    (Object.prototype.hasOwnProperty.call(changes, LOCAL_STATE_KEY) ||
-      Object.prototype.hasOwnProperty.call(changes, CUSTOM_WORDS_KEY));
-
-  if (relevantSync || relevantLocal) void restart();
-});
-
 const documentRootObserver = new MutationObserver(observeCurrentDocumentElement);
 documentRootObserver.observe(document, { childList: true });
+
+// document_start can run before <html>/<body> exist. Reconcile as each arrives,
+// then keep a cheap direct-child lifecycle watch for long-running SPA sessions.
 observeCurrentDocumentElement();

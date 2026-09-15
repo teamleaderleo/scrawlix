@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && vite build -c vite.content.config.ts && vite build -c vite.popup.config.ts && node ../../scripts/copy-file.mjs manifest.json dist/manifest.json && node ../../scripts/copy-file.mjs src/content.css dist/content.css && node scripts/validate-build.mjs",
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && vite build -c vite.content.config.ts && vite build -c vite.background.config.ts && vite build -c vite.popup.config.ts && node ../../scripts/copy-file.mjs manifest.json dist/manifest.json && node ../../scripts/copy-file.mjs src/content.css dist/content.css && node scripts/validate-build.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
