@@ -4,8 +4,16 @@ React rendering, appearances, and reveal behavior for Scrawlix.
 
 ## Install
 
+For the bundled English strong-profanity pack:
+
 ```sh
 npm install @scrawlix/react @scrawlix/en
+```
+
+For application-owned terms instead of the English pack:
+
+```sh
+npm install @scrawlix/react @scrawlix/core
 ```
 
 ## Quick start
@@ -42,6 +50,42 @@ The default presentation covers the complete semantic target with the `scrawl` a
 Built-in appearances: `scrawl`, `bar`, `blur`, `whiteout`, `mosaic`, `asterisk`, `grawlix`.
 
 Reveal modes: `never`, `hover`, `focus`, `click`.
+
+## Use your own terms
+
+`@scrawlix/en` supplies one reviewed English policy. It is optional. Applications can author their own configured terms through core and pass those rules directly to React:
+
+```tsx
+import { censorRuleFromTerms } from '@scrawlix/core';
+import { CensoredText } from '@scrawlix/react';
+import '@scrawlix/react/styles.css';
+
+const projectTerms = censorRuleFromTerms('project-private', [
+  'Project Velvet',
+  'Acme Widgets',
+]);
+
+export function ProjectNote({ text }: { text: string }) {
+  return <CensoredText text={text} rules={[projectTerms]} appearance="bar" />;
+}
+```
+
+This path does not require `@scrawlix/en`.
+
+## Match, target, and coverage
+
+Rules can match a larger lexical form while naming a smaller semantic target. Coverage is applied to that target.
+
+For a target such as `fuck`, the built-in positional policies behave like this:
+
+| Coverage | Covered target portion |
+| --- | --- |
+| `full` | `fuck` |
+| `tail` | `uck` |
+| `inner` | `uc` |
+| `middle` | the middle half selected on grapheme boundaries |
+
+A rule can match `motherfucker` while targeting only `fuck`. `coverage="full"` then covers the semantic `fuck` target rather than the entire `motherfucker` match. This separation lets language packs keep morphology and compounds in matching policy while renderers stay focused on presentation.
 
 Reveal scope defaults to `component`, which preserves the established whole-component interaction. Use `revealScope="match"` when each semantic match should disclose independently:
 
