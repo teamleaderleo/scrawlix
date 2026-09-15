@@ -29,6 +29,19 @@ The supported policies are:
 
 Locale casing is part of the source-mapped shadow, so a length-changing case transform still reports exact UTF-16 ranges from the caller-owned source string.
 
+## Runtime Unicode data is observable
+
+Scrawlix uses the host JavaScript runtime's Unicode services. That is part of the behavior a language pack should test on every runtime it claims to support.
+
+- extended-grapheme iteration uses `Intl.Segmenter` with `granularity: 'grapheme'`; Scrawlix requires that API for grapheme-safe matching and coverage
+- `{ mode: 'locale-word', locale: ... }` uses `Intl.Segmenter` with `granularity: 'word'` and accepts only complete word-like segment boundaries
+- `{ mode: 'locale-insensitive', locale: ... }` uses the runtime's locale-aware lowercase mapping
+- `unicode-insensitive` follows ECMAScript Unicode regular-expression case behavior
+
+The Unicode/locale data behind those APIs can advance across JavaScript engines and runtime releases. A pack that depends on `locale-word` or locale casing should keep corpus cases for its supported locales and run them on the Node/browser versions it publishes as supported. Boundary choice remains pack policy: use `locale-word` where the reviewed corpus supports that segmentation behavior, and choose `unicode-word` or `substring` where those policies fit the entry better.
+
+This dependency stays explicit instead of freezing one copy of ICU or Unicode segmentation data inside Scrawlix.
+
 ## Reviewed grapheme transforms
 
 A pack can provide `transform(grapheme)` after the selected canonical normalization step. The callback receives one complete extended grapheme and returns the representation used for matching.
