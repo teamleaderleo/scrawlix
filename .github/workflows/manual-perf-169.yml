@@ -1,9 +1,6 @@
 name: Manual perf issue 169
 
 on:
-  push:
-    branches:
-      - perf/manual-benchmarks-169
   workflow_dispatch:
 
 permissions:
