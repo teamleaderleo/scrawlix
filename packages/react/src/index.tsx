@@ -412,7 +412,7 @@ export function CensoredText({
     >
       <span data-scrawlix-a11y>{text}</span>
       {matchControls && (
-        <span data-scrawlix-controls>
+        <span data-scrawlix-controls onKeyDown={event => event.stopPropagation()}>
           {disclosure.groups.map((group, index) => (
             <button
               aria-label={`Reveal censored text ${index + 1} of ${disclosure.groups.length}`}
