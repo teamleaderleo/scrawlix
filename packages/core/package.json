@@ -17,6 +17,7 @@
     "src/obfuscated-term-rule.ts",
     "src/source-mapped.ts",
     "src/pack-authoring.ts",
+    "src/sanitize.ts",
     "src/targeted-obfuscated.ts",
     "src/repeated-obfuscated.ts",
     "src/width-obfuscated.ts",
@@ -42,6 +43,11 @@
       "types": "./dist/pack-authoring.d.ts",
       "import": "./dist/pack-authoring.js",
       "default": "./dist/pack-authoring.js"
+    },
+    "./sanitize": {
+      "types": "./dist/sanitize.d.ts",
+      "import": "./dist/sanitize.js",
+      "default": "./dist/sanitize.js"
     },
     "./targeted-obfuscated": {
       "types": "./dist/targeted-obfuscated.d.ts",
