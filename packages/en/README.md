@@ -19,6 +19,8 @@ const scrawlix = createScrawlix({
 });
 ```
 
+This package intentionally covers a narrow, reviewed set of strong English profanity rather than every insulting, sexual, anatomical, or context-sensitive term. An absent term can reflect pack policy as well as matcher behavior. The bundled corpora document the scope the package currently claims.
+
 The canonical root export also includes `englishStrongProfanityPack` for pack composition and `englishVowelCoverage` for an English-specific coverage policy.
 
 ```ts
@@ -117,7 +119,5 @@ for (const corpusCase of englishCorpus) {
 ```
 
 The package's own Vitest suite uses this same runner, so ordinary future corpus-case additions stay data-only once profile engines are registered.
-
-The current package is intentionally narrow strong-profanity coverage. It is a reviewable set of English rules and aggressive examples, with explicit corpus evidence for the scope it claims.
 
 See the [language-pack guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/language-packs.md) for authoring, composition, boundary, Unicode, and obfuscation guidance. Use the [shared corpus-runner guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/corpus-runner.md) for executable corpus tests, the [confusable-matching guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/confusable-matching.md) for reviewed lookalike policy, and the [troubleshooting guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/troubleshooting.md) for edge/boundary or no-match diagnostics.
