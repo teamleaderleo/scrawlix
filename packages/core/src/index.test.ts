@@ -12,7 +12,7 @@ import {
 const semanticRule: CensorRule = {
   id: 'semantic-test',
   pattern:
-    /(?<![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])(?:mother)?(?<core>fuck)(?:ing|ed|er|ers|s)?(?![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])/giu,
+    /(?<![\p{L}\p{N}\p{M}\p{Pc}\u200C\u200D])(?:mother)?(?<core>fuck)(?:ing|ed|er|ers|s)?(?![\p{L}\p{N}\p{M}\p{Pc}\u200C\\u200D])/giu,
   target: { group: 'core' },
 };
 
@@ -231,7 +231,9 @@ describe('Scrawlix core', () => {
 
     expect(() =>
       createScrawlix({ rules: [{ id: 'sticky-secret', pattern }] })
-    ).toThrow('Censor rule "sticky-secret" uses unsupported RegExp flag "y"');
+    ).toThrow(
+      'Censor rule "sticky-secret" uses unsupported sticky RegExp flag "y". Use a non-sticky pattern instead.'
+    );
     expect(pattern.lastIndex).toBe(3);
   });
 
