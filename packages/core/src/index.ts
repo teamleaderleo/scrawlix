@@ -99,6 +99,8 @@ export type ObfuscatedTermOptions = {
 };
 
 export type ScrawlixMatch = {
+  /** Opaque identity for this sorted scan. Local to the current source string. */
+  matchId: string;
   ruleId: string;
   packId?: string;
   profile?: string;
@@ -110,10 +112,22 @@ export type ScrawlixMatch = {
   targetEnd: number;
 };
 
+export type ScrawlixCoverageEdge = 'solo' | 'start' | 'middle' | 'end';
+
 export type ScrawlixSegment = {
   text: string;
   covered: boolean;
+  /** UTF-16 source offset into the original input. */
+  start: number;
+  /** Exclusive UTF-16 source offset into the original input. */
+  end: number;
   ruleIds: readonly string[];
+  /** Unordered semantic-match provenance for a covered union. */
+  matchIds: readonly string[];
+  /** Stable interaction key for connected disclosure islands in this render. */
+  revealId?: string;
+  /** Position of this covered island inside its disclosure group. */
+  coverageEdge?: ScrawlixCoverageEdge;
 };
 
 export type ScrawlixOptions = {
@@ -132,7 +146,14 @@ type CompiledRegexRule = Omit<CensorRegexRule, 'pattern'> & {
 
 type CompiledRule = CompiledRegexRule | CensorMatcherRule;
 
+type MatchWithoutId = Omit<ScrawlixMatch, 'matchId'>;
+
 type ScannedMatch = {
+  match: MatchWithoutId;
+  rule: CompiledRule;
+};
+
+type IdentifiedScannedMatch = {
   match: ScrawlixMatch;
   rule: CompiledRule;
 };
@@ -141,6 +162,12 @@ type CoveredRange = {
   start: number;
   end: number;
   ruleIds: Set<string>;
+  matchIds: Set<string>;
+};
+
+type PresentedCoveredRange = CoveredRange & {
+  revealId: string;
+  coverageEdge: ScrawlixCoverageEdge;
 };
 
 type NormalizedShadow = {
@@ -548,7 +575,10 @@ function scanMatcherRule(
   return matches;
 }
 
-function scan(text: string, rules: readonly CompiledRule[]): ScannedMatch[] {
+function scan(
+  text: string,
+  rules: readonly CompiledRule[]
+): IdentifiedScannedMatch[] {
   const boundaries = graphemeBoundarySet(text);
   const matches = rules.flatMap(rule =>
     isMatcherRule(rule)
@@ -564,11 +594,17 @@ function scan(text: string, rules: readonly CompiledRule[]): ScannedMatch[] {
       left.match.ruleId.localeCompare(right.match.ruleId)
   );
 
-  return matches;
+  return matches.map((scanned, index) => ({
+    rule: scanned.rule,
+    match: {
+      matchId: `m${index}`,
+      ...scanned.match,
+    },
+  }));
 }
 
 function collectCoveredRanges(
-  matches: readonly ScannedMatch[],
+  matches: readonly IdentifiedScannedMatch[],
   defaultCoverage: CoverageSelector
 ) {
   const ranges: CoveredRange[] = [];
@@ -599,6 +635,7 @@ function collectCoveredRanges(
         start: match.targetStart + relative.start,
         end: match.targetStart + relative.end,
         ruleIds: new Set([match.ruleId]),
+        matchIds: new Set([match.matchId]),
       });
     }
   }
@@ -617,20 +654,117 @@ function mergeCoveredRanges(ranges: readonly CoveredRange[]) {
         start: range.start,
         end: range.end,
         ruleIds: new Set(range.ruleIds),
+        matchIds: new Set(range.matchIds),
       });
       continue;
     }
 
     previous.end = Math.max(previous.end, range.end);
     for (const ruleId of range.ruleIds) previous.ruleIds.add(ruleId);
+    for (const matchId of range.matchIds) previous.matchIds.add(matchId);
   }
 
   return merged;
 }
 
-function segmentFromRanges(text: string, ranges: readonly CoveredRange[]) {
+function addDisclosureMetadata(
+  ranges: readonly CoveredRange[]
+): PresentedCoveredRange[] {
+  if (ranges.length === 0) return [];
+
+  const parents = ranges.map((_, index) => index);
+
+  function find(index: number): number {
+    const parent = parents[index]!;
+    if (parent === index) return index;
+    const root = find(parent);
+    parents[index] = root;
+    return root;
+  }
+
+  function union(left: number, right: number) {
+    const leftRoot = find(left);
+    const rightRoot = find(right);
+    if (leftRoot !== rightRoot) parents[rightRoot] = leftRoot;
+  }
+
+  const firstRangeByMatch = new Map<string, number>();
+  ranges.forEach((range, index) => {
+    for (const matchId of range.matchIds) {
+      const firstIndex = firstRangeByMatch.get(matchId);
+      if (firstIndex === undefined) firstRangeByMatch.set(matchId, index);
+      else union(firstIndex, index);
+    }
+  });
+
+  const groupIndexes = new Map<number, number[]>();
+  ranges.forEach((_, index) => {
+    const root = find(index);
+    const indexes = groupIndexes.get(root) ?? [];
+    indexes.push(index);
+    groupIndexes.set(root, indexes);
+  });
+
+  const revealIds = new Map<number, string>();
+  const edges = new Map<number, ScrawlixCoverageEdge>();
+
+  for (const indexes of groupIndexes.values()) {
+    const matchIds = new Set<string>();
+    let start = Number.POSITIVE_INFINITY;
+    let end = Number.NEGATIVE_INFINITY;
+
+    for (const index of indexes) {
+      const range = ranges[index]!;
+      start = Math.min(start, range.start);
+      end = Math.max(end, range.end);
+      for (const matchId of range.matchIds) matchIds.add(matchId);
+    }
+
+    const sortedMatchIds = [...matchIds].sort();
+    const revealId =
+      sortedMatchIds.length === 1
+        ? sortedMatchIds[0]!
+        : `g:${start}:${end}:${sortedMatchIds.join('+')}`;
+
+    indexes.forEach((index, position) => {
+      revealIds.set(index, revealId);
+      edges.set(
+        index,
+        indexes.length === 1
+          ? 'solo'
+          : position === 0
+            ? 'start'
+            : position === indexes.length - 1
+              ? 'end'
+              : 'middle'
+      );
+    });
+  }
+
+  return ranges.map((range, index) => ({
+    ...range,
+    revealId: revealIds.get(index)!,
+    coverageEdge: edges.get(index)!,
+  }));
+}
+
+function plainSegment(text: string, start: number, end: number): ScrawlixSegment {
+  return {
+    text: text.slice(start, end),
+    covered: false,
+    start,
+    end,
+    ruleIds: [],
+    matchIds: [],
+  };
+}
+
+function segmentFromRanges(
+  text: string,
+  ranges: readonly PresentedCoveredRange[]
+) {
   if (ranges.length === 0) {
-    return [{ text, covered: false, ruleIds: [] }] satisfies ScrawlixSegment[];
+    return [plainSegment(text, 0, text.length)] satisfies ScrawlixSegment[];
   }
 
   const segments: ScrawlixSegment[] = [];
@@ -638,27 +772,24 @@ function segmentFromRanges(text: string, ranges: readonly CoveredRange[]) {
 
   for (const range of ranges) {
     if (range.start > cursor) {
-      segments.push({
-        text: text.slice(cursor, range.start),
-        covered: false,
-        ruleIds: [],
-      });
+      segments.push(plainSegment(text, cursor, range.start));
     }
 
     segments.push({
       text: text.slice(range.start, range.end),
       covered: true,
+      start: range.start,
+      end: range.end,
       ruleIds: [...range.ruleIds],
+      matchIds: [...range.matchIds],
+      revealId: range.revealId,
+      coverageEdge: range.coverageEdge,
     });
     cursor = range.end;
   }
 
   if (cursor < text.length) {
-    segments.push({
-      text: text.slice(cursor),
-      covered: false,
-      ruleIds: [],
-    });
+    segments.push(plainSegment(text, cursor, text.length));
   }
 
   return segments;
@@ -1131,12 +1262,12 @@ export function createScrawlix({
 
     segment(text) {
       if (!text || compiledRules.length === 0) {
-        return [{ text, covered: false, ruleIds: [] }];
+        return [plainSegment(text, 0, text.length)];
       }
 
       const matches = scan(text, compiledRules);
-      const coveredRanges = mergeCoveredRanges(
-        collectCoveredRanges(matches, coverage)
+      const coveredRanges = addDisclosureMetadata(
+        mergeCoveredRanges(collectCoveredRanges(matches, coverage))
       );
       return segmentFromRanges(text, coveredRanges);
     },
