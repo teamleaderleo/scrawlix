@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 export const HYDRATION_FIXTURE_HTML =
-  '<main data-scrawlix-hydration-fixture=""><button id="hydration-increment" type="button">increment</button><p id="hydration-owned">state: fuck 0</p></main>';
+  '<main data-scrawlix-hydration-fixture=""><button id="hydration-increment" type="button">increment</button><p id="hydration-owned"><span>state: </span>fuck 0</p></main>';
 
 export function HydrationFixture() {
   const [count, setCount] = useState(0);
@@ -20,7 +20,10 @@ export function HydrationFixture() {
       >
         increment
       </button>
-      <p id="hydration-owned">{`state: fuck ${count}`}</p>
+      <p id="hydration-owned">
+        <span>state: </span>
+        {`fuck ${count}`}
+      </p>
     </main>
   );
 }
