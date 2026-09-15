@@ -107,6 +107,46 @@ describe('source-mapped grapheme transforms', () => {
     expect(shadow.sourceRange(0, 2)).toEqual({ start: 0, end: 1 });
   });
 
+  it('reports crossing transformed configured terms with exact source ranges', () => {
+    const text = '@lpha be-ta g@mma';
+    const engine = createScrawlix({
+      rules: [
+        censorRuleFromTransformedTerms(
+          'private',
+          ['alpha beta', 'beta gamma'],
+          {
+            transform: grapheme => {
+              if (grapheme === '@') return 'a';
+              if (grapheme === '-') return '';
+              return grapheme;
+            },
+          }
+        ),
+      ],
+    });
+
+    expect(
+      engine.find(text).map(match => [match.text, match.start, match.end])
+    ).toEqual([
+      ['@lpha be-ta', 0, 11],
+      ['be-ta g@mma', 6, text.length],
+    ]);
+    expect(engine.segment(text).map(segment => segment.text).join('')).toBe(text);
+  });
+
+  it('filters candidate edges that split an expanded transformed grapheme', () => {
+    const engine = createScrawlix({
+      rules: [
+        censorRuleFromTransformedTerms('expanded', ['a'], {
+          boundary: 'substring',
+          transform: grapheme => (grapheme === 'x' ? 'ab' : grapheme),
+        }),
+      ],
+    });
+
+    expect(engine.find('x')).toEqual([]);
+  });
+
   it('does not perform compatibility normalization unless the pack declares it', () => {
     const engine = createScrawlix({
       rules: [
