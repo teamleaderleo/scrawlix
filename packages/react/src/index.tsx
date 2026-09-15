@@ -87,7 +87,7 @@ export function CensoredText({
     () => createScrawlix({ rules, coverage }),
     [rules, coverage]
   );
-  const segments = engine.segment(text);
+  const segments = useMemo(() => engine.segment(text), [engine, text]);
   const hasCoveredText = segments.some(segment => segment.covered);
   const [revealState, setRevealState] = useState<RevealState>(() => ({
     text,
