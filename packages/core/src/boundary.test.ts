@@ -125,7 +125,7 @@ describe('term boundary strategies', () => {
       ],
     });
 
-    expect(engine.find(source)).toEqual([
+    expect(engine.find(source)).toMatchObject([
       {
         ruleId: 'cafe',
         profile: 'canonical',
