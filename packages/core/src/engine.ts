@@ -273,9 +273,6 @@ function coverageForPreset(
   if (graphemes.length === 0) return [];
 
   switch (preset) {
-    case 'full':
-      return fullRange(value);
-
     case 'tail':
       if (graphemes.length === 1) return fullRange(value);
       return [
