@@ -15,7 +15,7 @@
     "smoke:packages": "node scripts/smoke-packages.mjs",
     "test": "pnpm validate:corpora && node --test scripts/*.test.mjs && pnpm build:packages && pnpm -r --if-present test",
     "test:browser": "playwright test -c playwright.config.ts",
-    "test:browser:demo": "playwright test -c playwright.config.ts -g \"demo controls\"",
+    "test:browser:demo": "playwright test -c playwright.config.ts -g \"demo controls|curated Scrawlix visual regressions\"",
     "test:browser:extension": "playwright test -c playwright.config.ts -g \"built extension\"",
     "typecheck": "pnpm -r --if-present typecheck",
     "validate:corpora": "node scripts/validate-corpora.mjs"
