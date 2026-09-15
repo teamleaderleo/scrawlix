@@ -25,9 +25,11 @@ export type ScrawlixLocatedSegment = ScrawlixSegment & {
   end: number;
 };
 
-export type ScrawlixIdentifiedEngine = Omit<ScrawlixEngine, 'find' | 'segment'> & {
-  find(text: string): ScrawlixIdentifiedMatch[];
-  segment(text: string): ScrawlixLocatedSegment[];
+export type ScrawlixIdentifiedEngine = ScrawlixEngine & {
+  /** Return matches with deterministic scan-local identity. */
+  findWithIdentity(text: string): ScrawlixIdentifiedMatch[];
+  /** Return ordinary segments plus exact UTF-16 source offsets. */
+  segmentWithOffsets(text: string): ScrawlixLocatedSegment[];
 };
 
 export function graphemeRanges(value: string): RelativeRange[] {
@@ -64,9 +66,15 @@ export function createScrawlix(
 
   return {
     find(text) {
-      return withScanContext(text, () => identifyMatches(engine.find(text)));
+      return withScanContext(text, () => engine.find(text));
     },
     segment(text) {
+      return withScanContext(text, () => engine.segment(text));
+    },
+    findWithIdentity(text) {
+      return withScanContext(text, () => identifyMatches(engine.find(text)));
+    },
+    segmentWithOffsets(text) {
       return withScanContext(text, () => locateSegments(engine.segment(text)));
     },
   };
