@@ -63,4 +63,6 @@ The semantic text contract remains in the generated markup. Consumers targeting 
 
 Published packages include declarations and use ESM package exports. External tarball consumers typecheck with `skipLibCheck: false`, so declaration dependencies and public export paths are verified before release.
 
+The packed-package gate also installs all five public tarballs with npm, with no pnpm overrides or workspace aliases, and typechecks a React 19 consumer using `module: "NodeNext"` plus `moduleResolution: "NodeNext"`. That consumer then executes representative public entries under Node and completes a production Vite build.
+
 Consumer projects can use their own TypeScript configuration. The Scrawlix workspace itself uses `moduleResolution: "Bundler"`; that setting is not imposed on consumers.
