@@ -1,5 +1,5 @@
 .context-lab-section {
-  padding: 76px 0;
+  padding: 86px 0;
   border-bottom: 1px solid #171512;
 }
 
@@ -17,10 +17,10 @@
 
 .context-card {
   min-width: 0;
-  min-height: 184px;
+  min-height: 190px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
   padding: 16px;
   border-right: 1px solid #171512;
   border-bottom: 1px solid #171512;
@@ -107,16 +107,16 @@
 
 .context-emoji {
   margin: auto 0;
-  overflow-wrap: anywhere;
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(23px, 2vw, 32px);
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .context-rtl {
   margin: auto 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(24px, 2vw, 32px);
+  font-size: clamp(25px, 2.1vw, 34px);
   line-height: 1.18;
 }
 
