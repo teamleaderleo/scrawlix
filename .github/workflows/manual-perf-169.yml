@@ -1,0 +1,61 @@
+name: Manual perf issue 169
+
+on:
+  push:
+    branches:
+      - perf/manual-benchmarks-169
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Prepare comparison worktrees
+        run: |
+          git fetch origin main perf/dom-pending-root-coalescing-v2
+          git worktree add --detach /tmp/scrawlix-baseline 9835417c291a6b78eb77920c53b6188a3a92231b
+          git worktree add --detach /tmp/scrawlix-after e5cd54d091f78d63aca34fd0a3d02e56efbad9ad
+
+      - name: Install and build baseline
+        working-directory: /tmp/scrawlix-baseline
+        run: |
+          pnpm install --frozen-lockfile >/dev/null
+          pnpm build:packages >/dev/null
+
+      - name: Install and build after
+        working-directory: /tmp/scrawlix-after
+        run: |
+          pnpm install --frozen-lockfile >/dev/null
+          pnpm build:packages >/dev/null
+
+      - name: Benchmark baseline audit snapshot
+        run: |
+          node --no-experimental-global-navigator --expose-gc scripts/bench-169-compare.mjs /tmp/scrawlix-baseline baseline | tee /tmp/bench-169-baseline.jsonl
+
+      - name: Benchmark optimized stack
+        run: |
+          node --no-experimental-global-navigator --expose-gc scripts/bench-169-compare.mjs /tmp/scrawlix-after after | tee /tmp/bench-169-after.jsonl
+
+      - name: Print comparison files
+        if: always()
+        run: |
+          echo '--- baseline ---'
+          cat /tmp/bench-169-baseline.jsonl 2>/dev/null || true
+          echo '--- after ---'
+          cat /tmp/bench-169-after.jsonl 2>/dev/null || true
