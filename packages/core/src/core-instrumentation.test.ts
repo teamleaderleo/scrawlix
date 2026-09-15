@@ -58,8 +58,8 @@ describe('core grapheme work instrumentation', () => {
 
   it('sanitizes multiple callback ranges with one shared grapheme pass', () => {
     const { result, work } = segmentWork(() => [
-      { start: 0.2, end: 1.8 },
-      { start: 3.2, end: 4.8 },
+      { start: 0, end: 2 },
+      { start: 3, end: 5 },
     ]);
 
     expect(result).toEqual([
