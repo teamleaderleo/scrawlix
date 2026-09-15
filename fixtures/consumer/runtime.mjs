@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createScrawlix } from '@scrawlix/core';
+import { assertCorpus } from '@scrawlix/core/corpus';
 import { censorRuleFromConfusableObfuscatedTerms } from '@scrawlix/core/confusable-obfuscated';
 import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
@@ -10,6 +11,7 @@ import {
   englishStrongProfanityRules,
 } from '@scrawlix/en';
 import {
+  englishCorpus,
   englishObfuscatedProfanityCorpus,
   englishProfanityCorpus,
 } from '@scrawlix/en/corpus';
@@ -39,6 +41,13 @@ assert.ok(
     testCase => testCase.id === 'obfuscated-shit-digit'
   )
 );
+
+const corpusSummary = assertCorpus(englishCorpus, {
+  canonical: engine,
+  obfuscated: obfuscatedEngine,
+});
+assert.equal(corpusSummary.caseCount, englishCorpus.length);
+assert.ok(corpusSummary.matchCount > 0);
 
 const obfuscatedInflection = obfuscatedEngine.find('f*cking')[0];
 assert.equal(obfuscatedInflection?.text, 'f*cking');

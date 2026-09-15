@@ -1,7 +1,8 @@
 import { createScrawlix } from '@scrawlix/core';
+import { createCorpusRunner } from '@scrawlix/core/corpus';
 import { createDomScrawlix } from '@scrawlix/dom';
 import { englishStrongProfanityRules } from '@scrawlix/en';
-import { englishProfanityCorpus } from '@scrawlix/en/corpus';
+import { englishCorpus, englishProfanityCorpus } from '@scrawlix/en/corpus';
 import { transformHast } from '@scrawlix/rehype';
 import { CensoredText } from '@scrawlix/react';
 import '@scrawlix/react/styles.css';
@@ -26,6 +27,14 @@ if (
 ) {
   throw new Error('Scrawlix English corpus export smoke assertion failed.');
 }
+
+const canonicalCorpusCase = englishCorpus.find(
+  entry => entry.profile === 'canonical' && entry.matches.length > 0
+);
+if (!canonicalCorpusCase) {
+  throw new Error('Scrawlix shared corpus runner fixture needs a canonical case.');
+}
+createCorpusRunner({ canonical: engine })(canonicalCorpusCase);
 
 const tree: Parameters<typeof transformHast>[0] = {
   type: 'root',
