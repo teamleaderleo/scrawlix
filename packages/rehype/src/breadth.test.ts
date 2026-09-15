@@ -1,5 +1,5 @@
 import { censorRuleFromTerms } from '@scrawlix/core';
-import type { Element, RootContent } from 'hast';
+import type { Element, Root, RootContent } from 'hast';
 import { describe, expect, it } from 'vitest';
 import { transformHast } from './index';
 
@@ -28,7 +28,7 @@ describe('rehype broad sibling rebuilding', () => {
       properties: {},
       children: children as Element['children'],
     };
-    const tree = { type: 'root', children: [paragraph] } as const;
+    const tree: Root = { type: 'root', children: [paragraph] };
     const childList = paragraph.children;
 
     transformHast(tree, { rules, coverage: 'full' });
