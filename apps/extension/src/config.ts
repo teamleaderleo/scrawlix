@@ -1,10 +1,12 @@
-import type { CoverageSelector } from '@scrawlix/core';
+import { graphemeRanges, type CoverageSelector } from '@scrawlix/core';
 import { englishVowelCoverage } from '@scrawlix/en';
 
 export type ExtensionAppearance =
   | 'scrawl'
   | 'bar'
   | 'blur'
+  | 'whiteout'
+  | 'mosaic'
   | 'asterisk'
   | 'grawlix';
 
@@ -80,6 +82,8 @@ const APPEARANCES = new Set<ExtensionAppearance>([
   'scrawl',
   'bar',
   'blur',
+  'whiteout',
+  'mosaic',
   'asterisk',
   'grawlix',
 ]);
@@ -91,17 +95,6 @@ const COVERAGES = new Set<ExtensionCoverage>([
   'vowel',
 ]);
 const REVEALS = new Set<ExtensionReveal>(['hover', 'click', 'never']);
-const graphemeSegmenter =
-  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
-    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
-    : null;
-
-function graphemeCount(value: string) {
-  if (graphemeSegmenter) {
-    return [...graphemeSegmenter.segment(value)].length;
-  }
-  return Array.from(value).length;
-}
 
 function codePointLength(value: string) {
   return Array.from(value).length;
@@ -489,7 +482,7 @@ export function coverageSelector(coverage: ExtensionCoverage): CoverageSelector 
 }
 
 export function maskFor(text: string, appearance: ExtensionAppearance) {
-  const length = graphemeCount(text);
+  const length = graphemeRanges(text).length;
   if (appearance === 'asterisk') return '*'.repeat(length);
   if (appearance === 'grawlix') {
     const symbols = '@#$%&!';
