@@ -62,6 +62,15 @@ function coveredElement(segment: ScrawlixSegment): Element {
     properties: {
       'data-scrawlix-cover': '',
       'data-scrawlix-rules': segment.ruleIds.join(','),
+      'data-scrawlix-matches': segment.matchIds.join(','),
+      'data-scrawlix-start': segment.start,
+      'data-scrawlix-end': segment.end,
+      ...(segment.revealId
+        ? { 'data-scrawlix-reveal-id': segment.revealId }
+        : {}),
+      ...(segment.coverageEdge
+        ? { 'data-scrawlix-edge': segment.coverageEdge }
+        : {}),
     },
     children: [{ type: 'text', value: segment.text }],
   };
