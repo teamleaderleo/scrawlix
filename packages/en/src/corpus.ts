@@ -1,3 +1,7 @@
+import type {
+  CorpusCase,
+  CorpusExpectedMatch,
+} from '@scrawlix/core/corpus';
 import cleanCorpus from './corpus-data/clean.json' with { type: 'json' };
 import obfuscatedCleanCorpus from './corpus-data/obfuscated-clean.json' with { type: 'json' };
 import obfuscatedConfusableCleanCorpus from './corpus-data/obfuscated-confusable-clean.json' with { type: 'json' };
@@ -7,24 +11,8 @@ import obfuscatedWidthCorpus from './corpus-data/obfuscated-width.json' with { t
 import obfuscatedCorpus from './corpus-data/obfuscated.json' with { type: 'json' };
 import profanityCorpus from './corpus-data/profanity.json' with { type: 'json' };
 
-export type EnglishCorpusMatch = {
-  ruleId: string;
-  text: string;
-  start: number;
-  end: number;
-  targetText: string;
-  targetStart: number;
-  targetEnd: number;
-};
-
-export type EnglishCorpusCase = {
-  id: string;
-  text: string;
-  profile: string;
-  tags: readonly string[];
-  note?: string;
-  matches: readonly EnglishCorpusMatch[];
-};
+export type EnglishCorpusMatch = CorpusExpectedMatch;
+export type EnglishCorpusCase = CorpusCase;
 
 /**
  * Reviewable regression data for the bundled English profanity rules.
@@ -49,4 +37,12 @@ export const englishObfuscatedCleanCorpus: readonly EnglishCorpusCase[] = [
   ...obfuscatedCleanCorpus,
   ...obfuscatedWidthCleanCorpus,
   ...obfuscatedConfusableCleanCorpus,
+];
+
+/** Complete bundled English regression corpus, ready for the shared runner. */
+export const englishCorpus: readonly EnglishCorpusCase[] = [
+  ...englishProfanityCorpus,
+  ...englishCleanCorpus,
+  ...englishObfuscatedProfanityCorpus,
+  ...englishObfuscatedCleanCorpus,
 ];

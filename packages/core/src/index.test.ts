@@ -28,7 +28,7 @@ function source(segments: readonly ScrawlixSegment[]) {
 
 describe('Scrawlix core', () => {
   it('is language-neutral and does nothing until rules are supplied', () => {
-    expect(createScrawlix().segment('fuck')).toMatchObject([
+    expect(createScrawlix().segment('fuck')).toEqual([
       { text: 'fuck', covered: false, ruleIds: [] },
     ]);
     expect(createScrawlix().find('fuck')).toEqual([]);
@@ -49,7 +49,7 @@ describe('Scrawlix core', () => {
       'f[uc]k f[uc]king motherf[uc]ker'
     );
 
-    expect(scrawlix.find('motherfucker')).toMatchObject([
+    expect(scrawlix.find('motherfucker')).toEqual([
       {
         ruleId: 'semantic-test',
         text: 'motherfucker',
@@ -89,7 +89,7 @@ describe('Scrawlix core', () => {
     const text = 'hey motherfucker!';
     expect(marked(scrawlix.segment(text))).toBe('hey motherf[uc]ker!');
     expect(source(scrawlix.segment(text))).toBe(text);
-    expect(scrawlix.find(text)).toMatchObject([
+    expect(scrawlix.find(text)).toEqual([
       {
         ruleId: 'custom-matcher',
         packId: 'custom-pack',
@@ -225,6 +225,28 @@ describe('Scrawlix core', () => {
     expect(pattern.lastIndex).toBe(2);
   });
 
+  it('rejects sticky RegExp rules without mutating caller-owned cursors', () => {
+    const pattern = /secret/iy;
+    pattern.lastIndex = 3;
+
+    expect(() =>
+      createScrawlix({ rules: [{ id: 'sticky-secret', pattern }] })
+    ).toThrow('Censor rule "sticky-secret" uses unsupported RegExp flag "y"');
+    expect(pattern.lastIndex).toBe(3);
+  });
+
+  it('keeps ordinary global and non-global RegExp rules as full-source scans', () => {
+    const global = createScrawlix({
+      rules: [{ id: 'global', pattern: /secret/gu }],
+    });
+    const nonGlobal = createScrawlix({
+      rules: [{ id: 'non-global', pattern: /secret/u }],
+    });
+
+    expect(global.find('secret secret')).toHaveLength(2);
+    expect(nonGlobal.find('secret secret')).toHaveLength(2);
+  });
+
   it('does not leak compiled RegExp cursor state between calls', () => {
     const scrawlix = createScrawlix({
       rules: [censorRuleFromTerms('secret', ['secret'])],
@@ -247,7 +269,7 @@ describe('Scrawlix core', () => {
       coverage: 'full',
     });
 
-    expect(scrawlix.find('🔥a')).toMatchObject([
+    expect(scrawlix.find('🔥a')).toEqual([
       {
         ruleId: 'mixed',
         text: 'a',

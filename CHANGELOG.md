@@ -13,6 +13,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added custom coverage callbacks and per-rule coverage overrides.
 - Added Unicode-aware custom term/phrase rules through `censorRuleFromTerms()` with explicit `word` and `substring` boundary modes.
 - Added rule-pack composition and caller-safe compiled RegExp handling.
+- Reject sticky (`y`) caller RegExp rules during engine creation instead of silently broadening their cursor-sensitive semantics into full-source scans.
 - Added a custom matcher escape hatch that can return exact original-source match/target ranges for pack-owned normalization, segmentation, or other matching algorithms.
 - Validate custom matcher ranges instead of silently clamping malformed source offsets.
 - Preserve source-pack provenance in composed rules, matches, and coverage callbacks.
@@ -71,6 +72,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added a framework-neutral renderer recipe with plain-DOM, Vue, Svelte, and Solid sketches plus a threshold for when a dedicated adapter package is worth maintaining.
 - Added explicit runtime compatibility and pre-1.0 versioning/public-contract policies.
 - Declared Node 18+ in every public package manifest and Node 22+ in the private workspace manifest so package-manager metadata matches the documented runtime/tooling baselines.
+- Release-gate already-built public package entrypoints under Node 18 in CI and the permanent publication workflow while keeping build/browser tooling on Node 22/24.
 - Publish curated implementation sources alongside JS/declaration maps and verify every local map target against packed tarball contents while excluding source tests.
 - Added explicit privacy/output vocabulary for visual covers, presentation/screenshot guarantees, assistive-tech concealment, and sanitized export.
 - Aligned `README.md`, `AGENTS.md`, `llms.txt`, demo, extension, tests, and smoke consumers on the canonical pre-release public names and conservative defaults.

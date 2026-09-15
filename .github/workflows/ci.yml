@@ -24,6 +24,16 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Use Node 18 for published-runtime smoke
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Published runtime smoke — Node 18
+        run: node scripts/smoke-node18-runtime.mjs
+      - name: Restore Node 22 toolchain
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Core benchmark harness smoke
         run: pnpm bench:core:smoke >/dev/null
       - name: Install Chromium
