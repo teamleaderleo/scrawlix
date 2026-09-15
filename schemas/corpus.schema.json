@@ -61,6 +61,10 @@
           "type": "string",
           "minLength": 1
         },
+        "packId": {
+          "type": "string",
+          "minLength": 1
+        },
         "text": {
           "type": "string",
           "minLength": 1
