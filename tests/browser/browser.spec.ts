@@ -27,28 +27,64 @@ async function loadedExtensionId(context: BrowserContext) {
   return extensionId;
 }
 
-test('demo controls drive real rendered coverage and reveal state', async ({ page }) => {
+test('demo controls drive match-local reveal, stable masks, x-ray, and hostile contexts', async ({ page }) => {
   await page.goto('http://127.0.0.1:4173');
 
   const proof = page.locator('.proof-output [data-scrawlix-root]');
   const firstCover = proof.locator('[data-scrawlix-cover]').first();
+  const secondCover = proof.locator('[data-scrawlix-cover]').nth(1);
 
   await expect(proof).toBeVisible();
-  await expect(firstCover).toHaveAttribute('data-appearance', 'scrawl');
+  await expect(proof).toHaveAttribute('data-scrawlix-appearance', 'scrawl');
+  await expect(proof).toHaveAttribute('data-scrawlix-reveal-scope', 'match');
   await expect(firstCover).toHaveText('uc');
+  await expect(firstCover).toHaveAttribute('data-scrawlix-matches', 'm0');
+  await expect(firstCover).toHaveAttribute('data-scrawlix-start', /\d+/);
+  await expect(firstCover).toHaveAttribute('data-scrawlix-end', /\d+/);
 
-  await page.getByRole('button', { name: 'bar', exact: true }).click();
-  await expect(firstCover).toHaveAttribute('data-appearance', 'bar');
+  await page.getByRole('button', { name: 'asterisk', exact: true }).click();
+  await expect(proof).toHaveAttribute('data-scrawlix-appearance', 'asterisk');
+  await expect(firstCover).toHaveAttribute('data-scrawlix-mask', '**');
 
   await page.getByRole('button', { name: 'full', exact: true }).click();
   await expect(firstCover).toHaveText('fuck');
+  await expect(firstCover).toHaveAttribute('data-scrawlix-mask', '****');
 
   await page.getByRole('button', { name: 'click', exact: true }).click();
-  await expect(proof).toHaveAttribute('data-reveal', 'click');
-  await expect(proof).toHaveAttribute('data-revealed', 'false');
+  await expect(proof).toHaveAttribute('data-scrawlix-reveal', 'click');
+  await expect(firstCover).toHaveAttribute('data-scrawlix-revealed', 'false');
+  await expect(secondCover).toHaveAttribute('data-scrawlix-revealed', 'false');
 
-  await proof.click();
-  await expect(proof).toHaveAttribute('data-revealed', 'true');
+  const concealedWidth = await firstCover.evaluate(element =>
+    element.getBoundingClientRect().width
+  );
+  await firstCover.click();
+  await expect(firstCover).toHaveAttribute('data-scrawlix-revealed', 'true');
+  await expect(secondCover).toHaveAttribute('data-scrawlix-revealed', 'false');
+  const revealedWidth = await firstCover.evaluate(element =>
+    element.getBoundingClientRect().width
+  );
+  expect(Math.abs(revealedWidth - concealedWidth)).toBeLessThan(0.01);
+
+  const firstControl = proof.locator('[data-scrawlix-control]').first();
+  await expect(firstControl).toHaveAttribute('aria-pressed', 'true');
+  await firstControl.focus();
+  await firstControl.press('Escape');
+  await expect(firstCover).toHaveAttribute('data-scrawlix-revealed', 'false');
+  await expect(firstControl).toHaveAttribute('aria-pressed', 'false');
+
+  const xray = page.locator('[data-xray-lab]');
+  await expect(xray.locator('[data-xray-stage]')).toHaveCount(4);
+  await expect(xray.locator('[data-xray-stage="match"]')).toContainText('motherfucker');
+  await expect(xray.locator('[data-xray-stage="target"]')).toContainText('fuck');
+  await expect(xray.locator('[data-xray-stage="cover"]')).toContainText('full');
+  await expect(xray.locator('[data-xray-stage="output"] [data-scrawlix-root]')).toHaveAttribute(
+    'data-scrawlix-appearance',
+    'asterisk'
+  );
+
+  const contextLab = page.locator('[data-context-lab]');
+  await expect(contextLab.locator('[data-context-case]')).toHaveCount(8);
 
   await page.setViewportSize({ width: 390, height: 844 });
   const overflow = await page.evaluate(
