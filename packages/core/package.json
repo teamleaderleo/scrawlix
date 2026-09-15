@@ -13,6 +13,7 @@
     "src/engine.ts",
     "src/term-rule.ts",
     "src/term-matcher.ts",
+    "src/obfuscated-term-rule.ts",
     "src/targeted-obfuscated.ts",
     "src/repeated-obfuscated.ts",
     "src/width-obfuscated.ts",
