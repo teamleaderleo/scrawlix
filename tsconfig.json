@@ -12,6 +12,7 @@
     "baseUrl": ".",
     "paths": {
       "@scrawlix/core": ["packages/core/src/index.ts"],
+      "@scrawlix/core/sanitize": ["packages/core/src/sanitize.ts"],
       "@scrawlix/core/targeted-obfuscated": [
         "packages/core/src/targeted-obfuscated.ts"
       ],

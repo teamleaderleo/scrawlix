@@ -3,6 +3,7 @@ import { createScrawlix } from '@scrawlix/core';
 import { createCorpusRunner } from '@scrawlix/core/corpus';
 import { censorRuleFromConfusableObfuscatedTerms } from '@scrawlix/core/confusable-obfuscated';
 import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
+import { sanitizeText } from '@scrawlix/core/sanitize';
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
 import { censorRuleFromWidthObfuscatedTerms } from '@scrawlix/core/width-obfuscated';
 import { createDomScrawlix } from '@scrawlix/dom';
@@ -14,6 +15,14 @@ import { CensoredText } from '@scrawlix/react';
 
 const canonical = createScrawlix({ rules: englishStrongProfanityRules });
 assert.equal(canonical.find('well, fuck')[0]?.targetText, 'fuck');
+
+const sanitized = sanitizeText('well, fuck', {
+  rules: englishStrongProfanityRules,
+  replacement: '[censored]',
+  verifySourceAbsence: true,
+});
+assert.equal(sanitized.text, 'well, [censored]');
+assert.equal(sanitized.report.sourceAbsence.absent, true);
 
 const canonicalCase = englishCorpus.find(
   corpusCase => corpusCase.profile === 'canonical' && corpusCase.matches.length > 0

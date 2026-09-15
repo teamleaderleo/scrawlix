@@ -10,6 +10,7 @@
   "files": [
     "dist",
     "src/index.ts",
+    "src/sanitize.ts",
     "src/targeted-obfuscated.ts",
     "src/repeated-obfuscated.ts",
     "src/width-obfuscated.ts",
@@ -23,6 +24,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./sanitize": {
+      "types": "./dist/sanitize.d.ts",
+      "import": "./dist/sanitize.js",
+      "default": "./dist/sanitize.js"
     },
     "./targeted-obfuscated": {
       "types": "./dist/targeted-obfuscated.d.ts",

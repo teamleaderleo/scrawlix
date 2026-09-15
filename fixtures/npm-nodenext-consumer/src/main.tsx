@@ -2,6 +2,7 @@ import { createScrawlix } from '@scrawlix/core';
 import { createCorpusRunner } from '@scrawlix/core/corpus';
 import { censorRuleFromConfusableObfuscatedTerms } from '@scrawlix/core/confusable-obfuscated';
 import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
+import { sanitizeText } from '@scrawlix/core/sanitize';
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
 import { censorRuleFromWidthObfuscatedTerms } from '@scrawlix/core/width-obfuscated';
 import { createDomScrawlix } from '@scrawlix/dom';
@@ -18,6 +19,18 @@ const canonical = createScrawlix({
   coverage: 'middle',
 });
 const obfuscated = createScrawlix({ rules: englishObfuscatedStrongProfanityRules });
+
+const sanitized = sanitizeText('well, fuck', {
+  rules: englishStrongProfanityRules,
+  replacement: '[censored]',
+  verifySourceAbsence: true,
+});
+if (
+  sanitized.text !== 'well, [censored]' ||
+  sanitized.report.sourceAbsence.absent !== true
+) {
+  throw new Error('Expected packed sanitize subpath to remove selected source.');
+}
 
 const canonicalCase = englishCorpus.find(
   corpusCase => corpusCase.profile === 'canonical' && corpusCase.matches.length > 0

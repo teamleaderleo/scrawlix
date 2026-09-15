@@ -1,5 +1,6 @@
 import { createScrawlix } from '@scrawlix/core';
 import { createCorpusRunner } from '@scrawlix/core/corpus';
+import { sanitizeText } from '@scrawlix/core/sanitize';
 import { createDomScrawlix } from '@scrawlix/dom';
 import { englishStrongProfanityRules } from '@scrawlix/en';
 import { englishCorpus, englishProfanityCorpus } from '@scrawlix/en/corpus';
@@ -17,6 +18,18 @@ const engine = createScrawlix({
 const matches = engine.find('well, fuck');
 if (matches.length !== 1 || matches[0]?.targetText.toLowerCase() !== 'fuck') {
   throw new Error('Scrawlix core/English package smoke assertion failed.');
+}
+
+const sanitized = sanitizeText('well, fuck', {
+  rules: englishStrongProfanityRules,
+  replacement: '[censored]',
+  verifySourceAbsence: true,
+});
+if (
+  sanitized.text !== 'well, [censored]' ||
+  sanitized.report.sourceAbsence.absent !== true
+) {
+  throw new Error('Scrawlix sanitize subpath smoke assertion failed.');
 }
 
 const corpusCase = englishProfanityCorpus.find(entry => entry.id === 'fuck-base');
