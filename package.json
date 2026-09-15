@@ -6,6 +6,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "bench:169": "node --no-experimental-global-navigator --expose-gc scripts/bench-169-compare.mjs . current",
     "bench:aggressive": "pnpm --filter @scrawlix/core build && pnpm --filter @scrawlix/en build && node --expose-gc scripts/bench-obfuscated.mjs",
     "bench:core": "pnpm --filter @scrawlix/core build && pnpm --filter @scrawlix/en build && node --expose-gc scripts/bench-core.mjs",
     "bench:core:smoke": "node --expose-gc scripts/bench-core.mjs --smoke && node --expose-gc scripts/bench-obfuscated.mjs --smoke",
