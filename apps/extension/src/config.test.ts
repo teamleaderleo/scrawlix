@@ -2,11 +2,15 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_SETTINGS,
   ENGLISH_PROFANITY_LENS_ID,
+  MAX_CUSTOM_TERM_CODE_POINTS,
+  MAX_CUSTOM_TERMS,
+  MAX_CUSTOM_TOTAL_CODE_POINTS,
   activeProfile,
   coverageSelector,
   createDefaultLocalState,
   effectiveEnabled,
   maskFor,
+  mergeCustomWords,
   normalizeCustomWords,
   normalizeLocalState,
   normalizeSettings,
@@ -19,13 +23,13 @@ import {
 } from './config';
 
 describe('extension settings', () => {
-  it('normalizes invalid stored values to safe defaults', () => {
+  it('normalizes invalid stored values to safe defaults and migrates focus reveal', () => {
     expect(
       normalizeSettings({
         enabled: 'yes',
         appearance: 'paint',
         coverage: 'random',
-        reveal: 'sometimes',
+        reveal: 'focus',
         siteOverrides: {
           'Example.COM': 'off',
           'bad.example': 'inherit',
@@ -34,15 +38,19 @@ describe('extension settings', () => {
       })
     ).toEqual({
       ...DEFAULT_SETTINGS,
+      reveal: 'click',
       siteOverrides: { 'example.com': 'off' },
     });
   });
 
-  it('lets explicit site modes override the global switch', () => {
-    const disabled = { ...DEFAULT_SETTINGS, enabled: false };
-    const forcedOn = setSiteMode(disabled, 'example.com', 'on');
+  it('treats pause as a true master state before site policy', () => {
+    const defaultOff = { ...DEFAULT_SETTINGS, enabled: false };
+    const forcedOn = setSiteMode(defaultOff, 'example.com', 'on');
     expect(siteModeFor(forcedOn, 'example.com')).toBe('on');
     expect(effectiveEnabled(forcedOn, 'example.com')).toBe(true);
+
+    const paused = { ...forcedOn, paused: true };
+    expect(effectiveEnabled(paused, 'example.com')).toBe(false);
 
     const forcedOff = setSiteMode(DEFAULT_SETTINGS, 'example.com', 'off');
     expect(effectiveEnabled(forcedOff, 'example.com')).toBe(false);
@@ -56,20 +64,56 @@ describe('extension settings', () => {
     expect(siteModeFor(inherited, 'example.com')).toBe('inherit');
   });
 
-  it('deduplicates and trims custom words case-insensitively', () => {
+  it('deduplicates, trims, and bounds custom terms', () => {
     expect(
       normalizeCustomWords([' Velvet ', 'velvet', '', 42, 'Mothbit', 'MOTHBIT'])
     ).toEqual(['Velvet', 'Mothbit']);
+
+    const tooLong = 'x'.repeat(MAX_CUSTOM_TERM_CODE_POINTS + 1);
+    const many = Array.from({ length: MAX_CUSTOM_TERMS + 10 }, (_, index) =>
+      `term-${index}`
+    );
+    const normalized = normalizeCustomWords([tooLong, ...many]);
+    expect(normalized).toHaveLength(MAX_CUSTOM_TERMS);
+    expect(normalized).not.toContain(tooLong);
+    expect(
+      normalized.reduce((total, term) => total + Array.from(term).length, 0)
+    ).toBeLessThanOrEqual(MAX_CUSTOM_TOTAL_CODE_POINTS);
   });
 
-  it('migrates the old treatment and custom-word bucket into an Everyday profile', () => {
+  it('reports custom-term merge outcomes while preserving remaining capacity', () => {
+    const result = mergeCustomWords(
+      ['Alpha'],
+      [
+        'alpha',
+        'x'.repeat(MAX_CUSTOM_TERM_CODE_POINTS + 1),
+        'Bravo',
+        'Charlie',
+      ],
+      {
+        count: MAX_CUSTOM_TERMS - 2,
+        codePoints: MAX_CUSTOM_TOTAL_CODE_POINTS - 20,
+      }
+    );
+
+    expect(result.words).toEqual(['Alpha', 'Bravo']);
+    expect(result.duplicates).toBe(1);
+    expect(result.overLength).toBe(1);
+    expect(result.added).toBe(1);
+    expect(result.overCapacity).toBe(1);
+  });
+
+  it('migrates old treatment and custom words into an Everyday profile', () => {
     const settings = {
       ...DEFAULT_SETTINGS,
       appearance: 'bar' as const,
       coverage: 'full' as const,
       reveal: 'click' as const,
     };
-    const state = createDefaultLocalState(settings, [' Project Velvet ', 'velvet']);
+    const state = createDefaultLocalState(settings, [
+      ' Project Velvet ',
+      'velvet',
+    ]);
     const profile = activeProfile(state);
 
     expect(profile).toMatchObject({
@@ -86,7 +130,7 @@ describe('extension settings', () => {
     expect(profileUsesEnglishProfanity(state)).toBe(true);
   });
 
-  it('normalizes local lenses and profiles while dropping missing lens references', () => {
+  it('normalizes local lenses and profiles while dropping missing references', () => {
     const state = normalizeLocalState({
       lenses: [
         {
@@ -139,6 +183,38 @@ describe('extension settings', () => {
     });
     expect(profileTerms(state)).toEqual(['Alice', 'Project Velvet']);
     expect(profileUsesEnglishProfanity(state)).toBe(false);
+  });
+
+  it('shares one matcher budget across custom lenses', () => {
+    const firstTerms = Array.from(
+      { length: MAX_CUSTOM_TERMS - 1 },
+      (_, index) => `first-${index}`
+    );
+    const state = normalizeLocalState({
+      lenses: [
+        { id: 'first', name: 'First', kind: 'terms', terms: firstTerms },
+        {
+          id: 'second',
+          name: 'Second',
+          kind: 'terms',
+          terms: ['kept', 'dropped'],
+        },
+      ],
+      profiles: [
+        {
+          id: 'profile',
+          name: 'Profile',
+          lensIds: ['first', 'second'],
+          appearance: 'scrawl',
+          coverage: 'middle',
+          reveal: 'hover',
+        },
+      ],
+      activeProfileId: 'profile',
+    });
+
+    const second = state.lenses.find(lens => lens.id === 'second');
+    expect(second?.terms).toEqual(['kept']);
   });
 
   it('switches profiles and updates only the active profile', () => {
