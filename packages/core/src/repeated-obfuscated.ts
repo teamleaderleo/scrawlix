@@ -5,6 +5,11 @@ import {
   type TermBoundaryStrategy,
   type UnicodeNormalization,
 } from './index.js';
+import {
+  recordObfuscatedCandidateAttempt,
+  recordObfuscatedGraphemePass,
+  recordObfuscatedSourceShadowBuild,
+} from './obfuscated-instrumentation.js';
 import type { TargetedObfuscatedTerm } from './targeted-obfuscated.js';
 
 export type RepeatedObfuscatedTermOptions = ObfuscatedTermOptions & {
@@ -350,6 +355,9 @@ function sourceShadow(
   normalization: UnicodeNormalization,
   config: CompiledRepeatedObfuscation
 ): SourceShadow {
+  recordObfuscatedSourceShadowBuild();
+  recordObfuscatedGraphemePass();
+
   let shadow = '';
   let ignoredSincePrevious = 0;
   const units: SourceUnit[] = [];
@@ -394,6 +402,22 @@ function graphemeComparator(caseSensitive: boolean) {
     }
     return pattern.test(source);
   };
+}
+
+function candidateBucket(
+  prepared: readonly PreparedTerm[],
+  sourceValue: string,
+  sameGrapheme: (source: string, canonical: string) => boolean,
+  buckets: Map<string, readonly PreparedTerm[]>
+) {
+  const cached = buckets.get(sourceValue);
+  if (cached) return cached;
+
+  const candidates = prepared.filter(candidate =>
+    sameGrapheme(sourceValue, candidate.runs[0]!.value)
+  );
+  buckets.set(sourceValue, candidates);
+  return candidates;
 }
 
 function localeWordBoundaries(value: string, boundary: Exclude<TermBoundaryStrategy, string>) {
@@ -449,10 +473,12 @@ function attemptCandidate(
   boundary: TermBoundaryStrategy,
   lexicalBoundaries: ReadonlySet<number> | null
 ): CandidateMatch | null {
+  recordObfuscatedCandidateAttempt();
+
   let cursor = firstUnit;
   let repetitions = 0;
-  const canonicalSourceStarts = new Array<number>(candidate.graphemes.length);
-  const canonicalSourceEnds = new Array<number>(candidate.graphemes.length);
+  let targetStart: number | undefined;
+  let targetEnd: number | undefined;
 
   for (const run of candidate.runs) {
     if (cursor >= shadow.units.length) return null;
@@ -477,8 +503,13 @@ function attemptCandidate(
         run.repeatable && runIndex === run.count - 1
           ? cursor + consumed - 1
           : sourceIndex;
-      canonicalSourceStarts[canonicalIndex] = shadow.units[sourceIndex]!.sourceStart;
-      canonicalSourceEnds[canonicalIndex] = shadow.units[sourceEndIndex]!.sourceEnd;
+
+      if (canonicalIndex === candidate.targetStartIndex) {
+        targetStart = shadow.units[sourceIndex]!.sourceStart;
+      }
+      if (canonicalIndex === candidate.targetEndIndex - 1) {
+        targetEnd = shadow.units[sourceEndIndex]!.sourceEnd;
+      }
     }
 
     cursor += consumed;
@@ -516,8 +547,8 @@ function attemptCandidate(
     lastUnit,
     start: shadow.units[firstUnit]!.sourceStart,
     end: shadow.units[lastUnit]!.sourceEnd,
-    targetStart: canonicalSourceStarts[candidate.targetStartIndex]!,
-    targetEnd: canonicalSourceEnds[candidate.targetEndIndex - 1]!,
+    targetStart: targetStart!,
+    targetEnd: targetEnd!,
   };
 }
 
@@ -556,6 +587,7 @@ export function censorRuleFromRepeatedObfuscatedTerms(
             ? localeWordBoundaries(shadow.value, boundary)
             : null;
         const seen = new Set<string>();
+        const candidateBuckets = new Map<string, readonly PreparedTerm[]>();
         let searchStart = 0;
 
         while (searchStart < shadow.units.length) {
@@ -566,7 +598,14 @@ export function censorRuleFromRepeatedObfuscatedTerms(
             firstUnit < shadow.units.length && !accepted;
             firstUnit += 1
           ) {
-            for (const candidate of prepared) {
+            const candidates = candidateBucket(
+              prepared,
+              shadow.units[firstUnit]!.value,
+              sameGrapheme,
+              candidateBuckets
+            );
+
+            for (const candidate of candidates) {
               const match = attemptCandidate(
                 shadow,
                 candidate,
