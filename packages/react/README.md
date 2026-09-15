@@ -43,6 +43,19 @@ Built-in appearances: `scrawl`, `bar`, `blur`, `whiteout`, `mosaic`, `asterisk`,
 
 Reveal modes: `never`, `hover`, `focus`, `click`.
 
+Reveal scope defaults to `component`, which preserves the established whole-component interaction. Use `revealScope="match"` when each semantic match should disclose independently:
+
+```tsx
+<CensoredText
+  text="fuck this shit"
+  rules={englishStrongProfanityRules}
+  reveal="click"
+  revealScope="match"
+/>
+```
+
+Match scope groups every covered island belonging to one semantic match, and transitively joins overlapping matches so disclosure never exposes half of a connected match set. Pointer activation stays local. Keyboard `focus` and `click` modes use visually hidden native buttons with one control per disclosure group; `Escape` conceals the active click-revealed group.
+
 ## House treatments
 
 Five typed CSS custom properties tune the built-in family while keeping its visual vocabulary compact:
@@ -68,7 +81,7 @@ Five typed CSS custom properties tune the built-in family while keeping its visu
 
 `@scrawlix/react/styles.css` is required for the built-in visual treatments and the visually-hidden accessibility copy. If source text appears duplicated or uncovered, check this import first.
 
-Renderer hooks use the `data-scrawlix-*` namespace. The root exposes appearance/reveal state; covered fragments expose rule provenance and an optional symbol mask.
+Renderer hooks use the `data-scrawlix-*` namespace. The root exposes appearance, reveal mode, and reveal scope. Covered fragments expose rule provenance, exact UTF-16 source offsets, contributing scan-local match IDs, disclosure-group identity, coverage edge, reveal/focus state, and an optional symbol mask.
 
 ## Accessibility and source text
 

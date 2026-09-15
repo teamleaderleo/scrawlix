@@ -20,6 +20,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Reject configured semantic target groups that are unavailable for a produced match instead of silently widening coverage.
 - Treat combining marks, Unicode connector punctuation, ZWNJ, and ZWJ as continuing word context for custom term/phrase boundaries.
 - Added deterministic source-preservation and cursor-state regressions.
+- Added opt-in `findWithIdentity()` and `segmentWithOffsets()` provenance views while preserving the established `find()` / `segment()` object shapes and custom `ScrawlixEngine` contract.
 
 ### English pack
 
@@ -41,6 +42,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Added typed house-treatment variables for ink, surface, bar height, blur radius, and mosaic cell size.
 - Kept symbol-treatment source text in flow and paint grapheme-counted asterisk/grawlix masks as overlays so reveal remains layout-stable.
 - Namespaced React presentation hooks under `data-scrawlix-*` and added Escape-to-conceal for click reveal.
+- Added opt-in `revealScope="match"` with semantic-match-local pointer/keyboard disclosure, overlap grouping, exact source offsets, match metadata, and one native hidden control per focus/click disclosure group; component scope remains the default.
 - Bound the supported peer range to React 18 and 19 and added packed external-consumer verification for both majors.
 - Documented and release-gated the Next.js App Router pattern: keep non-serializable rule packs inside an application-owned Client Component and pass serializable text from Server Components.
 
