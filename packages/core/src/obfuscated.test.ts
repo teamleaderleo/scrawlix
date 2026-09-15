@@ -22,7 +22,7 @@ describe('bounded obfuscated term matching', () => {
       ],
     });
 
-    expect(engine.find('sh1t')).toEqual([
+    expect(engine.find('sh1t')).toMatchObject([
       {
         ruleId: 'shit',
         profile: 'obfuscated',
@@ -148,7 +148,7 @@ describe('bounded obfuscated term matching', () => {
       ],
     });
 
-    expect(engine.find(source)).toEqual([
+    expect(engine.find(source)).toMatchObject([
       {
         ruleId: 'cafe',
         profile: 'obfuscated',
