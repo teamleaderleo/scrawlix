@@ -10,6 +10,7 @@
   "files": [
     "dist",
     "src/index.ts",
+    "src/pending-roots.ts",
     "src/scan.ts"
   ],
   "main": "./dist/index.js",
