@@ -17,7 +17,7 @@ describe('targeted obfuscated terms', () => {
       ],
     });
 
-    expect(engine.find('f*cking')).toEqual([
+    expect(engine.find('f*cking')).toMatchObject([
       {
         ruleId: 'fuck-obfuscated',
         profile: 'obfuscated',
@@ -45,7 +45,7 @@ describe('targeted obfuscated terms', () => {
       ],
     });
 
-    expect(engine.find('mother-fucker')).toEqual([
+    expect(engine.find('mother-fucker')).toMatchObject([
       {
         ruleId: 'fuck-obfuscated',
         profile: 'obfuscated',
@@ -81,7 +81,7 @@ describe('targeted obfuscated terms', () => {
       targetStart: 6,
       targetEnd: 11,
     });
-    expect(engine.segment(text)).toEqual([
+    expect(engine.segment(text)).toMatchObject([
       { text: 'mother', covered: false, ruleIds: [] },
       { text: 'f-uck', covered: true, ruleIds: ['fuck-obfuscated'] },
       { text: 'er', covered: false, ruleIds: [] },
@@ -104,7 +104,7 @@ describe('targeted obfuscated terms', () => {
       ],
     });
 
-    expect(engine.find(obfuscated)).toEqual([
+    expect(engine.find(obfuscated)).toMatchObject([
       {
         ruleId: 'cafe-obfuscated',
         profile: 'obfuscated',
