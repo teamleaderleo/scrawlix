@@ -5,6 +5,7 @@ import {
 } from '@scrawlix/dom/scan';
 import type { ExtensionProfile } from './config';
 import { highlightPresentationCss } from './presentation';
+import { createDomRangeIndex } from './range-index';
 
 export const EXTENSION_HIGHLIGHT_NAME = 'scrawlix-extension';
 
@@ -123,14 +124,15 @@ export function createExtensionHighlightSession(
   const highlights = registry();
   const HighlightClass = highlightConstructor();
   const scanner = createDomRangeScanner({ rules, coverage });
+  const rangeIndex = createDomRangeIndex(root, scanner);
   const sheet = new CSSStyleSheet();
+  const renderedRanges = new WeakMap<DomCoveredRange, RenderedRange>();
 
   let profile = options.profile;
   let entries: RenderedRange[] = [];
   let revealedByClick = new WeakMap<Text, Set<string>>();
   let hovered: { source: Text; key: string } | null = null;
   let pageRevealed = false;
-  let scheduled = false;
   let stopped = false;
 
   function updateSheet() {
@@ -188,10 +190,16 @@ export function createExtensionHighlightSession(
     );
   }
 
-  function rescan() {
-    scheduled = false;
-    if (stopped || document.body !== root) return;
-    entries = scanner.scan(root).map(renderedRange);
+  function toRenderedRange(range: DomCoveredRange) {
+    const cached = renderedRanges.get(range);
+    if (cached) return cached;
+    const next = renderedRange(range);
+    renderedRanges.set(range, next);
+    return next;
+  }
+
+  function applyRanges(ranges: readonly DomCoveredRange[]) {
+    entries = ranges.map(toRenderedRange);
 
     const currentHover = hovered;
     if (
@@ -205,12 +213,6 @@ export function createExtensionHighlightSession(
     }
 
     render();
-  }
-
-  function scheduleRescan() {
-    if (scheduled || stopped) return;
-    scheduled = true;
-    void Promise.resolve().then(rescan);
   }
 
   function entryAtPoint(x: number, y: number) {
@@ -273,18 +275,19 @@ export function createExtensionHighlightSession(
   }
 
   const observer = new MutationObserver(records => {
+    if (stopped || document.body !== root) return;
     for (const record of records) {
       if (record.type === 'characterData') {
         revealedByClick.delete(record.target as Text);
       }
     }
-    scheduleRescan();
+    applyRanges(rangeIndex.update(records));
   });
 
   updateSheet();
   adoptSheet();
   clearStaleExtensionHighlight();
-  rescan();
+  applyRanges(rangeIndex.initialize());
   observer.observe(root, {
     subtree: true,
     childList: true,
@@ -313,12 +316,12 @@ export function createExtensionHighlightSession(
     disconnect() {
       if (stopped) return;
       stopped = true;
-      scheduled = false;
       observer.disconnect();
       document.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('click', onClick);
       highlights.delete(EXTENSION_HIGHLIGHT_NAME);
       removeSheet();
+      rangeIndex.clear();
       entries = [];
       hovered = null;
       revealedByClick = new WeakMap<Text, Set<string>>();
