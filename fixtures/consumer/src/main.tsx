@@ -112,15 +112,22 @@ if (
   throw new Error('Scrawlix DOM range-scan package smoke assertion failed.');
 }
 
+const censoredRef = React.createRef<HTMLSpanElement>();
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <CensoredText
       appearance="scrawl"
       coverage="middle"
+      data-testid="packed-censored-text"
+      id="packed-censored-text"
+      onClick={() => undefined}
+      ref={censoredRef}
       reveal="click"
       revealScope="match"
       rules={englishStrongProfanityRules}
       text="well, fuck"
+      title="Packed Scrawlix text"
     />
   </React.StrictMode>
 );
