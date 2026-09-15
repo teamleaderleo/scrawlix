@@ -1,4 +1,11 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { createHash } from 'node:crypto';
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from '@playwright/test';
 
 async function openDemo(page: Page) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -19,28 +26,45 @@ async function pinToWholeCssPixels(locator: Locator) {
   });
 }
 
-test('curated Scrawlix visual regressions', async ({ page }) => {
+async function expectScreenshotHash(
+  locator: Locator,
+  name: string,
+  expectedHash: string,
+  testInfo: TestInfo
+) {
+  await locator.scrollIntoViewIfNeeded();
+  const image = await locator.screenshot({ animations: 'disabled' });
+  await testInfo.attach(name, { body: image, contentType: 'image/png' });
+  const hash = createHash('sha256').update(image).digest('hex');
+  expect.soft(hash, `${name} screenshot hash`).toBe(expectedHash);
+}
+
+test('curated Scrawlix visual regressions', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 1200 });
   await openDemo(page);
 
   const specimen = page.locator('.specimen-section');
   await expect(specimen).toBeVisible();
-  await expect(specimen).toHaveScreenshot('specimen-middle-desktop.png', {
-    animations: 'disabled',
-  });
+  await expectScreenshotHash(
+    specimen,
+    'specimen-middle-desktop.png',
+    'PENDING_SPECIMEN',
+    testInfo
+  );
 
   const contextLab = page.locator('.context-lab-section');
   await expect(contextLab).toBeVisible();
   await pinToWholeCssPixels(contextLab);
-  await expect(contextLab).toHaveScreenshot('context-lab-desktop.png', {
-    animations: 'disabled',
-  });
+  await expectScreenshotHash(
+    contextLab,
+    'context-lab-desktop.png',
+    'PENDING_CONTEXT',
+    testInfo
+  );
 
   await page.setViewportSize({ width: 390, height: 844 });
   await openDemo(page);
   const hero = page.locator('.hero');
   await expect(hero).toBeVisible();
-  await expect(hero).toHaveScreenshot('hero-mobile.png', {
-    animations: 'disabled',
-  });
+  await expectScreenshotHash(hero, 'hero-mobile.png', 'PENDING_HERO', testInfo);
 });
