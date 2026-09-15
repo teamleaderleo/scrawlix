@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createScrawlix } from '@scrawlix/core';
 import { createCorpusRunner } from '@scrawlix/core/corpus';
 import { censorRuleFromConfusableObfuscatedTerms } from '@scrawlix/core/confusable-obfuscated';
+import { defineRulePack } from '@scrawlix/core/pack-authoring';
 import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
 import { censorRuleFromTransformedTerms } from '@scrawlix/core/source-mapped';
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
@@ -15,6 +16,19 @@ import { CensoredText } from '@scrawlix/react';
 
 const canonical = createScrawlix({ rules: englishStrongProfanityRules });
 assert.equal(canonical.find('well, fuck')[0]?.targetText, 'fuck');
+
+const authored = defineRulePack(
+  {
+    schemaVersion: 1,
+    id: 'packed-smoke',
+    version: '0.0.0',
+    name: 'Packed smoke',
+    locales: ['en'],
+    review: { status: 'draft' },
+  },
+  [{ id: 'packed-smoke-rule', pattern: /packed/gu }]
+);
+assert.equal(authored.locale, 'en');
 
 const canonicalCase = englishCorpus.find(
   corpusCase => corpusCase.profile === 'canonical' && corpusCase.matches.length > 0

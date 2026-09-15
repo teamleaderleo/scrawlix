@@ -4,6 +4,11 @@
     "text": "Scunthorpe",
     "profile": "canonical",
     "tags": ["false-positive", "substring"],
+    "provenance": ["scrawlix-curated"],
+    "review": {
+      "status": "maintained",
+      "note": "Project-maintained false-positive regression."
+    },
     "matches": []
   },
   {

@@ -1,5 +1,9 @@
-import type { CensorRule, CensorRulePack } from '@scrawlix/core';
+import type { CensorRule } from '@scrawlix/core';
 import { censorRuleFromConfusableObfuscatedTerms } from '@scrawlix/core/confusable-obfuscated';
+import {
+  defineRulePack,
+  type RulePackManifest,
+} from '@scrawlix/core/pack-authoring';
 import type { TargetedObfuscatedTerm } from '@scrawlix/core/targeted-obfuscated';
 
 const englishObfuscatedIgnored = ['.', '-', '\u200B'] as const;
@@ -178,8 +182,40 @@ export const englishObfuscatedStrongProfanityRules: readonly CensorRule[] = [
   }),
 ] as const;
 
-export const englishObfuscatedStrongProfanityPack: CensorRulePack = {
+export const englishObfuscatedStrongProfanityManifest: RulePackManifest = {
+  schemaVersion: 1,
   id: 'en-strong-profanity-obfuscated',
-  locale: 'en',
-  rules: englishObfuscatedStrongProfanityRules,
+  version: '0.0.0',
+  name: 'Scrawlix English obfuscated strong profanity',
+  description: 'Opt-in one-change evasion profile for the bundled English strong-profanity families.',
+  locales: ['en'],
+  registers: ['profane'],
+  categories: ['profanity'],
+  severity: ['strong'],
+  review: {
+    status: 'maintained',
+    note: 'Every enabled transform class is bounded and maintained against positive, negative, and over-budget corpus cases.',
+  },
+  corpus: {
+    schemaVersion: 1,
+    entrypoint: '@scrawlix/en/corpus',
+    profiles: ['obfuscated'],
+  },
+  provenance: [
+    {
+      id: 'scrawlix-curated',
+      label: 'Scrawlix project-curated rules and regression corpus',
+      note: 'Small hand-maintained set; no external dictionary is vendored.',
+    },
+  ],
+  limitations: [
+    'Aggressive matching is limited to the explicit transform tables in this module.',
+    'The combined transform budget is one change per candidate.',
+    'Compatibility folding and undeclared confusable or transliteration systems are outside this profile.',
+  ],
 };
+
+export const englishObfuscatedStrongProfanityPack = defineRulePack(
+  englishObfuscatedStrongProfanityManifest,
+  englishObfuscatedStrongProfanityRules
+);
