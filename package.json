@@ -6,6 +6,8 @@
     "node": ">=22"
   },
   "scripts": {
+    "bench:adapters": "pnpm build:packages && pnpm --filter @scrawlix/dom exec node --expose-gc scripts/bench.mjs && pnpm --filter @scrawlix/react exec node --expose-gc scripts/bench.mjs && pnpm --filter @scrawlix/rehype exec node --expose-gc scripts/bench.mjs",
+    "bench:adapters:smoke": "pnpm --filter @scrawlix/dom exec node --expose-gc scripts/bench.mjs --smoke && pnpm --filter @scrawlix/react exec node --expose-gc scripts/bench.mjs --smoke && pnpm --filter @scrawlix/rehype exec node --expose-gc scripts/bench.mjs --smoke",
     "bench:aggressive": "pnpm --filter @scrawlix/core build && pnpm --filter @scrawlix/en build && node --expose-gc scripts/bench-obfuscated.mjs",
     "bench:core": "pnpm --filter @scrawlix/core build && pnpm --filter @scrawlix/en build && node --expose-gc scripts/bench-core.mjs",
     "bench:core:smoke": "node --expose-gc scripts/bench-core.mjs --smoke && node --expose-gc scripts/bench-obfuscated.mjs --smoke",
