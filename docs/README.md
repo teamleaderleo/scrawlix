@@ -11,6 +11,7 @@ Start with the repository README for installation and the shortest path for your
 - [`custom-renderers.md`](./custom-renderers.md) — render `@scrawlix/core` segments in plain DOM, Vue, Svelte, Solid, or another UI layer without adding another Scrawlix package
 - [`language-packs.md`](./language-packs.md) — author and compose language/rule packs, semantic targets, boundaries, coverage helpers, and corpora
 - [`dom.md`](./dom.md) — arbitrary-page DOM application, observation, exclusions, and exact restoration
+- [`performance-devlog-2026-09-15.md`](./performance-devlog-2026-09-15.md) — dated issue #169 scaling results, deterministic regressions, and the remaining preprocessing work tracked in #198
 - [`releasing.md`](./releasing.md) — first-release gates, package verification, registry checks, and publication sequence
 - [`../apps/extension/README.md`](../apps/extension/README.md) — extension permissions, storage, build, and page lifecycle
 
