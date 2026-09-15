@@ -1,7 +1,8 @@
 {
   "name": "@scrawlix/rehype",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "HAST/rehype adapter for applying Scrawlix coverage throughout Markdown-rendered prose.",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=18"

@@ -241,3 +241,7 @@ Profile names describe the matching path. Packs still own linguistic scope, revi
 Scrawlix deliberately has no built-in language or hidden profanity list. Callers select rules explicitly.
 
 See the repository README for framework quickstarts, the [custom-renderer recipe](https://github.com/teamleaderleo/scrawlix/blob/main/docs/custom-renderers.md) for framework-neutral rendering, and `docs/language-packs.md` for pack authoring.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

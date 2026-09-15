@@ -1,8 +1,14 @@
 # Changelog
 
-Scrawlix is in pre-release development. Until the first package version is chosen, changes accumulate under **Unreleased**.
+Scrawlix is in pre-release development. The five public packages move as one release train and share a
+single version; see `docs/versioning.md` for the pre-1.0 compatibility policy.
 
 ## Unreleased
+
+## 0.1.0 - 2026-09-15
+
+First public release of `@scrawlix/core`, `@scrawlix/en`, `@scrawlix/react`, `@scrawlix/rehype`, and
+`@scrawlix/dom` under the MIT license. Published to the `next` dist-tag; see `docs/releasing.md`.
 
 ### Core
 

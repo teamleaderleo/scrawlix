@@ -1,7 +1,8 @@
 {
   "name": "@scrawlix/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Language-neutral matching and coverage engine for Scrawlix.",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=18"

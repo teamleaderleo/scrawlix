@@ -47,3 +47,7 @@ This package emits semantic wrappers and `data-scrawlix-cover` / `data-scrawlix-
 Matching is text-node-local. A configured phrase such as `Project Velvet` matches when both words live in the same eligible Text node. Inline markup can split one visible phrase across several Text nodes, for example `Project <em>Velvet</em>`, so that visible phrase is currently outside this adapter's phrase-matching unit. Cross-inline logical text runs are tracked as future adapter work in #39.
 
 See the [DOM lifecycle guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/dom.md) for observation, exclusions, and restoration details. For `MutationObserver`, skipped-subtree, or lifecycle diagnostics, use the [troubleshooting guide](https://github.com/teamleaderleo/scrawlix/blob/main/docs/troubleshooting.md).
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

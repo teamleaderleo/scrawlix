@@ -18,6 +18,12 @@ const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'scrawlix-smoke-'));
 const packDirectory = join(temporaryRoot, 'packs');
+const EXPECTED_LICENSE = 'MIT';
+const EXPECTED_LICENSE_PHRASES = [
+  'MIT License',
+  'Permission is hereby granted, free of charge',
+  'WITHOUT WARRANTY OF ANY KIND',
+];
 let passed = false;
 
 mkdirSync(packDirectory, { recursive: true });
@@ -137,6 +143,47 @@ function verifyPackedSourceMaps(tarball, packageDirectory) {
   );
 }
 
+function verifyPackedLicenseAndReadme(tarball, packageDirectory) {
+  const entries = tarEntries(tarball);
+
+  const manifest = JSON.parse(
+    entries.get('package/package.json')?.toString('utf8') ?? '{}'
+  );
+  if (manifest.license !== EXPECTED_LICENSE) {
+    throw new Error(
+      `${packageDirectory} packed license field ${JSON.stringify(manifest.license)}; expected ${EXPECTED_LICENSE}.`
+    );
+  }
+
+  const license = entries.get('package/LICENSE')?.toString('utf8');
+  if (!license) {
+    throw new Error(
+      `${packageDirectory} packed no LICENSE file; external consumers must receive the license text.`
+    );
+  }
+  for (const required of EXPECTED_LICENSE_PHRASES) {
+    if (!license.includes(required)) {
+      throw new Error(
+        `${packageDirectory} packed LICENSE is missing required text: ${required}`
+      );
+    }
+  }
+
+  const readme = entries.get('package/README.md')?.toString('utf8');
+  if (!readme || readme.trim().length === 0) {
+    throw new Error(`${packageDirectory} packed no README.md.`);
+  }
+  if (!readme.includes(manifest.name)) {
+    throw new Error(
+      `${packageDirectory} packed README.md does not mention ${manifest.name}.`
+    );
+  }
+
+  console.log(
+    `${packageDirectory} license/README verification passed (${manifest.name}@${manifest.version}, ${manifest.license}).`
+  );
+}
+
 function verifyCanonicalEnglishEntryBoundary(tarball) {
   const entry = tarEntries(tarball).get('package/dist/index.js')?.toString('utf8');
   if (!entry) {
@@ -182,6 +229,7 @@ function packPackage(packageDirectory) {
 
   const tarball = join(packDirectory, created[0]);
   verifyPackedSourceMaps(tarball, packageDirectory);
+  verifyPackedLicenseAndReadme(tarball, packageDirectory);
   return tarball;
 }
 
