@@ -16,10 +16,13 @@ type MatcherRange = {
   end: number;
 };
 
-type ShadowUnit = {
+export type PreparedTermShadowUnit = {
   value: string;
   shadowStart: number;
   shadowEnd: number;
+};
+
+type ShadowUnit = PreparedTermShadowUnit & {
   sourceStart: number;
   sourceEnd: number;
 };
@@ -33,6 +36,11 @@ type TrieNode = {
   next: Map<string, number>;
   failure: number;
   outputs: number[];
+};
+
+type UnitMatch = {
+  firstUnitIndex: number;
+  lastUnitIndex: number;
 };
 
 const graphemeSegmenter =
@@ -263,31 +271,23 @@ function acceptsBoundary(
   );
 }
 
-export function createPreparedTermMatcher(
-  alternatives: readonly string[],
-  {
-    caseSensitive,
-    normalization,
-    boundary,
-  }: {
-    caseSensitive: boolean;
-    normalization: UnicodeNormalization;
-    boundary: TermBoundaryStrategy;
-  }
-): { find(text: string): Iterable<MatcherRange> } {
-  const trie = buildTrie(alternatives, caseSensitive);
-
+function preparedUnitMatches(
+  value: string,
+  units: readonly PreparedTermShadowUnit[],
+  trie: readonly TrieNode[],
+  caseSensitive: boolean,
+  boundary: TermBoundaryStrategy
+): Iterable<UnitMatch> {
   return {
-    *find(text) {
-      const shadow = sourceShadow(text, normalization);
+    *[Symbol.iterator]() {
       const lexicalBoundaries =
         typeof boundary === 'object'
-          ? localeWordBoundaries(shadow.value, boundary)
+          ? localeWordBoundaries(value, boundary)
           : null;
       let state = 0;
 
-      for (let unitIndex = 0; unitIndex < shadow.units.length; unitIndex += 1) {
-        const unit = shadow.units[unitIndex]!;
+      for (let unitIndex = 0; unitIndex < units.length; unitIndex += 1) {
+        const unit = units[unitIndex]!;
         const token = tokenFor(unit.value, caseSensitive);
 
         while (state !== 0 && !trie[state]!.next.has(token)) {
@@ -299,10 +299,10 @@ export function createPreparedTermMatcher(
           const firstUnitIndex = unitIndex - termLength + 1;
           if (firstUnitIndex < 0) continue;
 
-          const firstUnit = shadow.units[firstUnitIndex]!;
+          const firstUnit = units[firstUnitIndex]!;
           if (
             !acceptsBoundary(
-              shadow.value,
+              value,
               boundary,
               firstUnit.shadowStart,
               unit.shadowEnd,
@@ -312,11 +312,62 @@ export function createPreparedTermMatcher(
             continue;
           }
 
-          yield {
-            start: firstUnit.sourceStart,
-            end: unit.sourceEnd,
-          };
+          yield { firstUnitIndex, lastUnitIndex: unitIndex };
         }
+      }
+    },
+  };
+}
+
+export function createPreparedTermMatcher(
+  alternatives: readonly string[],
+  {
+    caseSensitive,
+    normalization,
+    boundary,
+  }: {
+    caseSensitive: boolean;
+    normalization: UnicodeNormalization;
+    boundary: TermBoundaryStrategy;
+  }
+): {
+  find(text: string): Iterable<MatcherRange>;
+  findShadow(
+    value: string,
+    units: readonly PreparedTermShadowUnit[]
+  ): Iterable<MatcherRange>;
+} {
+  const trie = buildTrie(alternatives, caseSensitive);
+
+  return {
+    *find(text) {
+      const shadow = sourceShadow(text, normalization);
+      for (const match of preparedUnitMatches(
+        shadow.value,
+        shadow.units,
+        trie,
+        caseSensitive,
+        boundary
+      )) {
+        yield {
+          start: shadow.units[match.firstUnitIndex]!.sourceStart,
+          end: shadow.units[match.lastUnitIndex]!.sourceEnd,
+        };
+      }
+    },
+
+    *findShadow(value, units) {
+      for (const match of preparedUnitMatches(
+        value,
+        units,
+        trie,
+        caseSensitive,
+        boundary
+      )) {
+        yield {
+          start: units[match.firstUnitIndex]!.shadowStart,
+          end: units[match.lastUnitIndex]!.shadowEnd,
+        };
       }
     },
   };
