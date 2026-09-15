@@ -188,8 +188,14 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function compilePattern(pattern: RegExp) {
-  const flags = new Set(pattern.flags.replaceAll('y', '').split(''));
+function compilePattern(pattern: RegExp, ruleId: string) {
+  if (pattern.sticky) {
+    throw new Error(
+      `Censor rule "${ruleId}" uses unsupported RegExp flag "y". Sticky expressions require cursor-position semantics that are incompatible with Scrawlix full-source scans.`
+    );
+  }
+
+  const flags = new Set(pattern.flags.split(''));
   flags.add('g');
   flags.add('d');
   return new RegExp(pattern.source, [...flags].join(''));
@@ -1119,7 +1125,7 @@ export function createScrawlix({
       ? rule
       : {
           ...rule,
-          pattern: compilePattern(rule.pattern),
+          pattern: compilePattern(rule.pattern, rule.id),
         }
   );
 
