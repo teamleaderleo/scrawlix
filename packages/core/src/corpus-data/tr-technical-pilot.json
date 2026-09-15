@@ -1,0 +1,64 @@
+[
+  {
+    "id": "tr-locale-case-siktir",
+    "text": "SİKTİR!",
+    "profile": "tr-pilot",
+    "tags": ["technical-pilot", "tr-TR", "locale-casing", "pending-native-review"],
+    "note": "Technical fixture from #162; vocabulary and policy require native-speaker review before publication.",
+    "matches": [
+      {
+        "ruleId": "tr-siktir",
+        "text": "SİKTİR",
+        "start": 0,
+        "end": 6,
+        "targetText": "SİKTİR",
+        "targetStart": 0,
+        "targetEnd": 6
+      }
+    ]
+  },
+  {
+    "id": "tr-locale-case-amcik",
+    "text": "AMCIK",
+    "profile": "tr-pilot",
+    "tags": ["technical-pilot", "tr-TR", "locale-casing", "pending-native-review"],
+    "note": "Technical fixture from #162; vocabulary and policy require native-speaker review before publication.",
+    "matches": [
+      {
+        "ruleId": "tr-amcik",
+        "text": "AMCIK",
+        "start": 0,
+        "end": 5,
+        "targetText": "AMCIK",
+        "targetStart": 0,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "tr-reviewed-suffixed-form",
+    "text": "siktirin",
+    "profile": "tr-pilot",
+    "tags": ["technical-pilot", "tr-TR", "attested-form", "pending-native-review"],
+    "note": "The suffixed spelling is declared as reviewed test data; core performs no Turkish morphology generation.",
+    "matches": [
+      {
+        "ruleId": "tr-siktirin",
+        "text": "siktirin",
+        "start": 0,
+        "end": 8,
+        "targetText": "siktirin",
+        "targetStart": 0,
+        "targetEnd": 8
+      }
+    ]
+  },
+  {
+    "id": "tr-innocent-neighbor",
+    "text": "siklon",
+    "profile": "tr-pilot",
+    "tags": ["technical-pilot", "tr-TR", "negative-control", "pending-native-review"],
+    "note": "Unicode word boundaries keep the shorter reviewed term out of this lexical neighbor.",
+    "matches": []
+  }
+]

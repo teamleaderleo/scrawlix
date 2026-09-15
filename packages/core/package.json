@@ -13,6 +13,7 @@
     "src/engine.ts",
     "src/term-rule.ts",
     "src/term-matcher.ts",
+    "src/source-mapped.ts",
     "src/targeted-obfuscated.ts",
     "src/repeated-obfuscated.ts",
     "src/width-obfuscated.ts",
@@ -26,6 +27,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./source-mapped": {
+      "types": "./dist/source-mapped.d.ts",
+      "import": "./dist/source-mapped.js",
+      "default": "./dist/source-mapped.js"
     },
     "./targeted-obfuscated": {
       "types": "./dist/targeted-obfuscated.d.ts",
