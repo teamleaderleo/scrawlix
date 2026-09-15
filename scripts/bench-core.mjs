@@ -84,14 +84,18 @@ function formatNumber(value, digits = 2) {
   return Number.isFinite(value) ? value.toFixed(digits) : '∞';
 }
 
-function printDocumentScaling() {
-  console.log('\nDocument scaling — bundled English rules');
-  console.log('kind\tsize MiB\tmedian ms\tMiB/s\tmatches\theap Δ MiB');
-
-  const engine = createScrawlix({
+function bundledEnglishEngine() {
+  return createScrawlix({
     rules: englishStrongProfanityRules,
     coverage: 'full',
   });
+}
+
+function printDocumentScaling() {
+  console.log('\nDocument scaling — bundled English rules / find()');
+  console.log('kind\tsize MiB\tmedian ms\tMiB/s\tmatches\theap Δ MiB');
+
+  const engine = bundledEnglishEngine();
 
   for (const kind of ['clean', 'sparse', 'dense']) {
     for (const size of documentSizes) {
@@ -104,6 +108,39 @@ function printDocumentScaling() {
           formatNumber(measurement.durationMs),
           formatNumber(throughputMiB(size, measurement.durationMs)),
           measurement.result.length,
+          formatNumber(measurement.heapDeltaMiB),
+        ].join('\t')
+      );
+    }
+  }
+}
+
+function printSegmentScaling() {
+  console.log('\nDocument scaling — bundled English rules / segment()');
+  console.log(
+    'kind\tsize MiB\tmedian ms\tMiB/s\tsegments\tcovered segments\theap Δ MiB'
+  );
+
+  const engine = bundledEnglishEngine();
+
+  for (const kind of ['clean', 'sparse', 'dense']) {
+    for (const size of documentSizes) {
+      const text = documentCase(kind, size);
+      const measurement = measure(`segment-${kind}-${size}`, () =>
+        engine.segment(text)
+      );
+      const coveredSegments = measurement.result.reduce(
+        (count, segment) => count + (segment.covered ? 1 : 0),
+        0
+      );
+      console.log(
+        [
+          kind,
+          formatNumber(size / MiB, 3),
+          formatNumber(measurement.durationMs),
+          formatNumber(throughputMiB(size, measurement.durationMs)),
+          measurement.result.length,
+          coveredSegments,
           formatNumber(measurement.heapDeltaMiB),
         ].join('\t')
       );
@@ -234,6 +271,7 @@ console.log(
   `Node ${process.version}; gc=${typeof globalThis.gc === 'function' ? 'explicit' : 'automatic'}`
 );
 printDocumentScaling();
+printSegmentScaling();
 printRuleScaling();
 printCustomTermScaling();
 printCommonPrefixTermScaling();
