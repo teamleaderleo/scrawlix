@@ -1,0 +1,108 @@
+[
+  {
+    "id": "ja-kuso-substring",
+    "text": "これはくそだ",
+    "profile": "ja-pilot",
+    "tags": ["technical-pilot", "ja-JP", "substring-boundary", "pending-native-review"],
+    "note": "Technical fixture from #162; vocabulary and boundary policy require native-speaker review before publication.",
+    "matches": [
+      {
+        "ruleId": "ja-kuso",
+        "text": "くそ",
+        "start": 3,
+        "end": 5,
+        "targetText": "くそ",
+        "targetStart": 3,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "ja-kuso-compound-substring",
+    "text": "これはくそったれだ",
+    "profile": "ja-pilot",
+    "tags": ["technical-pilot", "ja-JP", "substring-boundary", "pending-native-review"],
+    "note": "This entry deliberately selects substring matching for the technical pilot.",
+    "matches": [
+      {
+        "ruleId": "ja-kuso",
+        "text": "くそ",
+        "start": 3,
+        "end": 5,
+        "targetText": "くそ",
+        "targetStart": 3,
+        "targetEnd": 5
+      }
+    ]
+  },
+  {
+    "id": "ja-baka-fullwidth",
+    "text": "バカ！",
+    "profile": "ja-pilot",
+    "tags": ["technical-pilot", "ja-JP", "locale-word", "pending-native-review"],
+    "note": "Canonical fullwidth-kana source for the reviewed-equivalence pilot.",
+    "matches": [
+      {
+        "ruleId": "ja-baka",
+        "text": "バカ",
+        "start": 0,
+        "end": 2,
+        "targetText": "バカ",
+        "targetStart": 0,
+        "targetEnd": 2
+      }
+    ]
+  },
+  {
+    "id": "ja-baka-halfwidth-reviewed",
+    "text": "ﾊﾞｶ！",
+    "profile": "ja-pilot",
+    "tags": ["technical-pilot", "ja-JP", "reviewed-width-equivalence", "pending-native-review"],
+    "note": "Only the explicitly declared halfwidth graphemes are folded; core performs no compatibility normalization.",
+    "matches": [
+      {
+        "ruleId": "ja-baka",
+        "text": "ﾊﾞｶ",
+        "start": 0,
+        "end": 3,
+        "targetText": "ﾊﾞｶ",
+        "targetStart": 0,
+        "targetEnd": 3
+      }
+    ]
+  },
+  {
+    "id": "ja-baka-kanji-reviewed-form",
+    "text": "馬鹿！",
+    "profile": "ja-pilot",
+    "tags": ["technical-pilot", "ja-JP", "explicit-spelling-variant", "pending-native-review"],
+    "note": "The kanji spelling is an explicit term, independent of the width transform.",
+    "matches": [
+      {
+        "ruleId": "ja-baka",
+        "text": "馬鹿",
+        "start": 0,
+        "end": 2,
+        "targetText": "馬鹿",
+        "targetStart": 0,
+        "targetEnd": 2
+      }
+    ]
+  },
+  {
+    "id": "ja-baka-vacances-neighbor",
+    "text": "バカンス",
+    "profile": "ja-pilot",
+    "tags": ["technical-pilot", "ja-JP", "negative-control", "locale-word", "pending-native-review"],
+    "note": "Locale-word boundaries keep the shorter reviewed entry out of this lexical neighbor.",
+    "matches": []
+  },
+  {
+    "id": "ja-baka-halfwidth-neighbor",
+    "text": "ﾊﾞｶﾝｽ",
+    "profile": "ja-pilot",
+    "tags": ["technical-pilot", "ja-JP", "negative-control", "reviewed-width-equivalence", "pending-native-review"],
+    "note": "Partial reviewed width folding still respects the selected Japanese word boundary.",
+    "matches": []
+  }
+]

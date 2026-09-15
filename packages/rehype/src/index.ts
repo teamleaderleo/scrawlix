@@ -34,6 +34,7 @@ type PreparedOptions = {
 type TraversalFrame = {
   parent: HastParent;
   index: number;
+  nextChildren: RootContent[] | null;
 };
 
 function isText(node: RootContent): node is Text {
@@ -83,35 +84,56 @@ function replacementNodes(value: string, options: PreparedOptions): RootContent[
   );
 }
 
+function replaceChildrenContents(
+  children: RootContent[],
+  nextChildren: readonly RootContent[]
+) {
+  children.length = nextChildren.length;
+  for (let index = 0; index < nextChildren.length; index += 1) {
+    children[index] = nextChildren[index]!;
+  }
+}
+
 function transformParent(parent: HastParent, options: PreparedOptions) {
-  const stack: TraversalFrame[] = [{ parent, index: 0 }];
+  const stack: TraversalFrame[] = [
+    { parent, index: 0, nextChildren: null },
+  ];
 
   while (stack.length > 0) {
     const frame = stack.at(-1)!;
     const children = frame.parent.children as RootContent[];
 
     if (frame.index >= children.length) {
+      if (frame.nextChildren) {
+        replaceChildrenContents(children, frame.nextChildren);
+      }
       stack.pop();
       continue;
     }
 
-    const child = children[frame.index]!;
+    const childIndex = frame.index;
+    const child = children[childIndex]!;
+    frame.index += 1;
 
     if (isText(child)) {
       const replacements = replacementNodes(child.value, options);
       if (!replacements) {
-        frame.index += 1;
+        frame.nextChildren?.push(child);
         continue;
       }
 
-      children.splice(frame.index, 1, ...replacements);
-      frame.index += replacements.length;
+      if (!frame.nextChildren) {
+        frame.nextChildren = children.slice(0, childIndex);
+      }
+      for (const replacement of replacements) {
+        frame.nextChildren.push(replacement);
+      }
       continue;
     }
 
-    frame.index += 1;
+    frame.nextChildren?.push(child);
     if (isElement(child) && !shouldSkipElement(child, options)) {
-      stack.push({ parent: child, index: 0 });
+      stack.push({ parent: child, index: 0, nextChildren: null });
     }
   }
 }
