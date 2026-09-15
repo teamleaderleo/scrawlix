@@ -61,7 +61,10 @@ async function benchCore() {
   ];
 
   for (const [kind, size] of cases) {
-    const clean = repeatToLength('ordinary prose with varied readable page copy. ', size);
+    const clean = repeatToLength(
+      'ordinary prose with varied readable page copy. ',
+      size
+    );
     const text =
       kind === 'clean'
         ? clean
@@ -110,7 +113,10 @@ async function benchAggressive() {
 
   for (const size of [10 * KiB, 256 * KiB, MiB]) {
     const text = 'z'.repeat(size);
-    const measured = await measure(() => engine.find(text), size <= 10 * KiB ? 3 : 1);
+    const measured = await measure(
+      () => engine.find(text),
+      size <= 10 * KiB ? 3 : 1
+    );
     emit('aggressive', {
       operation: 'find-clean-z',
       sizeBytes: size,
@@ -138,7 +144,9 @@ async function benchAggressive() {
 
 async function benchCommonPrefixTerms() {
   const core = await importTarget('packages/core/dist/index.js');
-  const counts = baseline ? [500, 1_000, 2_000] : [500, 1_000, 2_000, 5_000, 10_000];
+  const counts = baseline
+    ? [500, 1_000, 2_000]
+    : [500, 1_000, 2_000, 5_000, 10_000];
   const sourcePrefix = repeatToLength('ordinary page copy ', MiB - 128);
 
   for (const count of counts) {
@@ -170,15 +178,10 @@ async function benchReact() {
   const { JSDOM } = requireReact('jsdom');
   const reactPackage = await importTarget('packages/react/dist/index.js');
 
+  // React's scheduler can retain setImmediate callbacks after unmount. Keep this
+  // jsdom global alive through the rest of the process so those callbacks keep a
+  // valid `window` while later benchmark sections run.
   const dom = new JSDOM('<!doctype html><html><body></body></html>');
-  const previous = {
-    window: globalThis.window,
-    document: globalThis.document,
-    Node: globalThis.Node,
-    Element: globalThis.Element,
-    HTMLElement: globalThis.HTMLElement,
-    navigator: globalThis.navigator,
-  };
   Object.assign(globalThis, {
     window: dom.window,
     document: dom.window.document,
@@ -186,71 +189,61 @@ async function benchReact() {
     Element: dom.window.Element,
     HTMLElement: dom.window.HTMLElement,
     navigator: dom.window.navigator,
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
 
-  try {
-    for (const count of [1_000, 5_000]) {
-      let scans = 0;
-      const matcher = {
-        *find(text) {
-          scans += 1;
-          const start = text.indexOf('fuck');
-          if (start >= 0) yield { start, end: start + 4 };
-        },
-      };
-      const stableRules = [{ id: 'probe', matcher }];
-      const container = document.createElement('div');
-      document.body.append(container);
-      const root = createRoot(container);
+  for (const count of [1_000, 5_000]) {
+    let scans = 0;
+    const matcher = {
+      *find(text) {
+        scans += 1;
+        const start = text.indexOf('fuck');
+        if (start >= 0) yield { start, end: start + 4 };
+      },
+    };
+    const stableRules = [{ id: 'probe', matcher }];
+    const container = document.createElement('div');
+    document.body.append(container);
+    const root = createRoot(container);
 
-      const renderList = rules =>
-        React.createElement(
-          React.Fragment,
-          null,
-          Array.from({ length: count }, (_, index) =>
-            React.createElement(reactPackage.CensoredText, {
-              key: index,
-              rules,
-              text: 'safe fuck text',
-            })
-          )
-        );
+    const renderList = rules =>
+      React.createElement(
+        React.Fragment,
+        null,
+        Array.from({ length: count }, (_, index) =>
+          React.createElement(reactPackage.CensoredText, {
+            key: index,
+            rules,
+            text: 'safe fuck text',
+          })
+        )
+      );
 
+    flushSync(() => root.render(renderList(stableRules)));
+    scans = 0;
+    const stable = await measure(() => {
       flushSync(() => root.render(renderList(stableRules)));
-      scans = 0;
-      const stable = await measure(() => {
-        flushSync(() => root.render(renderList(stableRules)));
-        return scans;
-      });
-      const stableScans = scans;
+      return scans;
+    });
+    const stableScans = scans;
 
-      scans = 0;
-      const freshRules = [{ id: 'probe', matcher }];
-      const fresh = await measure(() => {
-        flushSync(() => root.render(renderList(freshRules)));
-        return scans;
-      });
-      const freshScans = scans;
+    scans = 0;
+    const freshRules = [{ id: 'probe', matcher }];
+    const fresh = await measure(() => {
+      flushSync(() => root.render(renderList(freshRules)));
+      return scans;
+    });
+    const freshScans = scans;
 
-      emit('react-rerender', {
-        instances: count,
-        stableMs: stable.ms,
-        stableScans,
-        freshRulesMs: fresh.ms,
-        freshRuleScans: freshScans,
-      });
+    emit('react-rerender', {
+      instances: count,
+      stableMs: stable.ms,
+      stableScans,
+      freshRulesMs: fresh.ms,
+      freshRuleScans: freshScans,
+    });
 
-      flushSync(() => root.unmount());
-      container.remove();
-    }
-  } finally {
-    dom.window.close();
-    for (const [key, value] of Object.entries(previous)) {
-      if (value === undefined) delete globalThis[key];
-      else globalThis[key] = value;
-    }
-    delete globalThis.IS_REACT_ACT_ENVIRONMENT;
+    flushSync(() => root.unmount());
+    container.remove();
   }
 }
 
@@ -258,7 +251,9 @@ async function benchRehype() {
   const core = await importTarget('packages/core/dist/index.js');
   const rehype = await importTarget('packages/rehype/dist/index.js');
   const rules = [core.censorRuleFromTerms('fuck', ['fuck'])];
-  const counts = baseline ? [1_000, 5_000, 10_000] : [1_000, 10_000, 50_000];
+  const counts = baseline
+    ? [1_000, 5_000, 10_000]
+    : [1_000, 10_000, 50_000];
 
   for (const count of counts) {
     const tree = {
@@ -292,7 +287,9 @@ async function benchDom() {
   const { JSDOM } = requireDom('jsdom');
   const core = await importTarget('packages/core/dist/index.js');
   const domPackage = await importTarget('packages/dom/dist/index.js');
-  const counts = baseline ? [1_000, 2_000, 4_000] : [1_000, 10_000, 50_000];
+  const counts = baseline
+    ? [1_000, 2_000, 4_000]
+    : [1_000, 10_000, 50_000];
 
   for (const count of counts) {
     const dom = new JSDOM('<!doctype html><html><body></body></html>');
