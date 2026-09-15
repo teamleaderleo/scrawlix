@@ -6,8 +6,9 @@
     "node": ">=22"
   },
   "scripts": {
+    "bench:aggressive": "pnpm --filter @scrawlix/core build && pnpm --filter @scrawlix/en build && node --expose-gc scripts/bench-obfuscated.mjs",
     "bench:core": "pnpm --filter @scrawlix/core build && pnpm --filter @scrawlix/en build && node --expose-gc scripts/bench-core.mjs",
-    "bench:core:smoke": "node --expose-gc scripts/bench-core.mjs --smoke",
+    "bench:core:smoke": "node --expose-gc scripts/bench-core.mjs --smoke && node --expose-gc scripts/bench-obfuscated.mjs --smoke",
     "build": "pnpm build:packages && pnpm --filter scrawlix-demo build && pnpm --filter scrawlix-extension build",
     "build:packages": "pnpm --filter @scrawlix/core build && pnpm --filter @scrawlix/en build && pnpm --filter @scrawlix/react build && pnpm --filter @scrawlix/rehype build && pnpm --filter @scrawlix/dom build",
     "corpus:diff": "node scripts/diff-corpora.mjs",

@@ -9,6 +9,7 @@ for (const file of [
   'background.js',
   'content.js',
   'popup.html',
+  'options.html',
 ]) {
   if (!existsSync(resolve(dist, file))) {
     throw new Error(`Extension build is missing ${file}.`);
@@ -37,6 +38,12 @@ if (manifest.background?.service_worker !== 'background.js') {
 if (manifest.content_scripts !== undefined) {
   throw new Error('Extension page injection must use dynamic registered content scripts.');
 }
+if (
+  manifest.options_ui?.page !== 'options.html' ||
+  manifest.options_ui?.open_in_tab !== true
+) {
+  throw new Error('Extension manifest must register options.html as a full-tab Options page.');
+}
 
 const optionalHosts = new Set(manifest.optional_host_permissions ?? []);
 for (const pattern of ['http://*/*', 'https://*/*']) {
@@ -48,6 +55,7 @@ for (const pattern of ['http://*/*', 'https://*/*']) {
 const referenced = [
   manifest.action?.default_popup,
   manifest.background?.service_worker,
+  manifest.options_ui?.page,
 ].filter(Boolean);
 for (const file of referenced) {
   if (!existsSync(resolve(dist, file))) {

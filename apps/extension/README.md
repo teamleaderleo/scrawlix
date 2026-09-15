@@ -1,128 +1,153 @@
 # Scrawlix browser extension
 
-The extension is the first application built on `@scrawlix/dom`. It owns browser preference state and presentation; matching and arbitrary-page mutation remain reusable packages.
+Scrawlix is the browser application built on the reusable Scrawlix matching and DOM packages. The extension owns browser permissions, persistent preferences, profiles/lenses, and arbitrary-page presentation.
 
 ## Build
 
 From the repository root:
 
 ```sh
-pnpm install
+pnpm install --frozen-lockfile
 pnpm build
-```
-
-Or build only the extension after the publishable Scrawlix packages have been built:
-
-```sh
-pnpm build:packages
-pnpm --filter scrawlix-extension build
 ```
 
 The unpacked extension is emitted to `apps/extension/dist`.
 
-To try it locally in Chromium:
+To load it manually, open Chrome's Extensions page, enable Developer mode, choose **Load unpacked**, and select `apps/extension/dist`.
 
-1. open the browser's Extensions page
-2. enable Developer mode
-3. choose **Load unpacked**
-4. select `apps/extension/dist`
+## Browser access
+
+The shipping manifest requests no HTTP/HTTPS host access at install time. Broad HTTP/HTTPS patterns are declared under `optional_host_permissions`.
+
+The popup offers two explicit grant paths:
+
+- allow the current HTTP/HTTPS origin
+- allow all HTTP and HTTPS websites
+
+A Manifest V3 service worker keeps one persisted dynamic content-script registration aligned with Chrome's current grants. The registration runs at `document_idle`, uses `content.js`, carries no static page CSS, persists across browser sessions, and targets the top document only (`allFrames: false`, `matchOriginAsFallback: false`).
+
+`document_idle` is deliberate for the first store release. Issue #110 reproduces React hydration mismatch when arbitrary-page censorship mutates server-rendered HostText before delayed `hydrateRoot()` claims it. Early/pre-hydration rendering stays future work until a DOM-preserving approach passes that regression.
+
+Removing host access first asks matching open tabs to restore Scrawlix-owned source text, then removes the Chrome permission, converges the dynamic registration, and reactivates tabs still covered by another remaining grant.
+
+## State and storage
+
+Compact general settings use `chrome.storage.sync`:
+
+- master paused state
+- default site behavior
+- legacy appearance / coverage / reveal migration seeds
+
+Local browser-profile state uses `chrome.storage.local`:
+
+- hostname overrides (`on` / `off`)
+- lenses and their custom terms
+- profiles and per-profile treatment settings
+- active profile id
+- legacy custom-word migration data
+
+The master pause is a true kill switch and wins over every hostname override.
+
+Popup and Options writes go through a shared narrow mutation API. Each mutation reads current state inside the extension-origin Web Lock, applies one user intent, and commits the merged result. This prevents a stale popup snapshot from overwriting an unrelated Options edit, and vice versa.
 
 ## Lenses and profiles
 
-The popup separates **what should be caught** from **how the current setup should look**.
+A **lens** answers what Scrawlix should catch. The built-in English Profanity lens is always available. Users can add local term lenses for spoilers, project names, client details, classroom words, or other personal categories.
 
-A **lens** is a user-facing purpose. The extension always offers a built-in English **Profanity** lens, and users can add local term lenses such as:
+A **profile** combines one or more lenses with appearance, coverage, and reveal choices. Switching profiles restores controller-owned source text before applying the newly selected profile.
 
-- Client privacy
-- Project codenames
-- Spoilers
-- Classroom
-- Stream safety
+Custom-term limits are shared by popup/context-menu/Options mutation paths:
 
-A **profile** combines any number of lenses with appearance, coverage, and reveal choices. Examples:
+- at most 200 Unicode code points per term
+- at most 500 custom terms total
+- at most 20,000 Unicode code points across custom terms
 
-- **Everyday** — profanity + spoilers, scrawl appearance, hover reveal
-- **Presentation** — client privacy + codenames, full bars, never reveal
-- **Stream** — private terms + profanity, full coverage, never reveal
+Case-insensitive duplicates are normalized away.
 
-Switching the active profile is one popup selection. The content script restores controller-owned source text before starting the newly selected profile, so turning one lens off cannot leave stale generated spans behind.
+## Popup and Options responsibilities
 
-Custom lenses can be created, renamed, edited, removed, and enabled independently in each profile. Profile creation clones the current profile as a useful starting point.
+The popup is the current-page control surface. It owns:
 
-## Storage and migration
+- master Active / pause
+- current hostname policy
+- current-site and all-sites browser access
+- temporary page reveal for 10 seconds
+- the browser's currently assigned reveal shortcut
+- active profile
+- concise appearance / coverage / reveal controls
+- local term and site-exception counts
+- one **Manage…** path to full settings
+- the packaged extension version
 
-Small cross-browser preferences remain in `chrome.storage.sync`:
+`options.html` is a full-tab settings page. It owns:
 
-- global enabled state
-- sparse hostname overrides (`on` / `off`)
-- legacy appearance / coverage / reveal values, retained as migration seeds
+- default site behavior
+- profile creation/removal/naming/treatment
+- built-in/custom lens membership
+- custom-term add/remove and budget feedback
+- searchable site exceptions
+- currently granted websites and safe revocation
+- privacy/source/version/Chrome-compatibility information
 
-Lens/profile state lives in `chrome.storage.local`:
+## Temporary reveal and native interaction
 
-- custom lens names and terms
-- profile definitions
-- active profile id
-- per-profile appearance / coverage / reveal
+The popup and `temporary-reveal` command reveal the current page for ten seconds. Reveal state exists only in the page and is never persisted.
 
-Keeping the active profile local avoids syncing an id to another browser profile that may have a different set of local lenses and profiles.
+Generated arbitrary-page censor roots never receive `tabindex`. Click reveal remains pointer-local outside native interactive controls; keyboard users have one page-level browser command instead of hundreds of synthetic tab stops.
 
-On first load after upgrading from the single-list model, Scrawlix creates an **Everyday** profile from the previous treatment settings. Existing custom words become a local **My terms** lens and remain active alongside the built-in Profanity lens. The old custom-word key remains readable for that migration path.
+## Page lifecycle and presentation ownership
 
-The popup still exposes a tri-state site mode:
+Scrawlix observes one concrete live `document.body` at a time through `@scrawlix/dom`. It handles incremental page mutations, body replacement, and full `<html>` replacement.
 
-- **follow global** — no hostname entry is stored
-- **always on** — hostname explicitly overrides the global switch
-- **always off** — hostname explicitly overrides the global switch
+`DomObservation.ownsGeneratedRoot()` is the authority for Scrawlix presentation and click behavior. Page-authored elements that imitate `data-scrawlix-*` markers are not treated as owned output.
 
-Storage changes are observed by the content script. A settings, lens, or profile change tears down the current DOM observation with `observation.restore()`, restoring exact source text before a new configured session begins.
+Presentation uses a per-document random token and a constructed stylesheet adopted through `document.adoptedStyleSheets`. Genuine owned roots receive the token only after ownership verification. This keeps page-authored lookalikes visually untouched and keeps Scrawlix presentation working under strict page CSP. The extension build gate rejects any root `content.css` artifact.
 
-## Page lifecycle
+The browser suite also stresses dense SPA mutation batches: 300 rows inserted in one fragment, all 300 row texts replaced, then 200 more rows appended. The invariant is one generated root/cover per matching row with no nested duplicates.
 
-The content script:
+## First-store coverage boundary
 
-1. loads the active local profile
-2. composes rules from every lens enabled in that profile
-3. creates one `@scrawlix/dom` controller using the profile coverage setting
-4. observes `document.body`
-5. decorates only Scrawlix-generated roots using the profile appearance/reveal settings
-6. listens for sync/local storage changes and restarts atomically
+The first Chrome Web Store release processes eligible text in the top document only.
 
-The DOM adapter watches mutation roots rather than rescanning the document after every page update.
+Outside the current contract:
 
-## Presentation
+- child iframes, including same-origin frames
+- shadow-root traversal
+- pre-hydration DOM mutation / early injection
 
-`content.css` implements the extension's five appearances:
+See #122 for iframe/shadow expansion and #110 for pre-hydration rendering.
 
-- scrawl
-- bar
-- blur
-- asterisk
-- grawlix
+## Chrome compatibility
 
-Asterisk/grawlix masks are presentation metadata on generated cover spans. The source substring remains the actual DOM text underneath.
+The manifest declares `minimum_chrome_version: 119`. That floor covers the APIs used by the store runtime, including Manifest V3 scripting registration and the extension's current browser APIs.
 
-Hover is the default reveal mode for migrated/default profiles. Focus/click reveal makes a generated wrapper keyboard-focusable only when the wrapper is outside links, buttons, inputs, and other native interactive controls. Scrawlix avoids stealing those controls' interaction semantics.
+## Store package
 
-## Permissions
+After building, create a release candidate with an explicit Chrome extension version:
 
-The development manifest requests:
+```sh
+pnpm --filter scrawlix-extension package:store -- --version 0.1.0
+```
 
-- `storage` — persist preferences, lenses, and profiles
-- `activeTab` — let the popup identify the current HTTP/HTTPS hostname after the user opens it
-- host access to HTTP and HTTPS pages — run the content script automatically on pages where Scrawlix may be enabled
+The checked-in/build manifest stays at development version `0.0.0`; the requested release version is injected only into the archived `manifest.json`.
 
-The extension has no background service worker and sends no browsing or page text to a server. Matching happens inside the page's content-script context using bundled Scrawlix packages.
+Default outputs:
 
-Broad HTTP/HTTPS host access is a meaningful permission and should remain explicit in store-facing documentation. Before a store release, revisit whether optional host permissions or another activation model would deliver the desired persistent per-site behavior with a gentler permission prompt.
+- `apps/extension/release/scrawlix-extension-<version>.zip`
+- `apps/extension/release/scrawlix-extension-<version>.sha256`
 
-## Build validation
+The dependency-free packager is deterministic: archive paths are sorted, ZIP timestamps/metadata are fixed, entries use stable stored-method encoding, `.map` files are excluded, source-map trailer references are stripped, the archive is validated before write, and a SHA-256 sidecar is emitted.
 
-`pnpm --filter scrawlix-extension build` validates that:
+`pnpm --filter scrawlix-extension verify:store-package` packages the same real build twice and requires byte-for-byte equality. It also rejects root `content.css`, `.map` entries, dangling `sourceMappingURL` references, missing Options/runtime assets, wrong optional-host declarations, and a missing Chrome 119 floor.
 
-- the manifest is MV3
-- `content.js` exists
-- `content.css` exists
-- `popup.html` exists
-- every JS/CSS/popup path referenced by the manifest exists in `dist`
+## Release gates
 
-`src/config.test.ts` covers preference, migration, lens, profile, coverage, and mask behavior. The browser smoke opens the built extension in Chromium; profile coverage also opens the real popup, creates local lenses/profile state, and verifies that an already-open page restores and re-renders when the active profile changes.
+The repository CI runs typecheck, unit tests, build validation, deterministic store-package verification, Node compatibility/package consumer smokes, and real Chromium demo/extension tests.
+
+Store-facing listing/privacy/release material lives in:
+
+- `docs/chrome-web-store-listing.md`
+- `docs/extension-privacy.md`
+- `docs/chrome-web-store-release.md`
+
+Final icons and screenshots remain the human visual release gate tracked in #127.

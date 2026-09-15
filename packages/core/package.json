@@ -19,6 +19,8 @@
     "src/repeated-obfuscated.ts",
     "src/width-obfuscated.ts",
     "src/confusable-obfuscated.ts",
+    "src/core-instrumentation.ts",
+    "src/obfuscated-instrumentation.ts",
     "src/corpus.ts"
   ],
   "main": "./dist/index.js",

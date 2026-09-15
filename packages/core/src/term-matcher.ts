@@ -1,3 +1,5 @@
+import { recordCoreTermShadowPass } from './core-instrumentation.js';
+
 type TermBoundaryStrategy =
   | 'word'
   | 'unicode-word'
@@ -14,10 +16,13 @@ type MatcherRange = {
   end: number;
 };
 
-type ShadowUnit = {
+export type PreparedTermShadowUnit = {
   value: string;
   shadowStart: number;
   shadowEnd: number;
+};
+
+type ShadowUnit = PreparedTermShadowUnit & {
   sourceStart: number;
   sourceEnd: number;
 };
@@ -31,6 +36,11 @@ type TrieNode = {
   next: Map<string, number>;
   failure: number;
   outputs: number[];
+};
+
+type UnitMatch = {
+  firstUnitIndex: number;
+  lastUnitIndex: number;
 };
 
 const graphemeSegmenter =
@@ -51,10 +61,14 @@ function requireGraphemeSegmenter() {
 }
 
 function graphemeRanges(value: string) {
-  return [...requireGraphemeSegmenter().segment(value)].map(part => ({
-    start: part.index,
-    end: part.index + part.segment.length,
-  }));
+  const ranges: Array<{ start: number; end: number }> = [];
+  for (const part of requireGraphemeSegmenter().segment(value)) {
+    ranges.push({
+      start: part.index,
+      end: part.index + part.segment.length,
+    });
+  }
+  return ranges;
 }
 
 function normalizeGrapheme(
@@ -123,13 +137,16 @@ function sourceShadow(
   value: string,
   normalization: UnicodeNormalization
 ): SourceShadow {
+  recordCoreTermShadowPass();
   let shadow = '';
   const units: ShadowUnit[] = [];
 
-  for (const range of graphemeRanges(value)) {
+  for (const part of requireGraphemeSegmenter().segment(value)) {
+    const sourceStart = part.index;
+    const sourceEnd = part.index + part.segment.length;
     const shadowStart = shadow.length;
     const unitValue = normalizeGrapheme(
-      value.slice(range.start, range.end),
+      value.slice(sourceStart, sourceEnd),
       normalization
     );
     shadow += unitValue;
@@ -137,8 +154,8 @@ function sourceShadow(
       value: unitValue,
       shadowStart,
       shadowEnd: shadow.length,
-      sourceStart: range.start,
-      sourceEnd: range.end,
+      sourceStart,
+      sourceEnd,
     });
   }
 
@@ -245,15 +262,61 @@ function acceptsBoundary(
 ) {
   if (boundary === 'substring') return true;
   if (typeof boundary === 'object') {
-    return (
-      lexicalBoundaries!.has(start) && lexicalBoundaries!.has(end)
-    );
+    return lexicalBoundaries!.has(start) && lexicalBoundaries!.has(end);
   }
 
   return (
     !wordContextPattern.test(codePointBefore(value, start)) &&
     !wordContextPattern.test(codePointAt(value, end))
   );
+}
+
+function preparedUnitMatches(
+  value: string,
+  units: readonly PreparedTermShadowUnit[],
+  trie: readonly TrieNode[],
+  caseSensitive: boolean,
+  boundary: TermBoundaryStrategy
+): Iterable<UnitMatch> {
+  return {
+    *[Symbol.iterator]() {
+      const lexicalBoundaries =
+        typeof boundary === 'object'
+          ? localeWordBoundaries(value, boundary)
+          : null;
+      let state = 0;
+
+      for (let unitIndex = 0; unitIndex < units.length; unitIndex += 1) {
+        const unit = units[unitIndex]!;
+        const token = tokenFor(unit.value, caseSensitive);
+
+        while (state !== 0 && !trie[state]!.next.has(token)) {
+          state = trie[state]!.failure;
+        }
+        state = trie[state]!.next.get(token) ?? 0;
+
+        for (const termLength of trie[state]!.outputs) {
+          const firstUnitIndex = unitIndex - termLength + 1;
+          if (firstUnitIndex < 0) continue;
+
+          const firstUnit = units[firstUnitIndex]!;
+          if (
+            !acceptsBoundary(
+              value,
+              boundary,
+              firstUnit.shadowStart,
+              unit.shadowEnd,
+              lexicalBoundaries
+            )
+          ) {
+            continue;
+          }
+
+          yield { firstUnitIndex, lastUnitIndex: unitIndex };
+        }
+      }
+    },
+  };
 }
 
 export function createPreparedTermMatcher(
@@ -267,49 +330,44 @@ export function createPreparedTermMatcher(
     normalization: UnicodeNormalization;
     boundary: TermBoundaryStrategy;
   }
-): { find(text: string): Iterable<MatcherRange> } {
+): {
+  find(text: string): Iterable<MatcherRange>;
+  findShadow(
+    value: string,
+    units: readonly PreparedTermShadowUnit[]
+  ): Iterable<MatcherRange>;
+} {
   const trie = buildTrie(alternatives, caseSensitive);
 
   return {
     *find(text) {
       const shadow = sourceShadow(text, normalization);
-      const lexicalBoundaries =
-        typeof boundary === 'object'
-          ? localeWordBoundaries(shadow.value, boundary)
-          : null;
-      let state = 0;
+      for (const match of preparedUnitMatches(
+        shadow.value,
+        shadow.units,
+        trie,
+        caseSensitive,
+        boundary
+      )) {
+        yield {
+          start: shadow.units[match.firstUnitIndex]!.sourceStart,
+          end: shadow.units[match.lastUnitIndex]!.sourceEnd,
+        };
+      }
+    },
 
-      for (let unitIndex = 0; unitIndex < shadow.units.length; unitIndex += 1) {
-        const unit = shadow.units[unitIndex]!;
-        const token = tokenFor(unit.value, caseSensitive);
-
-        while (state !== 0 && !trie[state]!.next.has(token)) {
-          state = trie[state]!.failure;
-        }
-        state = trie[state]!.next.get(token) ?? 0;
-
-        for (const termLength of trie[state]!.outputs) {
-          const firstUnitIndex = unitIndex - termLength + 1;
-          if (firstUnitIndex < 0) continue;
-
-          const firstUnit = shadow.units[firstUnitIndex]!;
-          if (
-            !acceptsBoundary(
-              shadow.value,
-              boundary,
-              firstUnit.shadowStart,
-              unit.shadowEnd,
-              lexicalBoundaries
-            )
-          ) {
-            continue;
-          }
-
-          yield {
-            start: firstUnit.sourceStart,
-            end: unit.sourceEnd,
-          };
-        }
+    *findShadow(value, units) {
+      for (const match of preparedUnitMatches(
+        value,
+        units,
+        trie,
+        caseSensitive,
+        boundary
+      )) {
+        yield {
+          start: units[match.firstUnitIndex]!.shadowStart,
+          end: units[match.lastUnitIndex]!.shadowEnd,
+        };
       }
     },
   };
