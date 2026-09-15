@@ -21,7 +21,14 @@ function render(element: ReactElement) {
   return container;
 }
 
+function rerender(element: ReactElement) {
+  const mounted = mountedRoots.at(-1)!;
+  act(() => mounted.root.render(element));
+  return mounted.container;
+}
+
 afterEach(() => {
+  window.getSelection()?.removeAllRanges();
   while (mountedRoots.length > 0) {
     const mounted = mountedRoots.pop()!;
     act(() => mounted.root.unmount());
@@ -63,6 +70,88 @@ describe('match-local reveal', () => {
     expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
     expect(controls[0]?.getAttribute('aria-pressed')).toBe('true');
     expect(controls[1]?.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('reveals only the hovered disclosure group', () => {
+    const container = render(
+      <CensoredText
+        reveal="hover"
+        revealScope="match"
+        rules={rules}
+        text="fuck and shit"
+      />
+    );
+    const covers = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-scrawlix-cover]')
+    );
+
+    act(() => covers[0]!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })));
+    expect(covers[0]?.dataset.scrawlixRevealed).toBe('true');
+    expect(covers[1]?.dataset.scrawlixRevealed).toBe('false');
+
+    act(() => covers[0]!.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })));
+    expect(covers[0]?.dataset.scrawlixRevealed).toBe('false');
+
+    act(() => covers[1]!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })));
+    expect(covers[0]?.dataset.scrawlixRevealed).toBe('false');
+    expect(covers[1]?.dataset.scrawlixRevealed).toBe('true');
+  });
+
+  it('keeps revealed source open while the user selects it', () => {
+    const container = render(
+      <CensoredText
+        reveal="click"
+        revealScope="match"
+        rules={[rules[0]]}
+        text="fuck"
+      />
+    );
+    const cover = container.querySelector<HTMLElement>('[data-scrawlix-cover]')!;
+
+    act(() => cover.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(cover.dataset.scrawlixRevealed).toBe('true');
+
+    const selection = window.getSelection()!;
+    const range = document.createRange();
+    range.selectNodeContents(cover);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    expect(selection.isCollapsed).toBe(false);
+
+    act(() => cover.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(cover.dataset.scrawlixRevealed).toBe('true');
+
+    selection.removeAllRanges();
+    act(() => cover.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(cover.dataset.scrawlixRevealed).toBe('false');
+  });
+
+  it('conceals a reused scan-local id when the source revision changes', () => {
+    const container = render(
+      <CensoredText
+        reveal="click"
+        revealScope="match"
+        rules={rules}
+        text="fuck"
+      />
+    );
+    let cover = container.querySelector<HTMLElement>('[data-scrawlix-cover]')!;
+
+    act(() => cover.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(cover.dataset.scrawlixRevealId).toBe('m0');
+    expect(cover.dataset.scrawlixRevealed).toBe('true');
+
+    rerender(
+      <CensoredText
+        reveal="click"
+        revealScope="match"
+        rules={rules}
+        text="shit"
+      />
+    );
+    cover = container.querySelector<HTMLElement>('[data-scrawlix-cover]')!;
+    expect(cover.dataset.scrawlixRevealId).toBe('m0');
+    expect(cover.dataset.scrawlixRevealed).toBe('false');
   });
 
   it('ties disjoint coverage islands from one match to one disclosure control', () => {
