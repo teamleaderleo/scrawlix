@@ -53,7 +53,7 @@ const targeted = createScrawlix({
   rules: [
     censorRuleFromTargetedObfuscatedTerms(
       'targeted-npm',
-      [{ term: 'fucking', target: 'fuck' }],
+      [{ term: 'fucking', targetGraphemes: { start: 0, end: 4 } }],
       { substitutions: { u: ['*'] }, maxSubstitutions: 1 }
     ),
   ],
@@ -64,7 +64,7 @@ const repeated = createScrawlix({
   rules: [
     censorRuleFromRepeatedObfuscatedTerms(
       'repeated-npm',
-      [{ term: 'motherfucker', target: 'fuck' }],
+      [{ term: 'motherfucker', targetGraphemes: { start: 6, end: 10 } }],
       { maxRepetitions: 1 }
     ),
   ],
@@ -75,7 +75,7 @@ const width = createScrawlix({
   rules: [
     censorRuleFromWidthObfuscatedTerms(
       'width-npm',
-      [{ term: 'motherfucker', target: 'fuck' }],
+      [{ term: 'motherfucker', targetGraphemes: { start: 6, end: 10 } }],
       {
         widthVariants: { f: ['ｆ'] },
         maxWidthVariants: 1,
@@ -90,7 +90,7 @@ const confusable = createScrawlix({
   rules: [
     censorRuleFromConfusableObfuscatedTerms(
       'confusable-npm',
-      [{ term: 'motherfucker', target: 'fuck' }],
+      [{ term: 'motherfucker', targetGraphemes: { start: 6, end: 10 } }],
       {
         confusables: { c: ['с'] },
         maxConfusables: 1,

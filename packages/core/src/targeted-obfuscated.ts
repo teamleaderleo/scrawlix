@@ -8,6 +8,13 @@ import {
   type UnicodeNormalization,
 } from './index.js';
 
+export type GraphemeTargetRange = {
+  /** Zero-based index of the first target grapheme in the normalized term. */
+  start: number;
+  /** Exclusive zero-based grapheme index after the target. */
+  end: number;
+};
+
 export type TargetedObfuscatedTerm =
   | string
   | {
@@ -15,6 +22,14 @@ export type TargetedObfuscatedTerm =
       term: string;
       /** Unique exact canonical substring used as the semantic target. */
       target: string;
+      targetGraphemes?: never;
+    }
+  | {
+      /** Full canonical form used for matching. */
+      term: string;
+      /** Explicit zero-based half-open semantic target in normalized graphemes. */
+      targetGraphemes: GraphemeTargetRange;
+      target?: never;
     };
 
 type PreparedTargetedObfuscatedTerm = {
@@ -42,6 +57,30 @@ function graphemeBoundaries(value: string) {
   return boundaries;
 }
 
+function explicitGraphemeTarget(
+  term: string,
+  range: GraphemeTargetRange,
+  rawTerm: string
+) {
+  const graphemes = graphemeRanges(term);
+  if (
+    !Number.isInteger(range.start) ||
+    !Number.isInteger(range.end) ||
+    range.start < 0 ||
+    range.end <= range.start ||
+    range.end > graphemes.length
+  ) {
+    throw new Error(
+      `targetGraphemes for term ${JSON.stringify(rawTerm)} must be a zero-based half-open grapheme range within the normalized term.`
+    );
+  }
+
+  return {
+    targetStart: graphemes[range.start]!.start,
+    targetEnd: graphemes[range.end - 1]!.end,
+  };
+}
+
 function prepareTarget(
   entry: TargetedObfuscatedTerm,
   normalization: UnicodeNormalization
@@ -54,6 +93,13 @@ function prepareTarget(
 
   if (typeof entry === 'string') {
     return { term, targetStart: 0, targetEnd: term.length };
+  }
+
+  if (entry.targetGraphemes !== undefined) {
+    return {
+      term,
+      ...explicitGraphemeTarget(term, entry.targetGraphemes, rawTerm),
+    };
   }
 
   const target = normalize(entry.target.trim(), normalization);
@@ -166,8 +212,9 @@ function targetRangeForMatch(
 
 /**
  * Build a bounded obfuscated term rule whose declared full forms can identify a
- * smaller semantic target. The transform/budget semantics are exactly those of
- * censorRuleFromObfuscatedTerms(); this helper only adds target-source mapping.
+ * smaller semantic target. A target may be a unique literal substring or an
+ * explicit zero-based half-open grapheme range inside the normalized term.
+ * Transform/budget semantics are exactly those of censorRuleFromObfuscatedTerms().
  */
 export function censorRuleFromTargetedObfuscatedTerms(
   id: string,
