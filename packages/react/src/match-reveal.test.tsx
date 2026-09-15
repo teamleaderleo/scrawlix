@@ -266,4 +266,74 @@ describe('match-local reveal', () => {
     expect(covers[0]?.getAttribute('data-scrawlix-revealed')).toBe('false');
     expect(covers[1]?.getAttribute('data-scrawlix-revealed')).toBe('false');
   });
+
+  it('composes per-match click, focus, and key handlers before disclosure changes', () => {
+    let clickCount = 0;
+    let focusCount = 0;
+    let keyCount = 0;
+    const container = render(
+      <CensoredText
+        onClick={event => {
+          clickCount += 1;
+          event.preventDefault();
+        }}
+        onFocus={() => {
+          focusCount += 1;
+        }}
+        onKeyDown={event => {
+          keyCount += 1;
+          if (event.key === 'Escape') event.preventDefault();
+        }}
+        reveal="click"
+        revealScope="match"
+        rules={[rules[0]]}
+        text="fuck"
+      />
+    );
+    let cover = container.querySelector<HTMLElement>('[data-scrawlix-cover]')!;
+    let control = container.querySelector<HTMLButtonElement>('[data-scrawlix-control]')!;
+
+    act(() => control.focus());
+    expect(focusCount).toBe(1);
+    expect(cover.dataset.scrawlixFocused).toBe('true');
+
+    act(() =>
+      cover.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    );
+    expect(clickCount).toBe(1);
+    expect(cover.dataset.scrawlixRevealed).toBe('false');
+
+    rerender(
+      <CensoredText
+        onClick={() => {
+          clickCount += 1;
+        }}
+        onFocus={() => {
+          focusCount += 1;
+        }}
+        onKeyDown={event => {
+          keyCount += 1;
+          if (event.key === 'Escape') event.preventDefault();
+        }}
+        reveal="click"
+        revealScope="match"
+        rules={[rules[0]]}
+        text="fuck"
+      />
+    );
+    cover = container.querySelector<HTMLElement>('[data-scrawlix-cover]')!;
+    control = container.querySelector<HTMLButtonElement>('[data-scrawlix-control]')!;
+
+    act(() => control.click());
+    expect(clickCount).toBe(2);
+    expect(cover.dataset.scrawlixRevealed).toBe('true');
+
+    act(() =>
+      control.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Escape' })
+      )
+    );
+    expect(keyCount).toBe(1);
+    expect(cover.dataset.scrawlixRevealed).toBe('true');
+  });
 });
