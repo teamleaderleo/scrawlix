@@ -25,7 +25,9 @@ const INTERACTIVE_ANCESTOR =
 
 let observation: DomObservation | null = null;
 let presentationObserver: MutationObserver | null = null;
-let bodyIdentityObserver: MutationObserver | null = null;
+let documentElementObserver: MutationObserver | null = null;
+let observedDocumentElement: HTMLElement | null = null;
+let observedBody: HTMLElement | null = null;
 let activeState: ExtensionSessionState | null = null;
 let activeBody: HTMLElement | null = null;
 let restartGeneration = 0;
@@ -40,6 +42,8 @@ function canOwnInteraction(root: HTMLElement) {
 }
 
 function decorateGeneratedRoot(root: HTMLElement, profile: ExtensionProfile) {
+  if (observation?.ownsGeneratedRoot(root) !== true) return;
+
   root.dataset.scrawlixAppearance = profile.appearance;
   root.dataset.scrawlixReveal = profile.reveal;
   root.dataset.scrawlixRevealed = 'false';
@@ -151,18 +155,30 @@ async function restart() {
   refreshPresentation(body, profile);
 }
 
-function startBodyIdentityObserver() {
-  const root = document.documentElement;
-  if (!root || bodyIdentityObserver) return;
+function handleBodyLifecycleChange() {
+  const body = document.body;
+  if (body === observedBody) return;
+  observedBody = body;
+  void restart();
+}
 
-  let previousBody = document.body;
-  bodyIdentityObserver = new MutationObserver(() => {
-    const body = document.body;
-    if (body === previousBody) return;
-    previousBody = body;
-    void restart();
-  });
-  bodyIdentityObserver.observe(root, { childList: true });
+function observeCurrentDocumentElement() {
+  const documentElement = document.documentElement;
+  if (documentElement === observedDocumentElement) {
+    handleBodyLifecycleChange();
+    return;
+  }
+
+  documentElementObserver?.disconnect();
+  documentElementObserver = null;
+  observedDocumentElement = documentElement;
+
+  if (documentElement) {
+    documentElementObserver = new MutationObserver(handleBodyLifecycleChange);
+    documentElementObserver.observe(documentElement, { childList: true });
+  }
+
+  handleBodyLifecycleChange();
 }
 
 function clickRootFromEvent(event: Event) {
@@ -171,7 +187,13 @@ function clickRootFromEvent(event: Event) {
   const root = target.closest<HTMLElement>(
     '[data-scrawlix-dom-root][data-scrawlix-reveal="click"]'
   );
-  if (!root || root.tabIndex !== 0) return null;
+  if (
+    !root ||
+    observation?.ownsGeneratedRoot(root) !== true ||
+    root.tabIndex !== 0
+  ) {
+    return null;
+  }
   return root;
 }
 
@@ -194,7 +216,8 @@ document.addEventListener('keydown', event => {
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   const relevantSync =
-    areaName === 'sync' && Object.prototype.hasOwnProperty.call(changes, SYNC_SETTINGS_KEY);
+    areaName === 'sync' &&
+    Object.prototype.hasOwnProperty.call(changes, SYNC_SETTINGS_KEY);
   const relevantLocal =
     areaName === 'local' &&
     (Object.prototype.hasOwnProperty.call(changes, LOCAL_STATE_KEY) ||
@@ -203,19 +226,6 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   if (relevantSync || relevantLocal) void restart();
 });
 
-function startWhenReady() {
-  startBodyIdentityObserver();
-  if (document.body) void restart();
-  else {
-    window.addEventListener(
-      'DOMContentLoaded',
-      () => {
-        startBodyIdentityObserver();
-        void restart();
-      },
-      { once: true }
-    );
-  }
-}
-
-startWhenReady();
+const documentRootObserver = new MutationObserver(observeCurrentDocumentElement);
+documentRootObserver.observe(document, { childList: true });
+observeCurrentDocumentElement();
