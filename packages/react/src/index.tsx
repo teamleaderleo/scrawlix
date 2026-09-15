@@ -194,13 +194,11 @@ function deriveDisclosureMap(
     }
   });
 
-  const revealIdBySegment = new Map<number, string>();
   const indexesByRevealId = new Map<string, number[]>();
   const matchIdsByRevealId = new Map<string, Set<string>>();
 
   for (const [segmentIndex, matchIds] of segmentMatches) {
     const revealId = matchIds.length > 0 ? find(matchIds[0]!) : `s${segmentIndex}`;
-    revealIdBySegment.set(segmentIndex, revealId);
     const indexes = indexesByRevealId.get(revealId) ?? [];
     indexes.push(segmentIndex);
     indexesByRevealId.set(revealId, indexes);
@@ -251,9 +249,9 @@ export function CensoredText({
     () => createScrawlix({ rules, coverage }),
     [rules, coverage]
   );
-  const segments = useMemo(() => engine.segment(text), [engine, text]);
+  const segments = useMemo(() => engine.segmentWithOffsets(text), [engine, text]);
   const matches = useMemo(
-    () => (revealScope === 'match' ? engine.find(text) : []),
+    () => (revealScope === 'match' ? engine.findWithIdentity(text) : []),
     [engine, text, revealScope]
   );
   const disclosure = useMemo(
