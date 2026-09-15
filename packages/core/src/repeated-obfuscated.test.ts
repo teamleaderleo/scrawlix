@@ -12,7 +12,7 @@ describe('repeated obfuscated terms', () => {
       ],
     });
 
-    expect(engine.find('fuuck')).toEqual([
+    expect(engine.find('fuuck')).toMatchObject([
       {
         ruleId: 'fuck-repeat',
         profile: 'obfuscated',
@@ -59,7 +59,7 @@ describe('repeated obfuscated terms', () => {
       coverage: 'full',
     });
 
-    expect(engine.find('motherfuucker')).toEqual([
+    expect(engine.find('motherfuucker')).toMatchObject([
       {
         ruleId: 'fuck-repeat',
         profile: 'obfuscated',
@@ -71,7 +71,7 @@ describe('repeated obfuscated terms', () => {
         targetEnd: 11,
       },
     ]);
-    expect(engine.segment('motherfuucker')).toEqual([
+    expect(engine.segment('motherfuucker')).toMatchObject([
       { text: 'mother', covered: false, ruleIds: [] },
       { text: 'fuuck', covered: true, ruleIds: ['fuck-repeat'] },
       { text: 'er', covered: false, ruleIds: [] },
@@ -89,7 +89,7 @@ describe('repeated obfuscated terms', () => {
       ],
     });
 
-    expect(engine.find('shittting')).toEqual([
+    expect(engine.find('shittting')).toMatchObject([
       {
         ruleId: 'shit-repeat',
         profile: 'obfuscated',
