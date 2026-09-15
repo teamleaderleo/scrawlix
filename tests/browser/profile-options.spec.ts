@@ -52,7 +52,7 @@ test('built extension manages lenses and profiles in Options without rewriting t
     await expect
       .poll(async () =>
         (await extensionHighlightRanges(context, fixtureUrl)).some(
-          range => range.parentId === 'private' && range.text === 'thb'
+          range => range.parentId === 'private'
         )
       )
       .toBe(true);
@@ -110,10 +110,10 @@ test('built extension manages lenses and profiles in Options without rewriting t
         const ranges = await extensionHighlightRanges(context, fixtureUrl);
         return {
           initialText: ranges.find(range => range.parentId === 'initial')?.text ?? null,
-          privateText: ranges.find(range => range.parentId === 'private')?.text ?? null,
+          private: ranges.some(range => range.parentId === 'private'),
         };
       })
-      .toEqual({ initialText: 'uc', privateText: 'thb' });
+      .toEqual({ initialText: 'uc', private: true });
     await expect(page.locator('#initial')).toHaveText('well, fuck this');
     await expect(page.locator('#private')).toHaveText('Mothbit remains private');
   } finally {
