@@ -35,6 +35,10 @@ const fixture = `<!doctype html>
   </body>
 </html>`;
 
+const cspFixture = `<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><title>CSP fixture</title></head>
+<body><p id="csp-copy">fuck</p><p id="csp-fake"><span id="csp-fake-root" data-scrawlix-dom-root data-scrawlix-extension-owned="" data-scrawlix-appearance="scrawl"><span id="csp-fake-cover" data-scrawlix-cover data-scrawlix-mask="author">safe</span></span></p></body></html>`;
+
 const clicked = `<!doctype html><html><body><p id="clicked">native link worked</p></body></html>`;
 
 const server = createServer((request, response) => {
@@ -42,6 +46,15 @@ const server = createServer((request, response) => {
   if (url.pathname === '/fixture.html' || url.pathname === '/') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(fixture);
+    return;
+  }
+
+  if (url.pathname === '/csp.html') {
+    response.writeHead(200, {
+      'content-type': 'text/html; charset=utf-8',
+      'content-security-policy': "default-src 'self'; script-src 'none'; style-src 'self'",
+    });
+    response.end(cspFixture);
     return;
   }
 
