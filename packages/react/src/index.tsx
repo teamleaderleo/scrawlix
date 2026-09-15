@@ -2,19 +2,40 @@
 
 import {
   createScrawlix,
+  graphemeRanges,
   type CensorRule,
   type CoverageSelector,
 } from '@scrawlix/core';
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import {
+  useMemo,
+  useState,
+  type CSSProperties,
+  type FocusEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react';
 
 export type ScrawlixAppearance =
   | 'scrawl'
   | 'bar'
   | 'blur'
+  | 'whiteout'
+  | 'mosaic'
   | 'asterisk'
   | 'grawlix';
 
 export type ScrawlixReveal = 'hover' | 'focus' | 'click' | 'never';
+export type ScrawlixRevealScope = 'component' | 'match';
+
+export type ScrawlixCustomProperty =
+  | '--scrawlix-ink'
+  | '--scrawlix-surface'
+  | '--scrawlix-bar-height'
+  | '--scrawlix-blur-radius'
+  | '--scrawlix-mosaic-cell';
+
+export type ScrawlixStyle = CSSProperties &
+  Partial<Record<ScrawlixCustomProperty, string>>;
 
 export type CensoredTextProps = {
   text: string;
@@ -22,33 +43,32 @@ export type CensoredTextProps = {
   coverage?: CoverageSelector;
   appearance?: ScrawlixAppearance;
   reveal?: ScrawlixReveal;
+  revealScope?: ScrawlixRevealScope;
   className?: string;
+  style?: ScrawlixStyle;
   title?: string;
 };
 
-type RevealState = {
-  text: string;
-  rules: readonly CensorRule[];
-  coverage: CoverageSelector;
-  reveal: ScrawlixReveal;
+type ComponentRevealState = {
+  revision: object;
   revealed: boolean;
 };
 
+type RevealIdsState = {
+  revision: object;
+  ids: ReadonlySet<string>;
+};
+
+type ActiveRevealState = {
+  revision: object;
+  revealId: string | null;
+};
+
 const GRAWLIX = '@#$%&!';
-const graphemeSegmenter =
-  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
-    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
-    : null;
+const EMPTY_REVEAL_IDS: ReadonlySet<string> = new Set();
 
-function graphemeCount(value: string) {
-  if (graphemeSegmenter) {
-    return [...graphemeSegmenter.segment(value)].length;
-  }
-  return Array.from(value).length;
-}
-
-function symbolsFor(text: string, appearance: ScrawlixAppearance) {
-  const length = graphemeCount(text);
+function maskFor(text: string, appearance: ScrawlixAppearance) {
+  const length = graphemeRanges(text).length;
   if (appearance === 'asterisk') return '*'.repeat(length);
   if (appearance === 'grawlix') {
     return Array.from(
@@ -56,21 +76,26 @@ function symbolsFor(text: string, appearance: ScrawlixAppearance) {
       (_, index) => GRAWLIX[index % GRAWLIX.length]
     ).join('');
   }
-  return text;
+  return '';
 }
 
-function sameRevealInputs(
-  state: RevealState,
-  text: string,
-  rules: readonly CensorRule[],
-  coverage: CoverageSelector,
-  reveal: ScrawlixReveal
-) {
+function revealIdFromTarget(target: EventTarget | null) {
+  if (!(target instanceof Element)) return null;
   return (
-    state.text === text &&
-    state.rules === rules &&
-    state.coverage === coverage &&
-    state.reveal === reveal
+    target
+      .closest<HTMLElement>('[data-scrawlix-cover][data-scrawlix-reveal-id]')
+      ?.getAttribute('data-scrawlix-reveal-id') ?? null
+  );
+}
+
+function hasSelectedText(root: HTMLElement) {
+  const selection = root.ownerDocument.defaultView?.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+    return false;
+  }
+
+  return [selection.anchorNode, selection.focusNode].some(
+    node => node !== null && root.contains(node)
   );
 }
 
@@ -80,97 +105,250 @@ export function CensoredText({
   coverage = 'full',
   appearance = 'scrawl',
   reveal = 'never',
+  revealScope = 'component',
   className = '',
+  style,
   title = 'Censored text',
 }: CensoredTextProps) {
   const engine = useMemo(
     () => createScrawlix({ rules, coverage }),
     [rules, coverage]
   );
-  const segments = engine.segment(text);
-  const hasCoveredText = segments.some(segment => segment.covered);
-  const [revealState, setRevealState] = useState<RevealState>(() => ({
-    text,
-    rules,
-    coverage,
-    reveal,
-    revealed: false,
-  }));
-  const sameInputs = sameRevealInputs(
-    revealState,
-    text,
-    rules,
-    coverage,
-    reveal
+  const segments = useMemo(() => engine.segment(text), [engine, text]);
+  const interactionRevision = useMemo(
+    () => ({}),
+    [engine, text, reveal, revealScope]
   );
-  const revealed = sameInputs ? revealState.revealed : false;
-
-  if (!sameInputs) {
-    setRevealState({ text, rules, coverage, reveal, revealed: false });
-  }
+  const hasCoveredText = segments.some(segment => segment.covered);
+  const revealIds = useMemo(
+    () => [
+      ...new Set(
+        segments
+          .filter(segment => segment.covered && segment.revealId)
+          .map(segment => segment.revealId!)
+      ),
+    ],
+    [segments]
+  );
+  const [componentRevealState, setComponentRevealState] =
+    useState<ComponentRevealState>(() => ({
+      revision: interactionRevision,
+      revealed: false,
+    }));
+  const [revealIdsState, setRevealIdsState] = useState<RevealIdsState>(() => ({
+    revision: interactionRevision,
+    ids: new Set(),
+  }));
+  const [hoverState, setHoverState] = useState<ActiveRevealState>(() => ({
+    revision: interactionRevision,
+    revealId: null,
+  }));
+  const [focusState, setFocusState] = useState<ActiveRevealState>(() => ({
+    revision: interactionRevision,
+    revealId: null,
+  }));
 
   if (!hasCoveredText) return <>{text}</>;
 
-  const interactive = reveal === 'focus' || reveal === 'click';
+  const componentRevealed =
+    componentRevealState.revision === interactionRevision &&
+    componentRevealState.revealed;
+  const revealedIds =
+    revealIdsState.revision === interactionRevision
+      ? revealIdsState.ids
+      : EMPTY_REVEAL_IDS;
+  const hoveredRevealId =
+    hoverState.revision === interactionRevision ? hoverState.revealId : null;
+  const focusedRevealId =
+    focusState.revision === interactionRevision ? focusState.revealId : null;
+  const componentInteractive =
+    revealScope === 'component' && (reveal === 'focus' || reveal === 'click');
+  const matchControls =
+    revealScope === 'match' && (reveal === 'focus' || reveal === 'click');
 
-  function toggleReveal() {
-    setRevealState(current => ({
-      text,
-      rules,
-      coverage,
-      reveal,
-      revealed: sameRevealInputs(current, text, rules, coverage, reveal)
-        ? !current.revealed
-        : true,
-    }));
+  function setComponentRevealed(
+    update: boolean | ((current: boolean) => boolean)
+  ) {
+    setComponentRevealState(current => {
+      const currentValue =
+        current.revision === interactionRevision ? current.revealed : false;
+      return {
+        revision: interactionRevision,
+        revealed:
+          typeof update === 'function' ? update(currentValue) : update,
+      };
+    });
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
-    if (reveal !== 'click') return;
+  function toggleRevealId(revealId: string) {
+    setRevealIdsState(current => {
+      const next = new Set(
+        current.revision === interactionRevision ? current.ids : EMPTY_REVEAL_IDS
+      );
+      if (next.has(revealId)) next.delete(revealId);
+      else next.add(revealId);
+      return { revision: interactionRevision, ids: next };
+    });
+  }
+
+  function setHoveredRevealId(revealId: string | null) {
+    setHoverState({ revision: interactionRevision, revealId });
+  }
+
+  function setFocusedRevealId(revealId: string | null) {
+    setFocusState({ revision: interactionRevision, revealId });
+  }
+
+  function onRootKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
+    if (revealScope !== 'component' || reveal !== 'click') return;
+    if (event.key === 'Escape') {
+      setComponentRevealed(false);
+      return;
+    }
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      toggleReveal();
+      setComponentRevealed(value => !value);
     }
+  }
+
+  function onRootClick(event: MouseEvent<HTMLSpanElement>) {
+    if (reveal !== 'click' || hasSelectedText(event.currentTarget)) return;
+    if (revealScope === 'component') {
+      setComponentRevealed(value => !value);
+      return;
+    }
+
+    const revealId = revealIdFromTarget(event.target);
+    if (revealId) toggleRevealId(revealId);
+  }
+
+  function onRootMouseOver(event: MouseEvent<HTMLSpanElement>) {
+    if (revealScope !== 'match' || reveal !== 'hover') return;
+    setHoveredRevealId(revealIdFromTarget(event.target));
+  }
+
+  function onControlFocus(revealId: string) {
+    setFocusedRevealId(revealId);
+  }
+
+  function onControlBlur(event: FocusEvent<HTMLButtonElement>) {
+    const next = event.relatedTarget;
+    if (
+      next instanceof HTMLElement &&
+      next.hasAttribute('data-scrawlix-control')
+    ) {
+      return;
+    }
+    setFocusedRevealId(null);
+  }
+
+  function onControlClick(
+    event: MouseEvent<HTMLButtonElement>,
+    revealId: string
+  ) {
+    event.stopPropagation();
+    if (reveal === 'click') toggleRevealId(revealId);
+  }
+
+  function onControlKeyDown(
+    event: KeyboardEvent<HTMLButtonElement>,
+    revealId: string
+  ) {
+    if (event.key === 'Enter' || event.key === ' ' || event.key === 'Escape') {
+      event.stopPropagation();
+    }
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    setRevealIdsState(current => {
+      const next = new Set(
+        current.revision === interactionRevision ? current.ids : EMPTY_REVEAL_IDS
+      );
+      next.delete(revealId);
+      return { revision: interactionRevision, ids: next };
+    });
+  }
+
+  function isMatchRevealed(revealId: string | undefined) {
+    if (!revealId || revealScope !== 'match') return false;
+    if (reveal === 'hover') return hoveredRevealId === revealId;
+    if (reveal === 'focus') return focusedRevealId === revealId;
+    if (reveal === 'click') return revealedIds.has(revealId);
+    return false;
   }
 
   return (
     <span
       className={className}
       data-scrawlix-root
-      data-reveal={reveal}
-      data-revealed={revealed ? 'true' : 'false'}
-      tabIndex={interactive ? 0 : undefined}
-      onClick={reveal === 'click' ? toggleReveal : undefined}
-      onKeyDown={onKeyDown}
+      data-scrawlix-appearance={appearance}
+      data-scrawlix-reveal={reveal}
+      data-scrawlix-reveal-scope={revealScope}
+      data-scrawlix-revealed={componentRevealed ? 'true' : 'false'}
+      style={style}
+      tabIndex={componentInteractive ? 0 : undefined}
+      onClick={reveal === 'click' ? onRootClick : undefined}
+      onKeyDown={onRootKeyDown}
+      onMouseLeave={
+        revealScope === 'match' && reveal === 'hover'
+          ? () => setHoveredRevealId(null)
+          : undefined
+      }
+      onMouseOver={
+        revealScope === 'match' && reveal === 'hover'
+          ? onRootMouseOver
+          : undefined
+      }
     >
       <span data-scrawlix-a11y>{text}</span>
+      {matchControls && (
+        <span data-scrawlix-controls>
+          {revealIds.map((revealId, index) => {
+            const isRevealed = revealedIds.has(revealId);
+            const verb = reveal === 'click' && isRevealed ? 'Conceal' : 'Reveal';
+            return (
+              <button
+                aria-label={`${verb} censored text ${index + 1} of ${revealIds.length}`}
+                aria-pressed={reveal === 'click' ? isRevealed : undefined}
+                data-scrawlix-control
+                data-scrawlix-reveal-id={revealId}
+                key={revealId}
+                onBlur={onControlBlur}
+                onClick={event => onControlClick(event, revealId)}
+                onFocus={() => onControlFocus(revealId)}
+                onKeyDown={event => onControlKeyDown(event, revealId)}
+                type="button"
+              />
+            );
+          })}
+        </span>
+      )}
       <span aria-hidden="true" data-scrawlix-visual>
         {segments.map((segment, index) => {
           if (!segment.covered) {
-            return <span key={`${index}-${segment.text}`}>{segment.text}</span>;
+            return <span key={`${index}-${segment.start}`}>{segment.text}</span>;
           }
 
-          const symbolAppearance =
-            appearance === 'asterisk' || appearance === 'grawlix';
+          const mask = maskFor(segment.text, appearance);
+          const matchRevealed = isMatchRevealed(segment.revealId);
+          const matchFocused =
+            revealScope === 'match' && focusedRevealId === segment.revealId;
 
           return (
             <span
               data-scrawlix-cover
-              data-appearance={appearance}
-              data-rules={segment.ruleIds.join(',')}
-              key={`${index}-${segment.text}`}
+              data-scrawlix-edge={segment.coverageEdge}
+              data-scrawlix-end={segment.end}
+              data-scrawlix-focused={matchFocused ? 'true' : 'false'}
+              data-scrawlix-mask={mask || undefined}
+              data-scrawlix-matches={segment.matchIds.join(',')}
+              data-scrawlix-reveal-id={segment.revealId}
+              data-scrawlix-revealed={matchRevealed ? 'true' : 'false'}
+              data-scrawlix-rules={segment.ruleIds.join(',')}
+              data-scrawlix-start={segment.start}
+              key={`${index}-${segment.start}`}
               title={title}
             >
-              {symbolAppearance ? (
-                <>
-                  <span data-scrawlix-mask>
-                    {symbolsFor(segment.text, appearance)}
-                  </span>
-                  <span data-scrawlix-source>{segment.text}</span>
-                </>
-              ) : (
-                segment.text
-              )}
+              {segment.text}
             </span>
           );
         })}
