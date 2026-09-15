@@ -15,6 +15,7 @@
     "src/term-matcher.ts",
     "src/obfuscated-term-rule.ts",
     "src/source-mapped.ts",
+    "src/pack-authoring.ts",
     "src/targeted-obfuscated.ts",
     "src/repeated-obfuscated.ts",
     "src/width-obfuscated.ts",
@@ -35,6 +36,11 @@
       "types": "./dist/source-mapped.d.ts",
       "import": "./dist/source-mapped.js",
       "default": "./dist/source-mapped.js"
+    },
+    "./pack-authoring": {
+      "types": "./dist/pack-authoring.d.ts",
+      "import": "./dist/pack-authoring.js",
+      "default": "./dist/pack-authoring.js"
     },
     "./targeted-obfuscated": {
       "types": "./dist/targeted-obfuscated.d.ts",

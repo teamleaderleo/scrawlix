@@ -4,6 +4,11 @@
     "text": "fuck",
     "profile": "canonical",
     "tags": ["base"],
+    "provenance": ["scrawlix-curated"],
+    "review": {
+      "status": "maintained",
+      "note": "Project-maintained canonical baseline case."
+    },
     "matches": [
       {
         "ruleId": "fuck",

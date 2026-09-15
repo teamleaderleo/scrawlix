@@ -1,6 +1,7 @@
 import { createScrawlix } from '@scrawlix/core';
 import { createCorpusRunner } from '@scrawlix/core/corpus';
 import { censorRuleFromConfusableObfuscatedTerms } from '@scrawlix/core/confusable-obfuscated';
+import { defineRulePack } from '@scrawlix/core/pack-authoring';
 import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-obfuscated';
 import { censorRuleFromTransformedTerms } from '@scrawlix/core/source-mapped';
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
@@ -25,6 +26,19 @@ const canonicalCase = englishCorpus.find(
 );
 if (!canonicalCase) throw new Error('Expected a canonical English corpus case.');
 createCorpusRunner({ canonical })(canonicalCase);
+
+const authored = defineRulePack(
+  {
+    schemaVersion: 1,
+    id: 'packed-types',
+    version: '0.0.0',
+    name: 'Packed types',
+    locales: ['en'],
+    review: { status: 'draft' },
+  },
+  [{ id: 'packed-types-rule', pattern: /packed/gu }]
+);
+createScrawlix({ rules: authored.rules }).find('packed');
 
 const advancedRules = [
   censorRuleFromTransformedTerms('tr-browser', ['siktir'], {
