@@ -39,19 +39,42 @@ The default presentation covers the complete semantic target with the `scrawl` a
 />
 ```
 
-Built-in appearances: `scrawl`, `bar`, `blur`, `asterisk`, `grawlix`.
+Built-in appearances: `scrawl`, `bar`, `blur`, `whiteout`, `mosaic`, `asterisk`, `grawlix`.
 
 Reveal modes: `never`, `hover`, `focus`, `click`.
+
+## House treatments
+
+Five typed CSS custom properties tune the built-in family while keeping its visual vocabulary compact:
+
+```tsx
+<CensoredText
+  text={comment.body}
+  rules={englishStrongProfanityRules}
+  appearance="whiteout"
+  style={{
+    '--scrawlix-ink': '#f4a261',
+    '--scrawlix-surface': '#191919',
+    '--scrawlix-bar-height': '0.72em',
+    '--scrawlix-blur-radius': '0.17em',
+    '--scrawlix-mosaic-cell': '0.3em',
+  }}
+/>
+```
+
+`asterisk` and `grawlix` count extended grapheme clusters through core and paint their mask over the exact source substring. The source remains in flow, so reveal preserves its width.
 
 ## CSS import
 
 `@scrawlix/react/styles.css` is required for the built-in visual treatments and the visually-hidden accessibility copy. If source text appears duplicated or uncovered, check this import first.
 
+Renderer hooks use the `data-scrawlix-*` namespace. The root exposes appearance/reveal state; covered fragments expose rule provenance and an optional symbol mask.
+
 ## Accessibility and source text
 
 `CensoredText` is reversible presentation. It keeps one exact source copy available to assistive technology and marks the decorative visual tree `aria-hidden="true"`. Treat secrets or destructive redaction upstream; Scrawlix intentionally preserves caller-owned source text.
 
-Passive `never`/`hover` modes stay outside the tab order. Keyboard-driven `focus`/`click` modes provide a focus path.
+Passive `never`/`hover` modes stay outside the tab order. Keyboard-driven `focus`/`click` modes provide a focus path. `Escape` conceals click-revealed text.
 
 ## Next.js App Router
 

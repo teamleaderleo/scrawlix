@@ -9,7 +9,7 @@ Scrawlix separates four concerns so applications can combine them deliberately:
 - **appearance** — how should the covered part look?
 - **reveal** — when, if ever, should the original text show through?
 
-The same word can become `████`, `f███`, `f██k`, `f█ck`, `f**k`, a blur, an inked-over scrawl, or a grawlix while the caller keeps the original source text.
+The same word can become `████`, `f███`, `f██k`, `f█ck`, `f**k`, a blur, an inked-over scrawl, a whiteout strip, a mosaic, or a grawlix while the caller keeps the original source text.
 
 ## Choose your path
 
@@ -55,13 +55,36 @@ Defaults are full semantic-target coverage, `appearance="scrawl"`, and `reveal="
 />;
 ```
 
-Appearances: `scrawl`, `bar`, `blur`, `asterisk`, `grawlix`. Reveal modes: `never`, `hover`, `focus`, `click`.
+Appearances: `scrawl`, `bar`, `blur`, `whiteout`, `mosaic`, `asterisk`, `grawlix`. Reveal modes: `never`, `hover`, `focus`, `click`.
+
+### House treatments
+
+The built-in stylesheet exposes five typed custom properties through the React `style` prop:
+
+```tsx
+<CensoredText
+  text="what the fuck"
+  rules={englishStrongProfanityRules}
+  appearance="whiteout"
+  style={{
+    '--scrawlix-ink': '#f4a261',
+    '--scrawlix-surface': '#191919',
+    '--scrawlix-bar-height': '0.72em',
+    '--scrawlix-blur-radius': '0.17em',
+    '--scrawlix-mosaic-cell': '0.3em',
+  }}
+/>;
+```
+
+Asterisk and grawlix treatments keep the exact covered source substring in flow and paint a grapheme-counted mask over it. Reveal therefore keeps the source width instead of swapping layout boxes.
 
 ### React CSS, accessibility, and source text
 
 `@scrawlix/react/styles.css` provides the built-in treatments and visually hidden accessibility copy. If text appears duplicated or visibly uncensored, check that import first.
 
 `CensoredText` is reversible presentation: it keeps one exact source copy available to assistive technology and marks the decorative visual tree `aria-hidden="true"`. Secrets or destructive redaction belong upstream. See [`docs/privacy-and-output.md`](docs/privacy-and-output.md).
+
+React renderer hooks use the `data-scrawlix-*` namespace: the root carries appearance/reveal state and covered fragments carry rule provenance plus an optional symbol mask.
 
 ### Next.js App Router
 

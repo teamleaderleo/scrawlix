@@ -32,12 +32,15 @@ Scrawlix is in pre-release development. Until the first package version is chose
 ### React
 
 - Added `@scrawlix/react` and `CensoredText`.
-- Added `scrawl`, `bar`, `blur`, `asterisk`, and `grawlix` appearances.
+- Added `scrawl`, `bar`, `blur`, `whiteout`, `mosaic`, `asterisk`, and `grawlix` appearances.
 - Added `hover`, `focus`, `click`, and `never` reveal behavior.
 - Made `reveal="never"` the first-use default while keeping `scrawl` as the default appearance.
 - Added a React Client Component boundary for hook-based reveal behavior.
 - Added keyboard reveal handling and a single-source accessibility contract with rendered regressions.
 - Added the public CSS subpath export.
+- Added typed house-treatment variables for ink, surface, bar height, blur radius, and mosaic cell size.
+- Kept symbol-treatment source text in flow and paint grapheme-counted asterisk/grawlix masks as overlays so reveal remains layout-stable.
+- Namespaced React presentation hooks under `data-scrawlix-*` and added Escape-to-conceal for click reveal.
 - Bound the supported peer range to React 18 and 19 and added packed external-consumer verification for both majors.
 - Documented and release-gated the Next.js App Router pattern: keep non-serializable rule packs inside an application-owned Client Component and pass serializable text from Server Components.
 

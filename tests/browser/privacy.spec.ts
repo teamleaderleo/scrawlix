@@ -12,7 +12,7 @@ test('demo controls distinguish reversible covers from sanitized output', async 
   const sanitized = lab.locator('[data-sanitized-output]');
 
   await expect(lab).toBeVisible();
-  await expect(root).toHaveAttribute('data-reveal', 'never');
+  await expect(root).toHaveAttribute('data-scrawlix-reveal', 'never');
   await expect(covers).toHaveCount(2);
   expect(await covers.allTextContents()).toEqual(['Project Velvet', 'Acme Widgets']);
 

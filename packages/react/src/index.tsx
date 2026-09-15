@@ -2,19 +2,38 @@
 
 import {
   createScrawlix,
+  graphemeRanges,
   type CensorRule,
   type CoverageSelector,
 } from '@scrawlix/core';
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import {
+  useMemo,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react';
 
 export type ScrawlixAppearance =
   | 'scrawl'
   | 'bar'
   | 'blur'
+  | 'whiteout'
+  | 'mosaic'
   | 'asterisk'
   | 'grawlix';
 
 export type ScrawlixReveal = 'hover' | 'focus' | 'click' | 'never';
+
+export type ScrawlixCustomProperty =
+  | '--scrawlix-ink'
+  | '--scrawlix-surface'
+  | '--scrawlix-bar-height'
+  | '--scrawlix-blur-radius'
+  | '--scrawlix-mosaic-cell';
+
+export type ScrawlixStyle = CSSProperties &
+  Partial<Record<ScrawlixCustomProperty, string>>;
 
 export type CensoredTextProps = {
   text: string;
@@ -23,6 +42,7 @@ export type CensoredTextProps = {
   appearance?: ScrawlixAppearance;
   reveal?: ScrawlixReveal;
   className?: string;
+  style?: ScrawlixStyle;
   title?: string;
 };
 
@@ -35,20 +55,9 @@ type RevealState = {
 };
 
 const GRAWLIX = '@#$%&!';
-const graphemeSegmenter =
-  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
-    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
-    : null;
 
-function graphemeCount(value: string) {
-  if (graphemeSegmenter) {
-    return [...graphemeSegmenter.segment(value)].length;
-  }
-  return Array.from(value).length;
-}
-
-function symbolsFor(text: string, appearance: ScrawlixAppearance) {
-  const length = graphemeCount(text);
+function maskFor(text: string, appearance: ScrawlixAppearance) {
+  const length = graphemeRanges(text).length;
   if (appearance === 'asterisk') return '*'.repeat(length);
   if (appearance === 'grawlix') {
     return Array.from(
@@ -56,7 +65,7 @@ function symbolsFor(text: string, appearance: ScrawlixAppearance) {
       (_, index) => GRAWLIX[index % GRAWLIX.length]
     ).join('');
   }
-  return text;
+  return '';
 }
 
 function sameRevealInputs(
@@ -74,6 +83,17 @@ function sameRevealInputs(
   );
 }
 
+function hasSelectedText(root: HTMLElement) {
+  const selection = root.ownerDocument.defaultView?.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+    return false;
+  }
+
+  return [selection.anchorNode, selection.focusNode].some(
+    node => node !== null && root.contains(node)
+  );
+}
+
 export function CensoredText({
   text,
   rules,
@@ -81,6 +101,7 @@ export function CensoredText({
   appearance = 'scrawl',
   reveal = 'never',
   className = '',
+  style,
   title = 'Censored text',
 }: CensoredTextProps) {
   const engine = useMemo(
@@ -113,6 +134,10 @@ export function CensoredText({
 
   const interactive = reveal === 'focus' || reveal === 'click';
 
+  function setRevealed(value: boolean) {
+    setRevealState({ text, rules, coverage, reveal, revealed: value });
+  }
+
   function toggleReveal() {
     setRevealState(current => ({
       text,
@@ -125,8 +150,17 @@ export function CensoredText({
     }));
   }
 
+  function onClick(event: MouseEvent<HTMLSpanElement>) {
+    if (reveal !== 'click' || hasSelectedText(event.currentTarget)) return;
+    toggleReveal();
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
     if (reveal !== 'click') return;
+    if (event.key === 'Escape') {
+      setRevealed(false);
+      return;
+    }
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       toggleReveal();
@@ -136,11 +170,13 @@ export function CensoredText({
   return (
     <span
       className={className}
+      data-scrawlix-appearance={appearance}
+      data-scrawlix-reveal={reveal}
+      data-scrawlix-revealed={revealed ? 'true' : 'false'}
       data-scrawlix-root
-      data-reveal={reveal}
-      data-revealed={revealed ? 'true' : 'false'}
+      style={style}
       tabIndex={interactive ? 0 : undefined}
-      onClick={reveal === 'click' ? toggleReveal : undefined}
+      onClick={reveal === 'click' ? onClick : undefined}
       onKeyDown={onKeyDown}
     >
       <span data-scrawlix-a11y>{text}</span>
@@ -150,27 +186,17 @@ export function CensoredText({
             return <span key={`${index}-${segment.text}`}>{segment.text}</span>;
           }
 
-          const symbolAppearance =
-            appearance === 'asterisk' || appearance === 'grawlix';
+          const mask = maskFor(segment.text, appearance);
 
           return (
             <span
               data-scrawlix-cover
-              data-appearance={appearance}
-              data-rules={segment.ruleIds.join(',')}
+              data-scrawlix-mask={mask || undefined}
+              data-scrawlix-rules={segment.ruleIds.join(',')}
               key={`${index}-${segment.text}`}
               title={title}
             >
-              {symbolAppearance ? (
-                <>
-                  <span data-scrawlix-mask>
-                    {symbolsFor(segment.text, appearance)}
-                  </span>
-                  <span data-scrawlix-source>{segment.text}</span>
-                </>
-              ) : (
-                segment.text
-              )}
+              {segment.text}
             </span>
           );
         })}

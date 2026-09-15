@@ -17,18 +17,18 @@ test('demo controls activate spoiler rules from viewing progress', async ({ page
     'the red key opens the observatory',
     'Mara burns the north archive',
   ]);
-  await expect(root).toHaveAttribute('data-reveal', 'click');
-  await expect(root).toHaveAttribute('data-revealed', 'false');
+  await expect(root).toHaveAttribute('data-scrawlix-reveal', 'click');
+  await expect(root).toHaveAttribute('data-scrawlix-revealed', 'false');
 
   await root.click();
-  await expect(root).toHaveAttribute('data-revealed', 'true');
+  await expect(root).toHaveAttribute('data-scrawlix-revealed', 'true');
 
   await lab.getByRole('button', { name: '4', exact: true }).click();
   await expect(lab).toHaveAttribute('data-watched-through', '4');
   await expect(lab).toHaveAttribute('data-hidden-count', '1');
   await expect(covers).toHaveCount(1);
   await expect(covers).toHaveText('Mara burns the north archive');
-  await expect(root).toHaveAttribute('data-revealed', 'false');
+  await expect(root).toHaveAttribute('data-scrawlix-revealed', 'false');
 
   await lab.getByRole('button', { name: '5', exact: true }).click();
   await expect(lab).toHaveAttribute('data-watched-through', '5');

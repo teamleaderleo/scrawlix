@@ -58,9 +58,9 @@ describe('CensoredText', () => {
     const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
     const cover = container.querySelector<HTMLElement>('[data-scrawlix-cover]')!;
 
-    expect(root.dataset.reveal).toBe('never');
+    expect(root.getAttribute('data-scrawlix-reveal')).toBe('never');
+    expect(root.getAttribute('data-scrawlix-appearance')).toBe('scrawl');
     expect(root.getAttribute('tabindex')).toBeNull();
-    expect(cover.dataset.appearance).toBe('scrawl');
     expect(cover.textContent).toBe('fuck');
   });
 
@@ -80,8 +80,10 @@ describe('CensoredText', () => {
     expect(accessible.getAttribute('aria-hidden')).toBeNull();
     expect(visual.getAttribute('aria-hidden')).toBe('true');
     expect(covers).toHaveLength(1);
-    expect(covers[0]?.getAttribute('data-rules')).toBe('fuck');
-    expect(covers[0]?.getAttribute('data-appearance')).toBe('bar');
+    expect(covers[0]?.getAttribute('data-scrawlix-rules')).toBe('fuck');
+    expect(root.getAttribute('data-scrawlix-appearance')).toBe('bar');
+    expect(covers[0]?.hasAttribute('data-rules')).toBe(false);
+    expect(covers[0]?.hasAttribute('data-appearance')).toBe(false);
   });
 
   it('keeps hover and never reveal passive in the tab order', () => {
@@ -92,8 +94,8 @@ describe('CensoredText', () => {
       const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
 
       expect(root.getAttribute('tabindex')).toBeNull();
-      expect(root.dataset.reveal).toBe(reveal);
-      expect(root.dataset.revealed).toBe('false');
+      expect(root.getAttribute('data-scrawlix-reveal')).toBe(reveal);
+      expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
     }
   });
 
@@ -105,7 +107,7 @@ describe('CensoredText', () => {
 
     expect(root.tabIndex).toBe(0);
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(root.dataset.revealed).toBe('false');
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
   });
 
   it('toggles click reveal with pointer activation', () => {
@@ -115,13 +117,30 @@ describe('CensoredText', () => {
     const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
 
     expect(root.tabIndex).toBe(0);
-    expect(root.dataset.revealed).toBe('false');
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
 
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(root.dataset.revealed).toBe('true');
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('true');
 
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(root.dataset.revealed).toBe('false');
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
+  });
+
+  it('conceals click reveal with Escape', () => {
+    const container = render(
+      <CensoredText reveal="click" rules={rules} text="fuck" />
+    );
+    const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+
+    act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('true');
+
+    act(() =>
+      root.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Escape' })
+      )
+    );
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
   });
 
   it('conceals different censored text after a click-revealed value changes', () => {
@@ -134,30 +153,30 @@ describe('CensoredText', () => {
     let root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
 
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(root.dataset.revealed).toBe('true');
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('true');
 
     rerender(
       <CensoredText reveal="click" rules={changingRules} text="shit" />
     );
     root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
-    expect(root.dataset.revealed).toBe('false');
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
   });
 
-  it('does not revive reveal state across a safe-text transition', () => {
+  it('keeps reveal state reset across a safe-text transition', () => {
     const container = render(
       <CensoredText reveal="click" rules={rules} text="fuck" />
     );
     let root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
 
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(root.dataset.revealed).toBe('true');
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('true');
 
     rerender(<CensoredText reveal="click" rules={rules} text="safe" />);
     expect(container.querySelector('[data-scrawlix-root]')).toBeNull();
 
     rerender(<CensoredText reveal="click" rules={rules} text="fuck" />);
     root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
-    expect(root.dataset.revealed).toBe('false');
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
   });
 
   it('preserves reveal state across an equivalent rerender', () => {
@@ -167,11 +186,11 @@ describe('CensoredText', () => {
     let root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
 
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(root.dataset.revealed).toBe('true');
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('true');
 
     rerender(<CensoredText reveal="click" rules={rules} text="fuck" />);
     root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
-    expect(root.dataset.revealed).toBe('true');
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('true');
   });
 
   it.each(['Enter', ' '])('toggles click reveal with %j', key => {
@@ -190,10 +209,10 @@ describe('CensoredText', () => {
       )
     );
 
-    expect(root.dataset.revealed).toBe('true');
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('true');
   });
 
-  it('renders symbol masks while retaining the exact covered source substring', () => {
+  it('keeps symbol-mask source text in flow and paints the grapheme mask from metadata', () => {
     const container = render(
       <CensoredText
         appearance="asterisk"
@@ -204,14 +223,14 @@ describe('CensoredText', () => {
     );
 
     const cover = container.querySelector<HTMLElement>('[data-scrawlix-cover]')!;
-    const mask = cover.querySelector<HTMLElement>('[data-scrawlix-mask]')!;
-    const source = cover.querySelector<HTMLElement>('[data-scrawlix-source]')!;
 
-    expect(mask.textContent).toBe('**');
-    expect(source.textContent).toBe('uc');
+    expect(cover.textContent).toBe('uc');
+    expect(cover.getAttribute('data-scrawlix-mask')).toBe('**');
+    expect(cover.querySelector('[data-scrawlix-source]')).toBeNull();
+    expect(cover.querySelector('[data-scrawlix-mask]')).toBeNull();
   });
 
-  it('cycles grawlix symbols by covered grapheme count', () => {
+  it('cycles grawlix symbols by extended grapheme count', () => {
     const graphemeText = 'e\u0301❤️👍🏽🇺🇸👨‍👩‍👧‍👦';
     const fullRule = [{ id: 'whole', pattern: /.+/u }] as const;
     const container = render(
@@ -224,7 +243,37 @@ describe('CensoredText', () => {
     );
 
     expect(
-      container.querySelector<HTMLElement>('[data-scrawlix-mask]')?.textContent
+      container
+        .querySelector<HTMLElement>('[data-scrawlix-cover]')
+        ?.getAttribute('data-scrawlix-mask')
     ).toBe('@#$%&');
+  });
+
+  it.each(['whiteout', 'mosaic'] as const)('exposes the %s house treatment', appearance => {
+    const container = render(
+      <CensoredText appearance={appearance} rules={rules} text="fuck" />
+    );
+    const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    expect(root.getAttribute('data-scrawlix-appearance')).toBe(appearance);
+  });
+
+  it('accepts typed house-treatment custom properties', () => {
+    const container = render(
+      <CensoredText
+        appearance="whiteout"
+        rules={rules}
+        style={{
+          '--scrawlix-ink': '#f4a261',
+          '--scrawlix-surface': '#191919',
+          '--scrawlix-bar-height': '0.68em',
+          '--scrawlix-blur-radius': '0.2em',
+          '--scrawlix-mosaic-cell': '0.28em',
+        }}
+        text="fuck"
+      />
+    );
+    const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    expect(root.style.getPropertyValue('--scrawlix-ink')).toBe('#f4a261');
+    expect(root.style.getPropertyValue('--scrawlix-surface')).toBe('#191919');
   });
 });
