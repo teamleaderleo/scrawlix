@@ -10,6 +10,7 @@ const ELEMENT_NODE = 1;
 const TEXT_NODE = 3;
 const DOCUMENT_NODE = 9;
 const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
+const DOM_ROOT_ATTRIBUTE = 'data-scrawlix-dom-root';
 
 const DEFAULT_EXCLUDED_TAGS = [
   'button',
@@ -26,6 +27,10 @@ const DEFAULT_EXCLUDED_TAGS = [
   'template',
   'textarea',
 ] as const;
+
+let controllerSequence = 0;
+const knownOwnershipTokens = new Set<string>();
+const globallyOwnedRoots = new WeakSet<Element>();
 
 export type DomScrawlixOptions = {
   rules: readonly CensorRule[];
@@ -55,6 +60,8 @@ export type DomObservation = {
   initialResult: DomApplyResult;
   /** Process mutation roots already delivered by MutationObserver. */
   flush(): DomApplyResult;
+  /** True only for generated roots currently owned by this live observation. */
+  ownsGeneratedRoot(node: Node): boolean;
   disconnect(): void;
   /** Disconnect observation, clear pending work, then restore owned text in one call. */
   restore(): number;
@@ -90,31 +97,15 @@ function ownerDocument(node: Node): Document | null {
   return node.ownerDocument;
 }
 
-function isGeneratedRoot(node: Node) {
-  return (
-    node.nodeType === ELEMENT_NODE &&
-    (node as Element).hasAttribute('data-scrawlix-dom-root')
-  );
-}
-
-function isWithinGeneratedRoot(node: Node) {
-  if (isGeneratedRoot(node)) return true;
-  const element =
+function hasOwnedAncestor(node: Node, ownedRoots: WeakSet<Element>) {
+  let element =
     node.nodeType === ELEMENT_NODE ? (node as Element) : node.parentElement;
-  return element?.closest('[data-scrawlix-dom-root]') !== null;
-}
 
-function hasGeneratedAncestor(node: Text) {
-  let element = node.parentElement;
   while (element) {
-    if (
-      element.hasAttribute('data-scrawlix-dom-root') ||
-      element.hasAttribute('data-scrawlix-cover')
-    ) {
-      return true;
-    }
+    if (ownedRoots.has(element)) return true;
     element = element.parentElement;
   }
+
   return false;
 }
 
@@ -142,7 +133,7 @@ function contentEditableState(node: Text): boolean {
 
 function isEligibleText(node: Text, options: PreparedOptions) {
   if (!node.data) return false;
-  if (hasGeneratedAncestor(node)) return false;
+  if (hasOwnedAncestor(node, globallyOwnedRoots)) return false;
   if (options.shouldSkipText?.(node) === true) return false;
 
   const parent = node.parentElement;
@@ -189,11 +180,28 @@ export function createDomScrawlix(
     ignoreAttribute: options.ignoreAttribute ?? 'data-scrawlix-ignore',
     shouldSkipText: options.shouldSkipText,
   };
+  const ownershipToken = `dom-${++controllerSequence}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
+  knownOwnershipTokens.add(ownershipToken);
 
   const ownedRoots = new WeakSet<Element>();
   const sourceNodes = new WeakMap<Element, Text>();
   const ownedSources = new WeakMap<Text, Element>();
   const sourceText = new WeakMap<Text, string>();
+  const normalizeCanaries = new WeakMap<Element, Text>();
+
+  function appendNormalizeCanary(wrapper: Element) {
+    const canary = wrapper.ownerDocument.createTextNode('');
+    wrapper.append(canary);
+    normalizeCanaries.set(wrapper, canary);
+  }
+
+  function ensureNormalizeCanary(wrapper: Element) {
+    const canary = normalizeCanaries.get(wrapper);
+    if (canary?.parentNode === wrapper) return;
+    appendNormalizeCanary(wrapper);
+  }
 
   function renderWrapper(
     wrapper: Element,
@@ -209,13 +217,17 @@ export function createDomScrawlix(
         wrapper.append(document.createTextNode(segment.text));
       }
     }
+
+    appendNormalizeCanary(wrapper);
   }
 
   function forgetOwnedSource(source: Text, wrapper: Element) {
     ownedSources.delete(source);
     sourceNodes.delete(wrapper);
     sourceText.delete(source);
+    normalizeCanaries.delete(wrapper);
     ownedRoots.delete(wrapper);
+    globallyOwnedRoots.delete(wrapper);
   }
 
   function syncOwnedSource(source: Text) {
@@ -248,7 +260,9 @@ export function createDomScrawlix(
     knownEligible = false
   ): DomApplyResult {
     if (ownedSources.has(node)) return emptyResult();
-    if (!knownEligible && !isEligibleText(node, prepared)) return emptyResult();
+    if (!knownEligible && !isEligibleText(node, prepared)) {
+      return emptyResult();
+    }
 
     const source = node.data;
     const segments = engine.segment(source);
@@ -257,10 +271,11 @@ export function createDomScrawlix(
 
     const document = node.ownerDocument;
     const wrapper = document.createElement('span');
-    wrapper.setAttribute('data-scrawlix-dom-root', '');
+    wrapper.setAttribute(DOM_ROOT_ATTRIBUTE, ownershipToken);
     renderWrapper(wrapper, segments);
 
     ownedRoots.add(wrapper);
+    globallyOwnedRoots.add(wrapper);
     sourceNodes.set(wrapper, node);
     ownedSources.set(node, wrapper);
     sourceText.set(node, source);
@@ -271,24 +286,68 @@ export function createDomScrawlix(
     return { transformedTextNodes: 1, coveredSegments };
   }
 
-  function apply(root: Node): DomApplyResult {
-    if (root.nodeType === TEXT_NODE) {
-      return transformTextNode(root as Text);
+  function isCopiedGeneratedRoot(node: Node): node is Element {
+    if (node.nodeType !== ELEMENT_NODE) return false;
+    const element = node as Element;
+    const token = element.getAttribute(DOM_ROOT_ATTRIBUTE);
+    return (
+      token !== null &&
+      knownOwnershipTokens.has(token) &&
+      !globallyOwnedRoots.has(element)
+    );
+  }
+
+  function replaceCopiedGeneratedRoot(root: Element) {
+    const replacement = root.ownerDocument.createTextNode(root.textContent ?? '');
+    root.replaceWith(replacement);
+    return replacement;
+  }
+
+  function normalizeCopiedGeneratedRoots(root: Node): Node {
+    if (isCopiedGeneratedRoot(root)) {
+      return replaceCopiedGeneratedRoot(root);
     }
 
-    if (isGeneratedRoot(root)) {
+    if (!('querySelectorAll' in root)) return root;
+    const queryable = root as Node & ParentNode;
+    const copies = Array.from(
+      queryable.querySelectorAll(`[${DOM_ROOT_ATTRIBUTE}]`)
+    ).filter(isCopiedGeneratedRoot);
+
+    for (const copy of copies) {
+      if (root !== copy && !root.contains(copy)) continue;
+      replaceCopiedGeneratedRoot(copy);
+    }
+
+    return root;
+  }
+
+  function apply(root: Node): DomApplyResult {
+    const normalizedRoot = normalizeCopiedGeneratedRoots(root);
+
+    if (normalizedRoot.nodeType === TEXT_NODE) {
+      return transformTextNode(normalizedRoot as Text);
+    }
+
+    if (
+      normalizedRoot.nodeType === ELEMENT_NODE &&
+      globallyOwnedRoots.has(normalizedRoot as Element)
+    ) {
       return emptyResult();
     }
 
-    const document = ownerDocument(root);
+    const document = ownerDocument(normalizedRoot);
     if (!document) return emptyResult();
 
-    const walker = document.createTreeWalker(root, SHOW_TEXT);
+    const walker = document.createTreeWalker(normalizedRoot, SHOW_TEXT);
     const candidates: Text[] = [];
     let current = walker.nextNode();
 
     while (current) {
-      if (current.nodeType === TEXT_NODE && isEligibleText(current as Text, prepared)) {
+      if (
+        current.nodeType === TEXT_NODE &&
+        isEligibleText(current as Text, prepared)
+      ) {
         candidates.push(current as Text);
       }
       current = walker.nextNode();
@@ -303,14 +362,16 @@ export function createDomScrawlix(
   function generatedRootsWithin(root: Node): Element[] {
     const roots: Element[] = [];
 
-    if (isGeneratedRoot(root)) {
+    if (root.nodeType === ELEMENT_NODE && ownedRoots.has(root as Element)) {
       roots.push(root as Element);
     }
 
     if ('querySelectorAll' in root) {
       const queryable = root as Node & ParentNode;
       roots.push(
-        ...Array.from(queryable.querySelectorAll('[data-scrawlix-dom-root]'))
+        ...Array.from(queryable.querySelectorAll(`[${DOM_ROOT_ATTRIBUTE}]`)).filter(
+          element => ownedRoots.has(element)
+        )
       );
     }
 
@@ -318,6 +379,7 @@ export function createDomScrawlix(
   }
 
   function restore(root: Node) {
+    normalizeCopiedGeneratedRoots(root);
     let restored = 0;
 
     for (const wrapper of generatedRootsWithin(root)) {
@@ -333,6 +395,7 @@ export function createDomScrawlix(
         wrapper.remove();
         source.data = value;
       } else {
+        source.data = value;
         wrapper.replaceWith(wrapper.ownerDocument.createTextNode(value));
       }
       restored += 1;
@@ -355,7 +418,7 @@ export function createDomScrawlix(
     let scheduled = false;
 
     const queue = (node: Node) => {
-      if (isWithinGeneratedRoot(node)) return;
+      if (hasOwnedAncestor(node, globallyOwnedRoots)) return;
 
       for (const existing of pending) {
         if (existing === node || existing.contains(node)) return;
@@ -394,6 +457,8 @@ export function createDomScrawlix(
 
     const processRecords = (records: MutationRecord[]) => {
       const ownedCharacterData = new Map<Text, MutationRecord[]>();
+      const unownedCharacterData: Text[] = [];
+      const normalizedRoots = new Set<Element>();
 
       for (const record of records) {
         if (record.type === 'characterData') {
@@ -403,39 +468,25 @@ export function createDomScrawlix(
             sourceRecords.push(record);
             ownedCharacterData.set(source, sourceRecords);
           } else {
-            queue(source);
+            unownedCharacterData.push(source);
           }
           continue;
         }
 
-        for (const removed of Array.from(record.removedNodes)) {
-          if (removed.nodeType === TEXT_NODE) {
-            const source = removed as Text;
-            const wrapper = ownedSources.get(source);
-            if (wrapper) {
-              const value = sourceText.get(source) ?? wrapper.textContent ?? '';
-              forgetOwnedSource(source, wrapper);
-              wrapper.remove();
-              source.data = value;
-            }
-            continue;
+        if (record.target.nodeType === ELEMENT_NODE) {
+          const wrapper = record.target as Element;
+          const canary = normalizeCanaries.get(wrapper);
+          if (
+            ownedRoots.has(wrapper) &&
+            canary &&
+            Array.from(record.removedNodes).includes(canary)
+          ) {
+            normalizedRoots.add(wrapper);
           }
-
-          if (isGeneratedRoot(removed)) {
-            const wrapper = removed as Element;
-            const source = sourceNodes.get(wrapper);
-            if (source && source.parentNode) {
-              const value = sourceText.get(source) ?? wrapper.textContent ?? '';
-              forgetOwnedSource(source, wrapper);
-              source.data = value;
-            }
-          }
-        }
-
-        for (const added of Array.from(record.addedNodes)) {
-          queue(added);
         }
       }
+
+      const pageWrites = new Map<Text, string>();
 
       for (const [source, sourceRecords] of ownedCharacterData) {
         const expectedInternalOldValue = sourceText.get(source);
@@ -444,7 +495,76 @@ export function createDomScrawlix(
           expectedInternalOldValue !== undefined &&
           sourceRecords.every(record => record.oldValue === expectedInternalOldValue);
 
-        if (!internalClearOnly) syncOwnedSource(source);
+        if (!internalClearOnly) {
+          pageWrites.set(source, source.data);
+          sourceText.set(source, source.data);
+        }
+      }
+
+      const releasedSources = new Set<Text>();
+
+      const releaseOwnedSource = (source: Text, wrapper: Element) => {
+        if (releasedSources.has(source)) return;
+        const value =
+          pageWrites.get(source) ??
+          sourceText.get(source) ??
+          wrapper.textContent ??
+          '';
+        forgetOwnedSource(source, wrapper);
+        wrapper.remove();
+        source.data = value;
+        releasedSources.add(source);
+
+        if (source === root || root.contains(source)) queue(source);
+      };
+
+      for (const record of records) {
+        if (record.type !== 'childList') continue;
+
+        for (const removed of Array.from(record.removedNodes)) {
+          if (removed.nodeType === TEXT_NODE) {
+            const source = removed as Text;
+            const wrapper = ownedSources.get(source);
+            if (wrapper) {
+              const normalizeRemovedAnchor =
+                normalizedRoots.has(wrapper) &&
+                !pageWrites.has(source) &&
+                source.data === '' &&
+                source.parentNode === null &&
+                wrapper.parentNode === record.target;
+
+              if (normalizeRemovedAnchor) {
+                record.target.insertBefore(source, wrapper);
+                ensureNormalizeCanary(wrapper);
+              } else {
+                releaseOwnedSource(source, wrapper);
+              }
+            }
+            continue;
+          }
+
+          for (const wrapper of generatedRootsWithin(removed)) {
+            const source = sourceNodes.get(wrapper);
+            if (source) releaseOwnedSource(source, wrapper);
+          }
+        }
+      }
+
+      for (const [source] of pageWrites) {
+        if (ownedSources.has(source)) syncOwnedSource(source);
+      }
+
+      for (const wrapper of normalizedRoots) {
+        if (ownedRoots.has(wrapper)) ensureNormalizeCanary(wrapper);
+      }
+
+      for (const source of unownedCharacterData) queue(source);
+
+      for (const record of records) {
+        if (record.type !== 'childList') continue;
+        for (const added of Array.from(record.addedNodes)) {
+          queue(normalizeCopiedGeneratedRoots(added));
+        }
       }
 
       if (pending.size > 0) schedule();
@@ -465,6 +585,9 @@ export function createDomScrawlix(
     return {
       initialResult,
       flush,
+      ownsGeneratedRoot(node) {
+        return node.nodeType === ELEMENT_NODE && ownedRoots.has(node as Element);
+      },
       disconnect() {
         processRecords(observer.takeRecords());
         stop();
