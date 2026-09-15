@@ -110,15 +110,17 @@ The page keeps ownership of its Text objects, character data, and parent/child r
 
 Real Chromium regressions cover delayed React hydration, retained HostText updates/removals/remounts, `Node.normalize()`, same-task write/remove/reinsert, body/full-document replacement, extension reload, native selection/copy, strict CSP, and dense 300→500-row SPA mutation batches.
 
-## Appearance note for arbitrary webpages
+## Arbitrary-page appearance contract
 
-CSS Custom Highlight can style source glyphs but cannot synthesize replacement glyphs. In the extension's arbitrary-page renderer:
+The first Chrome Web Store renderer exposes three treatments whose page behavior is distinct and dependable through CSS Custom Highlight:
 
-- `scrawl` uses a wavy strike/ink treatment
-- `blur` uses a blurred concealment treatment
-- `bar`, `asterisk`, and `grawlix` use the same opaque concealment treatment
+- `scrawl` — wavy ink/strike treatment
+- `bar` — opaque concealment
+- `blur` — blurred concealment
 
-The reusable React/DOM renderers can still provide richer symbol-mask output because they own their own rendering surfaces.
+Development builds previously persisted `asterisk` and `grawlix` profile values. Those values migrate to `bar` when settings are normalized.
+
+The reusable React renderer keeps its richer seven-treatment vocabulary because it owns its rendering surface. The extension deliberately avoids rebuilding replacement glyphs in a page overlay: doing so would require a page-host compositor plus continuous geometry/clipping/transform/reflow coordination, reopening page-ownership risks for cosmetic output. The investigation and renderer comparison are recorded in `docs/extension-overlay-renderer-decision.md`.
 
 ## First-store coverage boundary
 
