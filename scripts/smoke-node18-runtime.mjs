@@ -132,7 +132,10 @@ assert.ok(
   )
 );
 
-assert.equal(typeof CensoredText, 'function');
+assert.ok(
+  CensoredText !== null &&
+    (typeof CensoredText === 'function' || typeof CensoredText === 'object')
+);
 assert.equal(typeof createDomScrawlix, 'function');
 
 console.log(`Scrawlix Node ${process.versions.node} runtime smoke passed.`);

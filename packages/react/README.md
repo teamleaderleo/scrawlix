@@ -100,6 +100,29 @@ Reveal scope defaults to `component`, which preserves the established whole-comp
 
 Match scope groups every covered island belonging to one semantic match, and transitively joins overlapping matches so disclosure never exposes half of a connected match set. Pointer activation stays local. Keyboard `focus` and `click` modes use visually hidden native buttons with one control per disclosure group; `Escape` conceals the active click-revealed group.
 
+## Host span composition
+
+`CensoredText` always owns one stable root `<span>`, including when the current text has no matches. Ordinary span metadata such as `id`, `className`, `data-*`, safe `aria-*`, `title`, typed `style`, and a `ref` can live directly on that root.
+
+```tsx
+import { useRef } from 'react';
+
+const ref = useRef<HTMLSpanElement>(null);
+
+<CensoredText
+  ref={ref}
+  id="comment-body"
+  data-testid="comment-body"
+  className="comment-copy"
+  text={comment.body}
+  rules={englishStrongProfanityRules}
+/>
+```
+
+Scrawlix reserves its generated `data-scrawlix-*` attributes, `aria-hidden`, children, `contentEditable`, and `dangerouslySetInnerHTML`. Interactive component-level `focus`/`click` reveal also owns the root tab stop; otherwise a caller-supplied `tabIndex` is preserved.
+
+Caller `onClick`, `onKeyDown`, `onFocus`, and `onBlur` handlers run before Scrawlix disclosure behavior. Calling `event.preventDefault()` from the caller handler vetoes the corresponding Scrawlix reveal change. Per-match hidden controls remain internal and stop their activation/focus events before they reach ancestors outside `CensoredText`.
+
 ## House treatments
 
 Five typed CSS custom properties tune the built-in family while keeping its visual vocabulary compact:

@@ -195,7 +195,10 @@ assert.ok(
   )
 );
 
-assert.equal(typeof CensoredText, 'function');
+assert.ok(
+  CensoredText !== null &&
+    (typeof CensoredText === 'function' || typeof CensoredText === 'object')
+);
 assert.equal(typeof createDomScrawlix, 'function');
 assert.equal(typeof createDomRangeScanner, 'function');
 

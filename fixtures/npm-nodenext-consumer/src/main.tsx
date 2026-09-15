@@ -96,14 +96,21 @@ const host = document.createElement('div');
 host.textContent = 'fuck';
 createDomScrawlix({ rules: englishStrongProfanityRules, coverage: 'full' }).apply(host);
 
+const censoredRef = React.createRef<HTMLSpanElement>();
+
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <CensoredText
+      data-testid="nodenext-censored-text"
+      id="nodenext-censored-text"
+      onKeyDown={() => undefined}
+      ref={censoredRef}
       text="well, fuck"
       rules={englishStrongProfanityRules}
       coverage="middle"
       appearance="scrawl"
       reveal="never"
+      title="NodeNext Scrawlix text"
     />
   </React.StrictMode>
 );

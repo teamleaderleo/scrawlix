@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { act, type ReactElement } from 'react';
+import { act, createRef, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CensoredText } from './index';
@@ -44,13 +44,42 @@ afterEach(() => {
 });
 
 describe('CensoredText', () => {
-  it('renders ordinary text directly when no rule matches', () => {
+  it('keeps an ordinary root span even when no rule matches', () => {
     const container = render(
       <CensoredText rules={rules} text="a perfectly ordinary sentence" />
     );
+    const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
 
-    expect(container.textContent).toBe('a perfectly ordinary sentence');
-    expect(container.querySelector('[data-scrawlix-root]')).toBeNull();
+    expect(root.textContent).toBe('a perfectly ordinary sentence');
+    expect(root.querySelector('[data-scrawlix-a11y]')).toBeNull();
+    expect(root.querySelector('[data-scrawlix-visual]')).toBeNull();
+  });
+
+  it('forwards ordinary span metadata, style, tab order, and the root ref', () => {
+    const ref = createRef<HTMLSpanElement>();
+    const container = render(
+      <CensoredText
+        aria-label="Application label"
+        className="application-copy"
+        id="project-note"
+        ref={ref}
+        rules={rules}
+        style={{ '--scrawlix-ink': '#123456', letterSpacing: '0.02em' }}
+        tabIndex={7}
+        text="safe"
+        title="Application title"
+      />
+    );
+    const root = container.querySelector<HTMLSpanElement>('[data-scrawlix-root]')!;
+
+    expect(ref.current).toBe(root);
+    expect(root.id).toBe('project-note');
+    expect(root.className).toBe('application-copy');
+    expect(root.getAttribute('aria-label')).toBe('Application label');
+    expect(root.tabIndex).toBe(7);
+    expect(root.title).toBe('Application title');
+    expect(root.style.getPropertyValue('--scrawlix-ink')).toBe('#123456');
+    expect(root.style.letterSpacing).toBe('0.02em');
   });
 
   it('defaults to full coverage with a non-revealing scrawl', () => {
@@ -62,6 +91,7 @@ describe('CensoredText', () => {
     expect(root.getAttribute('data-scrawlix-appearance')).toBe('scrawl');
     expect(root.getAttribute('tabindex')).toBeNull();
     expect(cover.textContent).toBe('fuck');
+    expect(cover.title).toBe('Censored text');
   });
 
   it('keeps one accessible source copy and hides the visual tree from assistive tech', () => {
@@ -76,6 +106,7 @@ describe('CensoredText', () => {
     const covers = visual.querySelectorAll('[data-scrawlix-cover]');
 
     expect(root.getAttribute('aria-label')).toBeNull();
+    expect(root.getAttribute('aria-hidden')).toBeNull();
     expect(accessible.textContent).toBe(text);
     expect(accessible.getAttribute('aria-hidden')).toBeNull();
     expect(visual.getAttribute('aria-hidden')).toBe('true');
@@ -99,14 +130,88 @@ describe('CensoredText', () => {
     }
   });
 
-  it('makes focus reveal keyboard-focusable without click state', () => {
+  it('uses the caller tab index for passive output and owns it while component reveal is interactive', () => {
     const container = render(
-      <CensoredText reveal="focus" rules={rules} text="fuck" />
+      <CensoredText reveal="never" rules={rules} tabIndex={4} text="fuck" />
+    );
+    let root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    expect(root.tabIndex).toBe(4);
+
+    rerender(
+      <CensoredText reveal="click" rules={rules} tabIndex={4} text="fuck" />
+    );
+    root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    expect(root.tabIndex).toBe(0);
+  });
+
+  it('makes focus reveal keyboard-focusable without click state', () => {
+    let focused = 0;
+    const container = render(
+      <CensoredText
+        onFocus={() => {
+          focused += 1;
+        }}
+        reveal="focus"
+        rules={rules}
+        text="fuck"
+      />
     );
     const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
 
     expect(root.tabIndex).toBe(0);
+    act(() => root.focus());
+    expect(focused).toBe(1);
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
+  });
+
+  it('runs caller click handlers before component reveal and honors preventDefault', () => {
+    let clicks = 0;
+    const container = render(
+      <CensoredText
+        onClick={event => {
+          clicks += 1;
+          event.preventDefault();
+        }}
+        reveal="click"
+        rules={rules}
+        text="fuck"
+      />
+    );
+    const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+
+    act(() =>
+      root.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    );
+    expect(clicks).toBe(1);
+    expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
+  });
+
+  it('runs caller key handlers before component reveal and honors preventDefault', () => {
+    let keys = 0;
+    const container = render(
+      <CensoredText
+        onKeyDown={event => {
+          keys += 1;
+          event.preventDefault();
+        }}
+        reveal="click"
+        rules={rules}
+        text="fuck"
+      />
+    );
+    const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+
+    act(() =>
+      root.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          bubbles: true,
+          cancelable: true,
+          key: 'Enter',
+        })
+      )
+    );
+    expect(keys).toBe(1);
     expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
   });
 
@@ -162,21 +267,26 @@ describe('CensoredText', () => {
     expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
   });
 
-  it('keeps reveal state reset across a safe-text transition', () => {
+  it('keeps one root DOM node and resets reveal state across a safe-text transition', () => {
     const container = render(
       <CensoredText reveal="click" rules={rules} text="fuck" />
     );
-    let root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    const root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
 
     act(() => root.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(root.getAttribute('data-scrawlix-revealed')).toBe('true');
 
     rerender(<CensoredText reveal="click" rules={rules} text="safe" />);
-    expect(container.querySelector('[data-scrawlix-root]')).toBeNull();
+    let currentRoot = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    expect(currentRoot).toBe(root);
+    expect(currentRoot.textContent).toBe('safe');
+    expect(currentRoot.querySelector('[data-scrawlix-cover]')).toBeNull();
+    expect(currentRoot.getAttribute('data-scrawlix-revealed')).toBe('false');
 
     rerender(<CensoredText reveal="click" rules={rules} text="fuck" />);
-    root = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
-    expect(root.getAttribute('data-scrawlix-revealed')).toBe('false');
+    currentRoot = container.querySelector<HTMLElement>('[data-scrawlix-root]')!;
+    expect(currentRoot).toBe(root);
+    expect(currentRoot.getAttribute('data-scrawlix-revealed')).toBe('false');
   });
 
   it('preserves reveal state across an equivalent rerender', () => {
