@@ -140,6 +140,17 @@ test('reports an empty diff cleanly', () => {
   );
 });
 
+test('ignores undeclared entry ids in raw match snapshots', () => {
+  const base = docs([
+    corpusCase({ id: 'entry', matches: [{ ...match(), entryId: 'entry-a' }] }),
+  ]);
+  const head = docs([
+    corpusCase({ id: 'entry', matches: [{ ...match(), entryId: 'entry-b' }] }),
+  ]);
+
+  assert.equal(corpusDiffCount(diffCorpusDocuments(base, head)), 0);
+});
+
 test('rejects duplicate package/case identities', () => {
   assert.throws(
     () =>
