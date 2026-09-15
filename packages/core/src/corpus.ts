@@ -12,12 +12,22 @@ export type CorpusExpectedMatch = {
   targetEnd: number;
 };
 
+export type CorpusReview = {
+  status: 'draft' | 'reviewed' | 'maintained';
+  nativeReview?: 'pending' | 'partial' | 'reviewed';
+  reviewedAt?: string;
+  note?: string;
+};
+
 export type CorpusCase = {
   id: string;
   text: string;
   /** Named engine/profile used to evaluate this case. */
   profile: string;
   tags: readonly string[];
+  /** Stable provenance ids, normally referring to the pack manifest. */
+  provenance?: readonly string[];
+  review?: CorpusReview;
   note?: string;
   matches: readonly CorpusExpectedMatch[];
 };

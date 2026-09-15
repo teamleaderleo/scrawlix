@@ -30,6 +30,8 @@ const corpusCase = ({
   profile = 'canonical',
   tags = [],
   matches = [],
+  provenance,
+  review,
   note,
 }) => ({
   id,
@@ -37,6 +39,8 @@ const corpusCase = ({
   profile,
   tags,
   matches,
+  ...(provenance === undefined ? {} : { provenance }),
+  ...(review === undefined ? {} : { review }),
   ...(note === undefined ? {} : { note }),
 });
 
@@ -59,6 +63,7 @@ test('classifies behavioral and metadata corpus deltas', () => {
       matches: [match({ targetText: 'bad', targetStart: 0, targetEnd: 3 })],
     }),
     corpusCase({ id: 'metadata', matches: [match()] }),
+    corpusCase({ id: 'review-metadata', matches: [match()] }),
     corpusCase({ id: 'removed', matches: [match()] }),
   ]);
   const head = docs([
@@ -83,6 +88,12 @@ test('classifies behavioral and metadata corpus deltas', () => {
       ],
     }),
     corpusCase({ id: 'metadata', tags: ['unicode'], matches: [match()] }),
+    corpusCase({
+      id: 'review-metadata',
+      provenance: ['reviewed-source'],
+      review: { status: 'reviewed', nativeReview: 'partial' },
+      matches: [match()],
+    }),
     corpusCase({ id: 'added-positive', matches: [match()] }),
     corpusCase({ id: 'added-clean' }),
   ]);
@@ -104,14 +115,18 @@ test('classifies behavioral and metadata corpus deltas', () => {
   ]);
   assert.deepEqual(diff.addedClean.map(item => item.key), ['example:added-clean']);
   assert.deepEqual(diff.removed.map(item => item.key), ['example:removed']);
-  assert.deepEqual(diff.metadataOnly.map(item => item.key), ['example:metadata']);
-  assert.equal(corpusDiffCount(diff), 8);
+  assert.deepEqual(diff.metadataOnly.map(item => item.key), [
+    'example:metadata',
+    'example:review-metadata',
+  ]);
+  assert.equal(corpusDiffCount(diff), 9);
 
   const output = formatCorpusDiff(diff, { baseLabel: 'main', headLabel: 'HEAD' });
   assert.match(output, /Corpus diff: main → HEAD/);
   assert.match(output, /Newly matching \(2\)/);
   assert.match(output, /Changed semantic target \(1\)/);
   assert.match(output, /Added clean regression \(1\)/);
+  assert.match(output, /Metadata-only change \(2\)/);
 });
 
 test('reports an empty diff cleanly', () => {
