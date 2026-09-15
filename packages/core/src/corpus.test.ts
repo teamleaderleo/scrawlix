@@ -149,7 +149,10 @@ describe('shared corpus runner', () => {
         {
           text: text.slice(0, -1),
           covered: false,
+          start: 0,
+          end: Math.max(0, text.length - 1),
           ruleIds: [],
+          matchIds: [],
         },
       ],
     };
