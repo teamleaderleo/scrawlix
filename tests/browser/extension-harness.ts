@@ -1,9 +1,4 @@
-import {
-  chromium,
-  expect,
-  type BrowserContext,
-  type Page,
-} from '@playwright/test';
+import { chromium, expect, type BrowserContext } from '@playwright/test';
 import { cp, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
@@ -151,60 +146,6 @@ export async function extensionHighlightRanges(
           const end = range.endContainer;
           const source = start.nodeType === Node.TEXT_NODE ? (start as Text) : null;
 
-          return {
-            text: range.toString(),
-            startOffset: range.startOffset,
-            endOffset: range.endOffset,
-            sourceText: source?.data ?? null,
-            parentId: source?.parentElement?.id ?? null,
-            sameTextNode: start === end && source !== null,
-          };
-        });
-      },
-    });
-
-    return (results[0]?.result ?? []) as ExtensionHighlightRangeSnapshot[];
-  }, pageUrl);
-}
-
-/**
- * Inspect a retained tab after the MV3 worker has gone idle or the extension
- * has reloaded. Extension pages still have the scripting permission and do not
- * require the background worker to remain alive.
- */
-export async function extensionHighlightRangesFromPage(
-  extensionPage: Page,
-  pageUrl: string
-): Promise<ExtensionHighlightRangeSnapshot[]> {
-  return extensionPage.evaluate(async url => {
-    const tabs = await chrome.tabs.query({});
-    const tab = tabs.find(candidate => candidate.url === url);
-    if (tab?.id === undefined) {
-      throw new Error(`Could not resolve extension fixture tab for ${url}.`);
-    }
-
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      world: 'ISOLATED',
-      func: () => {
-        const registry = (
-          CSS as unknown as {
-            highlights?: { get(name: string): unknown };
-          }
-        ).highlights;
-        const highlight = registry?.get('scrawlix-extension');
-        if (!highlight) return [];
-
-        return Array.from(
-          (
-            highlight as {
-              values(): IterableIterator<Range>;
-            }
-          ).values()
-        ).map(range => {
-          const start = range.startContainer;
-          const end = range.endContainer;
-          const source = start.nodeType === Node.TEXT_NODE ? (start as Text) : null;
           return {
             text: range.toString(),
             startOffset: range.startOffset,
