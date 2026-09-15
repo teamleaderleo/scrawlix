@@ -132,7 +132,9 @@ Inspect each npm page for the intended version/tag, README, repository links, li
 
 ## 9. Tag the verified commit
 
-After registry verification, create the matching Git tag/release from the published commit, use the relevant `CHANGELOG.md` entry for release notes, and state the package set plus pre-release stability expectation. Include the demo URL when public. Browser-store distribution remains a separate release unless explicitly coordinated.
+After registry verification, create the matching Git tag/release from the published commit, use the relevant `CHANGELOG.md` entry for release notes, and state the package set plus pre-release stability expectation. Include the demo URL when public.
+
+Chrome Web Store distribution is a separate release track. Use `docs/chrome-web-store-release.md` for the deterministic extension ZIP, browser review, store visuals, privacy copy, and submission checklist.
 
 ## Correcting a bad publish
 
