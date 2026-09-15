@@ -141,6 +141,12 @@ Generic positional coverage can live in core. Language-character classes, syllab
 
 Human quickstarts live in root/package READMEs; coding-agent copy/paste usage lives in the demo `llms.txt`. Keep those surfaces synchronized when public names, defaults, package selection, required stylesheet imports, or framework boundaries change.
 
+## Concurrent work
+
+Scrawlix may have several humans or coding agents working in parallel. Feel free to create fresh branches and PRs, rebase onto newer `main`, cherry-pick useful concurrent work, supersede stale PRs, and file follow-up issues as you discover them. Reconcile actively against current `main` and active PRs instead of waiting for another lane to finish.
+
+Prefer focused current-`main` replays over merging stale stacked branches wholesale. Preserve useful tests and ideas while adapting them to current contracts, and keep PRs reviewable when concurrent work touches the same surface.
+
 ## Sustained work
 
 When the maintainer gives a clear objective, continue through concrete reviewable work while useful next actions remain. `docs/agent-work-continuity.md` owns the stop conditions and continuation guidance.
