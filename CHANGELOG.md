@@ -44,6 +44,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 
 - Added `@scrawlix/rehype` for source-preserving HAST text transformation.
 - Added default code/script/style-like exclusions, application ignore hooks, and idempotency.
+- Made HAST traversal iterative so deeply nested documents stay stack-safe while preserving child order, exclusions, and in-place text replacement.
 - Kept `rehypeScrawlix` / `transformHast` as the canonical named exports without a duplicate default export before publication.
 
 ### DOM

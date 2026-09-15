@@ -155,6 +155,31 @@ describe('@scrawlix/rehype', () => {
     expect(textContent(tree)).toBe('fuck');
   });
 
+  it('handles deeply nested element trees without overflowing the call stack', () => {
+    const depth = 12_000;
+    let child: RootContent = text('fuck');
+
+    for (let index = 0; index < depth; index += 1) {
+      child = element('span', [child]);
+    }
+
+    const tree = root(child);
+    expect(() => transformHast(tree, { rules, coverage: 'full' })).not.toThrow();
+
+    let current = tree.children[0] as RootContent;
+    for (let index = 0; index < depth; index += 1) {
+      if (current.type !== 'element') {
+        throw new Error(`Expected element at nesting depth ${index}.`);
+      }
+      current = current.children[0] as RootContent;
+    }
+
+    expect(current.type).toBe('element');
+    const cover = current as Element;
+    expect(cover.properties['data-scrawlix-cover']).toBe('');
+    expect(cover.children).toEqual([{ type: 'text', value: 'fuck' }]);
+  });
+
   it('provides a rehype-compatible transformer factory', () => {
     const tree = root(element('p', [text('fuck')]));
     const transform = rehypeScrawlix({ rules, coverage: 'full' });
