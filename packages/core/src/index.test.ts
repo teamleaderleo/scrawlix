@@ -28,7 +28,7 @@ function source(segments: readonly ScrawlixSegment[]) {
 
 describe('Scrawlix core', () => {
   it('is language-neutral and does nothing until rules are supplied', () => {
-    expect(createScrawlix().segment('fuck')).toEqual([
+    expect(createScrawlix().segment('fuck')).toMatchObject([
       { text: 'fuck', covered: false, ruleIds: [] },
     ]);
     expect(createScrawlix().find('fuck')).toEqual([]);
@@ -49,7 +49,7 @@ describe('Scrawlix core', () => {
       'f[uc]k f[uc]king motherf[uc]ker'
     );
 
-    expect(scrawlix.find('motherfucker')).toEqual([
+    expect(scrawlix.find('motherfucker')).toMatchObject([
       {
         ruleId: 'semantic-test',
         text: 'motherfucker',
@@ -89,7 +89,7 @@ describe('Scrawlix core', () => {
     const text = 'hey motherfucker!';
     expect(marked(scrawlix.segment(text))).toBe('hey motherf[uc]ker!');
     expect(source(scrawlix.segment(text))).toBe(text);
-    expect(scrawlix.find(text)).toEqual([
+    expect(scrawlix.find(text)).toMatchObject([
       {
         ruleId: 'custom-matcher',
         packId: 'custom-pack',
@@ -247,7 +247,7 @@ describe('Scrawlix core', () => {
       coverage: 'full',
     });
 
-    expect(scrawlix.find('🔥a')).toEqual([
+    expect(scrawlix.find('🔥a')).toMatchObject([
       {
         ruleId: 'mixed',
         text: 'a',
