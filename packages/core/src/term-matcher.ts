@@ -1,4 +1,5 @@
 import { recordCoreTermShadowPass } from './core-instrumentation.js';
+import { sharedScanValue } from './scan-context.js';
 
 type TermBoundaryStrategy =
   | 'word'
@@ -133,7 +134,7 @@ function tokenFor(value: string, caseSensitive: boolean) {
   return caseSensitive ? value : simpleCaseFold(value);
 }
 
-function sourceShadow(
+function materializeSourceShadow(
   value: string,
   normalization: UnicodeNormalization
 ): SourceShadow {
@@ -160,6 +161,18 @@ function sourceShadow(
   }
 
   return { value: shadow, units };
+}
+
+function sourceShadow(
+  value: string,
+  normalization: UnicodeNormalization
+): SourceShadow {
+  const shared = sharedScanValue<SourceShadow>(
+    value,
+    `term-shadow:${normalization}`,
+    () => materializeSourceShadow(value, normalization)
+  );
+  return shared ?? materializeSourceShadow(value, normalization);
 }
 
 function buildTrie(alternatives: readonly string[], caseSensitive: boolean) {
