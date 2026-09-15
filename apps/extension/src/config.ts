@@ -1,12 +1,7 @@
 import type { CoverageSelector } from '@scrawlix/core';
 import { englishVowelCoverage } from '@scrawlix/en';
 
-export type ExtensionAppearance =
-  | 'scrawl'
-  | 'bar'
-  | 'blur'
-  | 'asterisk'
-  | 'grawlix';
+export type ExtensionAppearance = 'scrawl' | 'bar' | 'blur';
 
 export type ExtensionCoverage = 'full' | 'tail' | 'middle' | 'inner' | 'vowel';
 export type ExtensionReveal = 'hover' | 'focus' | 'click' | 'never';
@@ -76,13 +71,7 @@ export const DEFAULT_SETTINGS: SyncSettings = {
   siteOverrides: {},
 };
 
-const APPEARANCES = new Set<ExtensionAppearance>([
-  'scrawl',
-  'bar',
-  'blur',
-  'asterisk',
-  'grawlix',
-]);
+const APPEARANCES = new Set<ExtensionAppearance>(['scrawl', 'bar', 'blur']);
 const COVERAGES = new Set<ExtensionCoverage>([
   'full',
   'tail',
@@ -91,17 +80,6 @@ const COVERAGES = new Set<ExtensionCoverage>([
   'vowel',
 ]);
 const REVEALS = new Set<ExtensionReveal>(['hover', 'click', 'never']);
-const graphemeSegmenter =
-  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
-    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
-    : null;
-
-function graphemeCount(value: string) {
-  if (graphemeSegmenter) {
-    return [...graphemeSegmenter.segment(value)].length;
-  }
-  return Array.from(value).length;
-}
 
 function codePointLength(value: string) {
   return Array.from(value).length;
@@ -124,6 +102,10 @@ function normalizedId(value: unknown, fallback: string) {
 }
 
 function normalizedAppearance(value: unknown, fallback: ExtensionAppearance) {
+  // Pre-Highlight builds exposed symbol-mask names. The arbitrary-page renderer
+  // cannot synthesize replacement glyphs, so migrate those persisted values to
+  // the explicit opaque-bar treatment.
+  if (value === 'asterisk' || value === 'grawlix') return 'bar';
   return APPEARANCES.has(value as ExtensionAppearance)
     ? (value as ExtensionAppearance)
     : fallback;
@@ -486,14 +468,4 @@ export function setSiteMode(
 
 export function coverageSelector(coverage: ExtensionCoverage): CoverageSelector {
   return coverage === 'vowel' ? englishVowelCoverage : coverage;
-}
-
-export function maskFor(text: string, appearance: ExtensionAppearance) {
-  const length = graphemeCount(text);
-  if (appearance === 'asterisk') return '*'.repeat(length);
-  if (appearance === 'grawlix') {
-    const symbols = '@#$%&!';
-    return Array.from({ length }, (_, index) => symbols[index % symbols.length]).join('');
-  }
-  return '';
 }
