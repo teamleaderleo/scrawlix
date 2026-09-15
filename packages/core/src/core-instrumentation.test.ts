@@ -86,6 +86,54 @@ describe('core grapheme work instrumentation', () => {
     expect(work.materializedRanges).toBe(0);
   });
 
+  it('reuses one normalized source shadow across canonical term rules in a scan', () => {
+    const source = 'cafe\u0301 au lait';
+    const engine = createScrawlix({
+      rules: [
+        censorRuleFromTerms('cafe', ['café']),
+        censorRuleFromTerms('phrase', ['au lait']),
+      ],
+    });
+
+    const { result, work } = measureCoreGraphemeWork(() => engine.find(source));
+
+    expect(result.map(match => match.text)).toEqual(['cafe\u0301', 'au lait']);
+    expect(work.boundaryPasses).toBe(1);
+    expect(work.termShadowPasses).toBe(1);
+    expect(work.rangePasses).toBe(0);
+    expect(work.materializedRanges).toBe(0);
+  });
+
+  it('keeps source-shadow caches separate across normalization modes', () => {
+    const source = 'cafe\u0301';
+    const engine = createScrawlix({
+      rules: [
+        censorRuleFromTerms('nfc', ['café']),
+        censorRuleFromTerms('exact', [source], { normalization: 'none' }),
+      ],
+    });
+
+    const { result, work } = measureCoreGraphemeWork(() => engine.find(source));
+
+    expect(result).toHaveLength(2);
+    expect(work.termShadowPasses).toBe(2);
+  });
+
+  it('keeps direct matcher calls independent outside an engine scan', () => {
+    const rule = censorRuleFromTerms('term', ['café']);
+    if (!rule.matcher) throw new Error('Expected a matcher-backed term rule.');
+    const source = 'cafe\u0301';
+
+    const { result, work } = measureCoreGraphemeWork(() => [
+      ...rule.matcher!.find(source),
+      ...rule.matcher!.find(source),
+    ]);
+
+    expect(result).toHaveLength(2);
+    expect(work.boundaryPasses).toBe(0);
+    expect(work.termShadowPasses).toBe(2);
+  });
+
   it('reuses obfuscated shadow units for prepared matching', () => {
     const engine = createScrawlix({
       rules: [
