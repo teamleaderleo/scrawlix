@@ -30,6 +30,7 @@ function metadataSnapshot(corpusCase) {
     text: corpusCase.text,
     profile: corpusCase.profile,
     tags: corpusCase.tags ?? [],
+    ...(corpusCase.review === undefined ? {} : { review: corpusCase.review }),
     ...(corpusCase.note === undefined ? {} : { note: corpusCase.note }),
     ...(corpusCase.provenance === undefined
       ? {}

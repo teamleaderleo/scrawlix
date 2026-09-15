@@ -14,29 +14,35 @@ import profanityCorpus from './corpus-data/profanity.json' with { type: 'json' }
 export type EnglishCorpusMatch = CorpusExpectedMatch;
 export type EnglishCorpusCase = CorpusCase;
 
+/** JSON corpus files are schema-validated before package tests/builds. */
+function validatedEnglishCorpus(
+  cases: readonly unknown[]
+): readonly EnglishCorpusCase[] {
+  return cases as readonly EnglishCorpusCase[];
+}
+
 /**
  * Reviewable regression data for the bundled English profanity rules.
  * Source cases live in `src/corpus-data/*.json` and are validated against the
  * shared corpus schema plus source-range invariants by `pnpm validate:corpora`.
  */
-export const englishProfanityCorpus: readonly EnglishCorpusCase[] =
-  profanityCorpus;
+export const englishProfanityCorpus = validatedEnglishCorpus(profanityCorpus);
 
 /** Cases that contain suspicious substrings or boundaries but should stay clean. */
-export const englishCleanCorpus: readonly EnglishCorpusCase[] = cleanCorpus;
+export const englishCleanCorpus = validatedEnglishCorpus(cleanCorpus);
 
 /** Positive cases for the opt-in bounded English obfuscated pack. */
 export const englishObfuscatedProfanityCorpus: readonly EnglishCorpusCase[] = [
-  ...obfuscatedCorpus,
-  ...obfuscatedWidthCorpus,
-  ...obfuscatedConfusableCorpus,
+  ...validatedEnglishCorpus(obfuscatedCorpus),
+  ...validatedEnglishCorpus(obfuscatedWidthCorpus),
+  ...validatedEnglishCorpus(obfuscatedConfusableCorpus),
 ];
 
 /** False-positive and over-budget cases for the opt-in obfuscated pack. */
 export const englishObfuscatedCleanCorpus: readonly EnglishCorpusCase[] = [
-  ...obfuscatedCleanCorpus,
-  ...obfuscatedWidthCleanCorpus,
-  ...obfuscatedConfusableCleanCorpus,
+  ...validatedEnglishCorpus(obfuscatedCleanCorpus),
+  ...validatedEnglishCorpus(obfuscatedWidthCleanCorpus),
+  ...validatedEnglishCorpus(obfuscatedConfusableCleanCorpus),
 ];
 
 /** Complete bundled English regression corpus, ready for the shared runner. */

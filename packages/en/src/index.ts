@@ -1,9 +1,12 @@
 import {
   graphemeRanges,
   type CensorRule,
-  type CensorRulePack,
   type CoverageSelector,
 } from '@scrawlix/core';
+import {
+  defineRulePack,
+  type RulePackManifest,
+} from '@scrawlix/core/pack-authoring';
 
 /**
  * Covers orthographic English vowels (a/e/i/o/u) inside the semantic target.
@@ -57,8 +60,40 @@ export const englishStrongProfanityRules: readonly CensorRule[] = [
   },
 ] as const;
 
-export const englishStrongProfanityPack: CensorRulePack = {
+export const englishStrongProfanityManifest: RulePackManifest = {
+  schemaVersion: 1,
   id: 'en-strong-profanity',
-  locale: 'en',
-  rules: englishStrongProfanityRules,
+  version: '0.0.0',
+  name: 'Scrawlix English strong profanity',
+  description: 'Small project-curated canonical English strong-profanity pack.',
+  locales: ['en'],
+  registers: ['profane'],
+  categories: ['profanity'],
+  severity: ['strong'],
+  review: {
+    status: 'maintained',
+    note: 'Rules are maintained against the bundled positive and clean regression corpus.',
+  },
+  corpus: {
+    schemaVersion: 1,
+    entrypoint: '@scrawlix/en/corpus',
+    profiles: ['canonical'],
+  },
+  provenance: [
+    {
+      id: 'scrawlix-curated',
+      label: 'Scrawlix project-curated rules and regression corpus',
+      note: 'Small hand-maintained set; no external dictionary is vendored.',
+    },
+  ],
+  limitations: [
+    'Small curated set rather than comprehensive English profanity coverage.',
+    'Declared regex families cover only the listed inflections and compounds.',
+    'The pack makes no automatic dialect-selection claim beyond the generic English locale tag.',
+  ],
 };
+
+export const englishStrongProfanityPack = defineRulePack(
+  englishStrongProfanityManifest,
+  englishStrongProfanityRules
+);

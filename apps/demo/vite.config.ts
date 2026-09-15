@@ -21,6 +21,10 @@ export default defineConfig({
         replacement: workspaceFile('../../packages/en/src/index.ts'),
       },
       {
+        find: '@scrawlix/core/pack-authoring',
+        replacement: workspaceFile('../../packages/core/src/pack-authoring.ts'),
+      },
+      {
         find: '@scrawlix/core/confusable-obfuscated',
         replacement: workspaceFile(
           '../../packages/core/src/confusable-obfuscated.ts'

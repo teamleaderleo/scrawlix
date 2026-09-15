@@ -32,6 +32,18 @@
           },
           "uniqueItems": true
         },
+        "provenance": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        },
         "note": {
           "type": "string",
           "minLength": 1
@@ -41,6 +53,27 @@
           "items": {
             "$ref": "#/$defs/match"
           }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "enum": ["draft", "reviewed", "maintained"]
+        },
+        "nativeReview": {
+          "enum": ["pending", "partial", "reviewed"]
+        },
+        "reviewedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },

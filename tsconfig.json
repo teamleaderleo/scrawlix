@@ -15,6 +15,9 @@
       "@scrawlix/core/source-mapped": [
         "packages/core/src/source-mapped.ts"
       ],
+      "@scrawlix/core/pack-authoring": [
+        "packages/core/src/pack-authoring.ts"
+      ],
       "@scrawlix/core/targeted-obfuscated": [
         "packages/core/src/targeted-obfuscated.ts"
       ],
