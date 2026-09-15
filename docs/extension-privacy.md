@@ -10,7 +10,9 @@ Scrawlix covers configured words and phrases directly inside webpages in the bro
 
 When Scrawlix has browser access to a site, the content script reads eligible text in the top document so the bundled matching engine can find configured terms and render the selected censor treatment.
 
-The first-store build runs its persisted dynamic content script at Chrome's `document_idle` phase. It does not inject into child frames and does not traverse shadow roots. Page text is processed locally in the browser and is not persisted by Scrawlix.
+The store build runs its persisted dynamic content script from Chrome's `document_start` phase. It does not inject into child frames and does not traverse shadow roots. Page text is processed locally in the browser and is not persisted by Scrawlix.
+
+Arbitrary-page coverage uses page-owned Text plus exact DOM `Range`s and CSS Custom Highlight. Scrawlix does not replace the page's Text nodes or add censor-wrapper elements. This lets coverage begin before delayed framework hydration without changing the server-rendered child tree; the built-extension Chromium suite verifies that React hydration produces zero diagnostics while Highlight coverage is already active.
 
 ### Current page address
 
@@ -36,17 +38,24 @@ Profiles, lenses, active profile, custom terms, and hostname exceptions are excl
 
 Scrawlix declares HTTP and HTTPS access as optional host permissions. Users can grant access for the current origin or all HTTP/HTTPS websites and can remove those grants again.
 
-Chrome stores/enforces the permission grants. Scrawlix's service worker keeps one persisted top-document content-script registration aligned with current grants. Removing access first asks affected open tabs to restore Scrawlix-owned source text, then removes the permission and reconciles any tab still covered by another remaining grant.
+Chrome stores/enforces the permission grants. Scrawlix's service worker keeps one persisted top-document content-script registration aligned with current grants. Removing access first clears Scrawlix presentation from affected open tabs, then removes the permission and reconciles any tab still covered by another remaining grant. Page source text remains page-owned throughout this lifecycle.
 
 ### Temporary page reveal
 
-The popup and keyboard command can reveal Scrawlix-covered text on the current page for ten seconds. This state exists only in that page session and is not written to extension storage.
+The popup and keyboard command can reveal Scrawlix-covered text on the current page for ten seconds. This state exists only in that content-script session and is not written to extension storage.
 
 ## Presentation ownership
 
-Scrawlix verifies generated DOM ownership before attaching its presentation token or click behavior. Page-authored elements that imitate Scrawlix data attributes remain page-owned.
+For arbitrary webpages, Scrawlix owns presentation state rather than page source DOM:
 
-The arbitrary-page presentation stylesheet is constructed inside the content script and scoped to a random per-document token. The store package does not contain a root `content.css` page stylesheet.
+- exact covered `Range`s derived from eligible page-owned Text
+- one named CSS Custom Highlight registry entry
+- one constructed stylesheet in `document.adoptedStyleSheets`
+- transient hover/click/page-reveal state
+
+The page retains its Text objects, character data, and DOM relationships. Page-authored `data-scrawlix-*` markers have no ownership authority. Teardown removes the Highlight and stylesheet instead of reconstructing source text.
+
+The store package does not contain a root `content.css` page stylesheet.
 
 ## Sharing and transmission
 

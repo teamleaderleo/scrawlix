@@ -11,15 +11,16 @@ The first-store runtime contract is:
 - Manifest V3
 - Chrome 119+ floor
 - optional HTTP/HTTPS host permissions
-- persisted dynamic top-document injection at `document_idle`
+- persisted dynamic top-document injection at `document_start`
 - no static `content_scripts`
-- no root arbitrary-page `content.css`; page presentation stays ownership-scoped inside `content.js`
+- arbitrary-page coverage uses page-owned Text + exact DOM `Range`s + CSS Custom Highlight
+- no root arbitrary-page `content.css`; presentation stays inside `content.js`
 - popup current-page controls plus full-tab Options
 - local profiles/lenses/hostnames, compact sync settings
 - deterministic ZIP with SHA-256 sidecar
 - no source maps or dangling source-map references in the ZIP
 
-Pre-hydration/early injection remains tracked in #110. Child-frame/shadow-root expansion remains tracked in #122.
+The delayed React hydration Chromium gate requires Highlight coverage before hydration while preserving the exact server HostText/child tree and producing zero hydration diagnostics. Child-frame/shadow-root expansion remains tracked in #122.
 
 ## 1. Freeze the exact release commit
 
@@ -85,22 +86,25 @@ Review the exact bytes intended for upload. Extract the candidate ZIP into a cle
 Perform this manual pass:
 
 - install/load starts without console/service-worker errors
+- persisted `scrawlix-page` registration is `document_start`, top-document-only, `js: ['content.js']`, `css: []`
 - popup opens at normal browser scaling and all labels/hit targets are readable
 - About/footer shows the packaged release version
 - Options opens in a full tab and shows Chrome 119+
 - current-site access grant explains the permission choice clearly
 - all-sites access grant behaves as expected
-- permission revocation restores covered source text on open matching pages
+- permission revocation clears Scrawlix presentation on open matching pages while literal page source remains intact
 - master pause suppresses a site that has an explicit Always on policy
 - Default / Always on / Always off site policy behaves predictably
 - profile switching and custom lens terms update an already-open page
 - temporary reveal works and clears after ten seconds
-- generated censor fragments do not add tab stops
+- Scrawlix adds no arbitrary-page wrapper elements or synthetic tab stops
 - native links/buttons/editable/code-like regions retain host-page behavior
 - one normal SPA/body-replacement page remains live under Scrawlix
 - restart Chrome with the same profile and confirm profile/lens/treatment state plus granted dynamic registration persist
+- on the delayed-hydration fixture, coverage exists before React hydrates, the server HostText remains literal, and hydration logs zero errors
+- native selection/copy returns literal page source exactly once while coverage is active
 
-Also inspect a page with strict CSP if practical; #190's Chromium regression already covers constructed-style presentation under strict `style-src 'self'`.
+Also inspect a page with strict CSP if practical; the Chromium regression covers constructed Highlight presentation under strict `style-src 'self'`.
 
 ## 5. Final visual gate
 
@@ -111,6 +115,7 @@ Issue #127 remains the human visual gate. Before submission:
 - confirm captions and composition
 - verify screenshots contain no private terms, private hostnames, account data, or internal-only information
 - verify screenshots accurately represent top-document coverage
+- verify screenshot treatment claims match the Highlight renderer: scrawl and blur are distinct; bar/asterisk/grawlix currently converge to the same opaque concealment on arbitrary webpages
 - confirm popup/Options copy and visual rhythm at normal Chrome scaling
 
 Do not upload placeholder artwork as the first public store identity.
@@ -124,7 +129,9 @@ Before pasting into the dashboard:
 - compare every permission justification with the packaged manifest
 - use the dashboard's current data-category labels
 - confirm the privacy disclosures still match the shipped local/sync split
-- keep child-frame/shadow/pre-hydration claims outside the current product description
+- keep child-frame/shadow claims outside the current product description
+- ensure every injection-timing claim says `document_start`
+- ensure presentation language reflects non-mutating Range/Highlight ownership
 - choose a stable public privacy-policy URL
 - choose/confirm the support destination
 

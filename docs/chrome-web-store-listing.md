@@ -4,21 +4,22 @@ This file is the reviewable source of truth for the first Chrome Web Store listi
 
 ## Product contract
 
-The first-store build provides:
+The store build provides:
 
 - local webpage-text matching with bundled Scrawlix code
 - built-in English strong-profanity matching plus bounded user term lenses
 - profiles that combine lenses with appearance, coverage, and reveal settings
 - optional HTTP/HTTPS host access granted by the user
-- persisted dynamic `document_idle` injection into top documents only
+- persisted dynamic `document_start` injection into top documents only
+- non-mutating arbitrary-page presentation with page-owned Text, exact DOM `Range`s, and CSS Custom Highlight
 - true master pause, default site behavior, and per-host overrides
 - 10-second temporary page reveal plus one browser shortcut
 - popup current-page controls and a full-tab Options page
-- safe access revocation with source restoration
+- safe access revocation that clears presentation before permission removal
 - local profiles/lenses/hostnames; compact general preferences may use Chrome Sync
 - no analytics, telemetry, ads, account system, Scrawlix server, or remote code
 
-The first release deliberately leaves child-frame/shadow-root coverage and pre-hydration DOM mutation outside its contract. See #122 and #110.
+Child-frame and shadow-root coverage remain outside the first-store contract. See #122. Delayed React hydration is covered by a permanent real-Chromium regression while Scrawlix presentation is already active.
 
 ## Store field constraints
 
@@ -38,7 +39,7 @@ Final icon and screenshot production is tracked in #127.
 
 > Scrawlix is programmable censorship for the web.
 >
-> It finds configured words and phrases in webpage text and visually covers the selected part while preserving the source text underneath. The built-in English lens covers strong profanity, and you can create your own local term lenses for spoilers, project names, client details, recurring topics, or anything else you want behind a veil.
+> It finds configured words and phrases in webpage text and visually covers the selected part while leaving the page's source text in place. The built-in English lens covers strong profanity, and you can create your own local term lenses for spoilers, project names, client details, recurring topics, or anything else you want behind a veil.
 >
 > **Build profiles for different moments**
 >
@@ -46,7 +47,7 @@ Final icon and screenshot production is tracked in #127.
 >
 > **Choose how it looks**
 >
-> Pick scrawl, bar, blur, asterisks, or a classic grawlix. Choose how much of each matched target to cover: middle, inner letters, everything after the first letter, vowels, or the full target.
+> The arbitrary-page renderer provides scrawl, blur, and opaque concealment treatments. Because browser CSS Custom Highlight cannot synthesize replacement glyphs, the bar, asterisk, and grawlix presets share the same opaque treatment on arbitrary webpages. Coverage choices still control how much of each matched target is concealed: middle, inner letters, everything after the first letter, vowels, or the full target.
 >
 > **Control each site**
 >
@@ -54,15 +55,15 @@ Final icon and screenshot production is tracked in #127.
 >
 > **Reveal when you want to**
 >
-> Use hover or click reveal, keep matches concealed, or reveal the complete current page for ten seconds. A browser shortcut provides one keyboard reveal action without adding every censored fragment to the webpage tab order.
+> Use hover or click reveal, keep matches concealed, or reveal the complete current page for ten seconds. A browser shortcut provides one keyboard reveal action without adding synthetic censor elements to the webpage tab order.
 >
 > **Teach it your own terms**
 >
 > Add and remove terms from local custom lenses in Options, or select text on a page and use the Scrawlix context-menu action. Term counts and total text are bounded to keep arbitrary-page matching responsive.
 >
-> **Built for long-running webpages**
+> **Built for live webpages**
 >
-> Scrawlix observes incremental DOM updates, follows body/full-document replacement, and uses identity-strength ownership checks before applying presentation or click behavior. Page-authored lookalike markers remain page-owned.
+> Scrawlix tracks incremental text and subtree changes, body/full-document replacement, framework HostText updates, and browser-session restart. Its arbitrary-page renderer uses exact page-owned Ranges plus CSS Custom Highlight instead of replacing page Text nodes.
 >
 > **Local by design**
 >
@@ -72,7 +73,7 @@ Final icon and screenshot production is tracked in #127.
 >
 > **Current coverage boundary**
 >
-> The first store release processes eligible text in the top webpage document after the page reaches Chrome's `document_idle` phase. Child iframes, shadow roots, and pre-hydration censorship are outside the current coverage contract.
+> The store build begins processing eligible light-DOM text in the top webpage document at Chrome's `document_start` phase. A delayed React hydration regression verifies that Highlight coverage can already be active while the server-rendered HostText and child tree remain unchanged. Child iframes and shadow roots remain outside the current coverage contract.
 >
 > Scrawlix is open source. Source and the current privacy statement are linked from the extension.
 
@@ -94,7 +95,7 @@ Profiles, term lenses, site access, per-site policy, reveal commands, and treatm
 
 ### `scripting`
 
-> Registers and injects Scrawlix's bundled local content script on HTTP/HTTPS origins the user has granted. Scrawlix uses no remote code. The persisted dynamic registration is top-document-only and runs at `document_idle`.
+> Registers and injects Scrawlix's bundled local content script on HTTP/HTTPS origins the user has granted. Scrawlix uses no remote code. The persisted dynamic registration is top-document-only and runs at `document_start`.
 
 ### `contextMenus`
 
@@ -102,13 +103,13 @@ Profiles, term lenses, site access, per-site policy, reveal commands, and treatm
 
 ### Optional HTTP/HTTPS host access
 
-> Persistent webpage access is optional. The user can grant the current HTTP/HTTPS origin or all HTTP/HTTPS websites. Host access lets Scrawlix read eligible top-document text and apply local visual censorship. Removing a grant restores Scrawlix-owned text in matching open tabs before Chrome drops the permission.
+> Persistent webpage access is optional. The user can grant the current HTTP/HTTPS origin or all HTTP/HTTPS websites. Host access lets Scrawlix read eligible top-document text and apply local visual censorship. Removing a grant clears Scrawlix presentation in matching open tabs before Chrome drops the permission; page source text stays page-owned throughout.
 
 ## Remote-code declaration
 
 **No remote code.**
 
-All matching, DOM handling, permission logic, popup/Options behavior, and presentation code is bundled in the submitted extension package. The extension does not download or execute JavaScript or WebAssembly from remote servers.
+All matching, DOM-range scanning, permission logic, popup/Options behavior, and presentation code is bundled in the submitted extension package. The extension does not download or execute JavaScript or WebAssembly from remote servers.
 
 ## Privacy / data-use review notes
 
@@ -149,9 +150,9 @@ Caption direction: **Censor the current page without losing control of the page.
 
 ### Screenshot 2 — Visual treatments
 
-Show a readable real specimen using the shipped scrawl/bar/blur/asterisk/grawlix presentation.
+Show readable real specimens for the distinct shipped arbitrary-page treatments: scrawl, blur, and opaque concealment. If the UI still exposes bar/asterisk/grawlix separately, the screenshot/caption must make clear that those symbol-mask presets converge to the same opaque Highlight treatment on webpages.
 
-Caption direction: **Scrawl, bar, blur, asterisks, or a classic grawlix.**
+Caption direction: **Choose the concealment treatment and how much of each match to cover.**
 
 ### Screenshot 3 — Options: profiles and term lenses
 
@@ -181,7 +182,7 @@ Before final screenshots:
 - About/version UI shows the exact release version from the packaged manifest
 - screenshots contain actual current controls/current wording
 - no private terms, account identifiers, browsing history, or private hostnames appear
-- screenshots represent top-document coverage accurately
+- screenshots represent top-document coverage and actual Highlight treatments accurately
 - imagery fits Scrawlix's print/zine personality
 
 ## Support / navigation destinations
@@ -200,6 +201,7 @@ Before upload:
 - create the deterministic ZIP and SHA-256 sidecar
 - inspect ZIP contents: no `.map`, no root `content.css`, no dangling `sourceMappingURL`
 - confirm packaged manifest has Chrome 119+, optional host permissions, Options page, and no static content scripts
+- confirm persisted dynamic registration is `document_start`, top-document-only, `js: ['content.js']`, `css: []`
 - load the exact packaged candidate in Chrome and perform the manual visual/access/restart review
 - finish icon/screenshots (#127)
 - verify dashboard permissions against the packaged manifest

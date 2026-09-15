@@ -1,6 +1,6 @@
 # Scrawlix browser extension
 
-Scrawlix is the browser application built on the reusable Scrawlix matching and DOM packages. The extension owns browser permissions, persistent preferences, profiles/lenses, and arbitrary-page presentation.
+Scrawlix is the browser application built on the reusable Scrawlix matching packages. The extension owns browser permissions, persistent preferences, profiles/lenses, and arbitrary-page presentation.
 
 ## Build
 
@@ -24,11 +24,11 @@ The popup offers two explicit grant paths:
 - allow the current HTTP/HTTPS origin
 - allow all HTTP and HTTPS websites
 
-A Manifest V3 service worker keeps one persisted dynamic content-script registration aligned with Chrome's current grants. The registration runs at `document_idle`, uses `content.js`, carries no static page CSS, persists across browser sessions, and targets the top document only (`allFrames: false`, `matchOriginAsFallback: false`).
+A Manifest V3 service worker keeps one persisted dynamic content-script registration aligned with Chrome's current grants. The registration runs at `document_start`, uses `content.js`, carries no static page CSS, persists across browser sessions, and targets the top document only (`allFrames: false`, `matchOriginAsFallback: false`).
 
-`document_idle` is deliberate for the first store release. Issue #110 reproduces React hydration mismatch when arbitrary-page censorship mutates server-rendered HostText before delayed `hydrateRoot()` claims it. Early/pre-hydration rendering stays future work until a DOM-preserving approach passes that regression.
+Early injection is safe because the arbitrary-page renderer leaves the page's Text nodes and child tree untouched. Scrawlix scans eligible page-owned Text, keeps exact covered `Range`s, and paints one named CSS Custom Highlight. The delayed React hydration Chromium regression requires coverage to exist before `hydrateRoot()` while preserving the exact server HostText and producing zero hydration diagnostics.
 
-Removing host access first asks matching open tabs to restore Scrawlix-owned source text, then removes the Chrome permission, converges the dynamic registration, and reactivates tabs still covered by another remaining grant.
+Removing host access first disables Scrawlix presentation in matching open tabs, then removes the Chrome permission, converges the dynamic registration, and reactivates tabs still covered by another remaining grant. Page source text never needs reconstruction because the Highlight renderer does not replace it.
 
 ## State and storage
 
@@ -54,7 +54,7 @@ Popup and Options writes go through a shared narrow mutation API. Each mutation 
 
 A **lens** answers what Scrawlix should catch. The built-in English Profanity lens is always available. Users can add local term lenses for spoilers, project names, client details, classroom words, or other personal categories.
 
-A **profile** combines one or more lenses with appearance, coverage, and reveal choices. Switching profiles restores controller-owned source text before applying the newly selected profile.
+A **profile** combines one or more lenses with appearance, coverage, and reveal choices. Switching profiles rebuilds semantic Highlight ranges only when matching or coverage changes; presentation-only changes update the Highlight stylesheet without rewriting page text.
 
 Custom-term limits are shared by popup/context-menu/Options mutation paths:
 
@@ -85,41 +85,56 @@ The popup is the current-page control surface. It owns:
 - profile creation/removal/naming/treatment
 - built-in/custom lens membership
 - custom-term add/remove and budget feedback
-- searchable site exceptions
+- site exceptions
 - currently granted websites and safe revocation
 - privacy/source/version/Chrome-compatibility information
 
 ## Temporary reveal and native interaction
 
-The popup and `temporary-reveal` command reveal the current page for ten seconds. Reveal state exists only in the page and is never persisted.
+The popup and `temporary-reveal` command reveal the current page for ten seconds. Reveal state exists only in the current content-script session and is never persisted.
 
-Generated arbitrary-page censor roots never receive `tabindex`. Click reveal remains pointer-local outside native interactive controls; keyboard users have one page-level browser command instead of hundreds of synthetic tab stops.
+The extension creates no arbitrary-page censor wrapper elements or synthetic tab stops. Hover/click reveal works against covered Highlight ranges while native page controls keep their own DOM and focus behavior. Keyboard users have one page-level browser command for temporary reveal.
 
 ## Page lifecycle and presentation ownership
 
-Scrawlix observes one concrete live `document.body` at a time through `@scrawlix/dom`. It handles incremental page mutations, body replacement, and full `<html>` replacement.
+Scrawlix uses `@scrawlix/dom/scan` to derive grapheme-safe covered ranges from eligible page-owned Text without changing the page DOM. One live range index follows character-data edits, inserted/removed subtrees, body replacement, and full `<html>` replacement while rescanning only affected text where possible.
 
-`DomObservation.ownsGeneratedRoot()` is the authority for Scrawlix presentation and click behavior. Page-authored elements that imitate `data-scrawlix-*` markers are not treated as owned output.
+The extension owns:
 
-Presentation uses a per-document random token and a constructed stylesheet adopted through `document.adoptedStyleSheets`. Genuine owned roots receive the token only after ownership verification. This keeps page-authored lookalikes visually untouched and keeps Scrawlix presentation working under strict page CSP. The extension build gate rejects any root `content.css` artifact.
+- exact covered DOM `Range`s
+- the `scrawlix-extension` CSS Custom Highlight registry entry
+- one constructed presentation stylesheet in `document.adoptedStyleSheets`
+- transient hover/click/page-reveal state
 
-The browser suite also stresses dense SPA mutation batches: 300 rows inserted in one fragment, all 300 row texts replaced, then 200 more rows appended. The invariant is one generated root/cover per matching row with no nested duplicates.
+The page keeps ownership of its Text objects, character data, and parent/child relationships. Page-authored `data-scrawlix-*` markers have no presentation authority. Teardown removes Highlight/style state instead of reconstructing source.
+
+Real Chromium regressions cover delayed React hydration, retained HostText updates/removals/remounts, `Node.normalize()`, same-task write/remove/reinsert, body/full-document replacement, extension reload, native selection/copy, strict CSP, and dense 300→500-row SPA mutation batches.
+
+## Appearance note for arbitrary webpages
+
+CSS Custom Highlight can style source glyphs but cannot synthesize replacement glyphs. In the extension's arbitrary-page renderer:
+
+- `scrawl` uses a wavy strike/ink treatment
+- `blur` uses a blurred concealment treatment
+- `bar`, `asterisk`, and `grawlix` use the same opaque concealment treatment
+
+The reusable React/DOM renderers can still provide richer symbol-mask output because they own their own rendering surfaces.
 
 ## First-store coverage boundary
 
-The first Chrome Web Store release processes eligible text in the top document only.
+The Chrome Web Store build processes eligible light-DOM text in the top document only, beginning at `document_start`.
 
 Outside the current contract:
 
 - child iframes, including same-origin frames
 - shadow-root traversal
-- pre-hydration DOM mutation / early injection
+- active editing surfaces and other documented scanner exclusions
 
-See #122 for iframe/shadow expansion and #110 for pre-hydration rendering.
+See #122 for iframe/shadow expansion. The non-mutating Highlight renderer and delayed-hydration Chromium gate closed the earlier pre-hydration blocker in #110.
 
 ## Chrome compatibility
 
-The manifest declares `minimum_chrome_version: 119`. That floor covers the APIs used by the store runtime, including Manifest V3 scripting registration and the extension's current browser APIs.
+The manifest declares `minimum_chrome_version: 119`. That floor covers the APIs used by the store runtime, including Manifest V3 dynamic content-script registration and CSS Custom Highlight support in the current extension contract.
 
 ## Store package
 

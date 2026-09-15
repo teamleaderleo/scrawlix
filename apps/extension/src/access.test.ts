@@ -38,7 +38,7 @@ describe('extension browser access helpers', () => {
     expect(ALL_HOST_PATTERNS).toEqual(['http://*/*', 'https://*/*']);
   });
 
-  it('registers a persisted hydration-conservative script for the top frame only', async () => {
+  it('registers a persisted document-start script for the top frame only', async () => {
     let registration: chrome.scripting.RegisteredContentScript | undefined;
     const registerContentScripts = vi.fn(
       async (scripts: chrome.scripting.RegisteredContentScript[]) => {
@@ -68,7 +68,7 @@ describe('extension browser access helpers', () => {
         matches: ['https://example.com/*'],
         js: ['content.js'],
         css: [],
-        runAt: 'document_idle',
+        runAt: 'document_start',
         persistAcrossSessions: true,
         allFrames: false,
         matchOriginAsFallback: false,
@@ -76,13 +76,13 @@ describe('extension browser access helpers', () => {
     ]);
   });
 
-  it('replaces a stale document-start/static-CSS registration', async () => {
+  it('upgrades a stale document-idle/static-CSS registration', async () => {
     let registration: chrome.scripting.RegisteredContentScript | undefined = {
       id: 'scrawlix-page',
       matches: ['https://example.com/*'],
       js: ['content.js'],
       css: ['content.css'],
-      runAt: 'document_start',
+      runAt: 'document_idle',
       persistAcrossSessions: true,
       allFrames: false,
       matchOriginAsFallback: false,
@@ -111,7 +111,7 @@ describe('extension browser access helpers', () => {
 
     expect(updateContentScripts).toHaveBeenCalledWith([
       expect.objectContaining({
-        runAt: 'document_idle',
+        runAt: 'document_start',
         css: [],
       }),
     ]);
@@ -123,7 +123,7 @@ describe('extension browser access helpers', () => {
       matches: ['https://example.com/*'],
       js: ['content.js'],
       css: [],
-      runAt: 'document_idle',
+      runAt: 'document_start',
       persistAcrossSessions: true,
       allFrames: false,
       matchOriginAsFallback: false,
@@ -159,7 +159,7 @@ describe('extension browser access helpers', () => {
       matches: ['https://*/*'],
       js: ['content.js'],
       css: [],
-      runAt: 'document_idle',
+      runAt: 'document_start',
       persistAcrossSessions: true,
       allFrames: false,
       matchOriginAsFallback: false,
