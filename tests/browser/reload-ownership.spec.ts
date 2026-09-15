@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import {
   extensionHighlightRanges,
+  extensionHighlightRangesFromPage,
   extensionWithPregrantedHosts,
   launchExtensionContext,
+  loadedExtensionId,
   serviceWorker,
 } from './extension-harness';
 
@@ -116,6 +118,7 @@ test('built extension runtime reload cannot orphan stale source or highlight off
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
     const fixtureUrl = page.url();
+    const extensionId = await loadedExtensionId(context);
 
     await expect
       .poll(async () =>
@@ -142,10 +145,6 @@ test('built extension runtime reload cannot orphan stale source or highlight off
       return true;
     });
     await closed;
-
-    await expect
-      .poll(() => context.serviceWorkers().length)
-      .toBeGreaterThan(0);
 
     expect(
       await page.evaluate(() => {
@@ -190,7 +189,11 @@ test('built extension runtime reload cannot orphan stale source or highlight off
       children: 1,
     });
 
-    const ranges = await extensionHighlightRanges(context, fixtureUrl);
+    // MV3 workers are allowed to go idle immediately after reload. A fresh
+    // extension page can still inspect the retained tab through scripting.
+    const inspector = await context.newPage();
+    await inspector.goto(`chrome-extension://${extensionId}/options.html`);
+    const ranges = await extensionHighlightRangesFromPage(inspector, fixtureUrl);
     const initialRanges = ranges.filter(range => range.parentId === 'initial');
 
     // Chrome may leave an existing tab uncovered across an extension reload, or
@@ -208,6 +211,7 @@ test('built extension runtime reload cannot orphan stale source or highlight off
         }),
       ]);
     }
+    await inspector.close();
   } finally {
     await context.close();
   }
