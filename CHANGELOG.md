@@ -43,6 +43,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 - Kept symbol-treatment source text in flow and paint grapheme-counted asterisk/grawlix masks as overlays so reveal remains layout-stable.
 - Namespaced React presentation hooks under `data-scrawlix-*` and added Escape-to-conceal for click reveal.
 - Added opt-in `revealScope="match"` with semantic-match-local pointer/keyboard disclosure, overlap grouping, exact source offsets, match metadata, and one native hidden control per focus/click disclosure group; component scope remains the default.
+- Made `CensoredText` keep one stable root span across matching and clean text, forward a root ref, accept ordinary safe span metadata/handlers, and let caller `preventDefault()` veto Scrawlix reveal changes while reserving Scrawlix-owned data/accessibility behavior.
 - Bound the supported peer range to React 18 and 19 and added packed external-consumer verification for both majors.
 - Documented and release-gated the Next.js App Router pattern: keep non-serializable rule packs inside an application-owned Client Component and pass serializable text from Server Components.
 
