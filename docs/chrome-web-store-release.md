@@ -115,7 +115,7 @@ Issue #127 remains the human visual gate. Before submission:
 - confirm captions and composition
 - verify screenshots contain no private terms, private hostnames, account data, or internal-only information
 - verify screenshots accurately represent top-document coverage
-- verify screenshot treatment claims match the Highlight renderer: scrawl and blur are distinct; bar/asterisk/grawlix currently converge to the same opaque concealment on arbitrary webpages
+- verify screenshot treatment claims match the Highlight renderer: scrawl, opaque bar, and blur are the three shipped arbitrary-page treatments
 - confirm popup/Options copy and visual rhythm at normal Chrome scaling
 
 Do not upload placeholder artwork as the first public store identity.
