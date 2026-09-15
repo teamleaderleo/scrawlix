@@ -39,6 +39,29 @@ describe('DOM source ownership', () => {
     expect(paragraph.querySelector('[data-scrawlix-dom-root]')).toBeNull();
   });
 
+  it('survives parent.normalize() without losing the owned source or visible text', async () => {
+    document.body.innerHTML = '<p id="copy">fuck</p>';
+    const paragraph = document.querySelector('#copy')!;
+    const source = paragraph.firstChild as Text;
+    const observation = controller().observe(document.body);
+
+    expect(source.data).toBe('');
+    expect(paragraph.textContent).toBe('fuck');
+
+    paragraph.normalize();
+    await tick();
+
+    expect(paragraph.firstChild).toBe(source);
+    expect(source.data).toBe('');
+    expect(paragraph.textContent).toBe('fuck');
+    expect(paragraph.querySelectorAll('[data-scrawlix-dom-root]')).toHaveLength(1);
+
+    expect(observation.restore()).toBe(1);
+    expect(paragraph.firstChild).toBe(source);
+    expect(source.data).toBe('fuck');
+    expect(paragraph.querySelector('[data-scrawlix-dom-root]')).toBeNull();
+  });
+
   it('mirrors page-owned character-data updates and restores the latest source', async () => {
     document.body.innerHTML = '<p id="copy">fuck 0</p>';
     const paragraph = document.querySelector('#copy')!;
@@ -72,6 +95,129 @@ describe('DOM source ownership', () => {
     expect(source.data).toBe('fuck 1');
     expect(paragraph.textContent).toBe('fuck 1');
     expect(paragraph.querySelector('[data-scrawlix-dom-root]')).toBeNull();
+  });
+
+  it('preserves the latest page write when the owned Text node is removed in the same task', async () => {
+    document.body.innerHTML = '<p id="copy">fuck 0</p>';
+    const paragraph = document.querySelector('#copy')!;
+    const source = paragraph.firstChild as Text;
+    const observation = controller().observe(document.body);
+
+    source.data = 'fuck 1';
+    source.remove();
+
+    await tick();
+
+    expect(source.data).toBe('fuck 1');
+    expect(paragraph.textContent).toBe('');
+    expect(paragraph.querySelector('[data-scrawlix-dom-root]')).toBeNull();
+    observation.disconnect();
+  });
+
+  it('preserves the latest of several same-task writes when the source is removed', async () => {
+    document.body.innerHTML = '<p id="copy">fuck 0</p>';
+    const paragraph = document.querySelector('#copy')!;
+    const source = paragraph.firstChild as Text;
+    const observation = controller().observe(document.body);
+
+    source.data = 'fuck 1';
+    source.data = 'fuck 2';
+    source.data = 'fuck 3';
+    source.remove();
+
+    await tick();
+
+    expect(source.data).toBe('fuck 3');
+    expect(paragraph.textContent).toBe('');
+    expect(paragraph.querySelector('[data-scrawlix-dom-root]')).toBeNull();
+    observation.disconnect();
+  });
+
+  it('preserves the latest page write when the owned Text node is moved in the same task', async () => {
+    document.body.innerHTML = '<p id="from">fuck 0</p><p id="to"></p>';
+    const from = document.querySelector('#from')!;
+    const to = document.querySelector('#to')!;
+    const source = from.firstChild as Text;
+    const observation = controller().observe(document.body);
+
+    source.data = 'fuck 1';
+    to.append(source);
+
+    await tick();
+    await tick();
+
+    expect(from.textContent).toBe('');
+    expect(from.querySelector('[data-scrawlix-dom-root]')).toBeNull();
+    expect(to.firstChild).toBe(source);
+    expect(source.data).toBe('');
+    expect(to.textContent).toBe('fuck 1');
+    expect(to.querySelectorAll('[data-scrawlix-dom-root]')).toHaveLength(1);
+    observation.disconnect();
+  });
+
+  it('preserves the latest page write across remove and reinsert of the same Text object in one task', async () => {
+    document.body.innerHTML = '<p id="copy">fuck 0</p>';
+    const paragraph = document.querySelector('#copy')!;
+    const source = paragraph.firstChild as Text;
+    const observation = controller().observe(document.body);
+
+    source.data = 'fuck 1';
+    source.remove();
+    paragraph.append(source);
+
+    await tick();
+    await tick();
+
+    expect(paragraph.firstChild).toBe(source);
+    expect(source.data).toBe('');
+    expect(paragraph.textContent).toBe('fuck 1');
+    expect(paragraph.querySelectorAll('[data-scrawlix-dom-root]')).toHaveLength(1);
+    observation.disconnect();
+  });
+
+  it('releases detached ownership after a same-task write and parent subtree replacement', async () => {
+    document.body.innerHTML = '<p id="copy">fuck 0</p>';
+    const paragraph = document.querySelector('#copy')!;
+    const source = paragraph.firstChild as Text;
+    const observation = controller().observe(document.body);
+    const replacement = document.createElement('p');
+    replacement.id = 'replacement';
+
+    source.data = 'fuck 1';
+    paragraph.replaceWith(replacement);
+
+    await tick();
+
+    expect(source.data).toBe('fuck 1');
+    expect(paragraph.querySelector('[data-scrawlix-dom-root]')).toBeNull();
+
+    replacement.append(source);
+    await tick();
+    await tick();
+
+    expect(replacement.firstChild).toBe(source);
+    expect(source.data).toBe('');
+    expect(replacement.textContent).toBe('fuck 1');
+    expect(replacement.querySelectorAll('[data-scrawlix-dom-root]')).toHaveLength(1);
+    observation.disconnect();
+  });
+
+  it('preserves the latest page write when normalize runs before MutationObserver delivery', async () => {
+    document.body.innerHTML = '<p id="copy">fuck 0</p>';
+    const paragraph = document.querySelector('#copy')!;
+    const source = paragraph.firstChild as Text;
+    const observation = controller().observe(document.body);
+
+    source.data = 'fuck 1';
+    paragraph.normalize();
+
+    await tick();
+
+    expect(paragraph.firstChild).toBe(source);
+    expect(source.data).toBe('');
+    expect(paragraph.textContent).toBe('fuck 1');
+    expect(paragraph.querySelectorAll('[data-scrawlix-dom-root]')).toHaveLength(1);
+    observation.disconnect();
   });
 
   it('releases the wrapper when page-owned text becomes safe', async () => {
