@@ -33,12 +33,13 @@ test('demo controls activate spoiler rules from viewing progress', async ({ page
   await lab.getByRole('button', { name: '5', exact: true }).click();
   await expect(lab).toHaveAttribute('data-watched-through', '5');
   await expect(lab).toHaveAttribute('data-hidden-count', '0');
-  await expect(output.locator('[data-scrawlix-root]')).toHaveCount(0);
-  await expect(output).toContainText('Mara burns the north archive');
+  await expect(root).toHaveCount(1);
+  await expect(covers).toHaveCount(0);
+  await expect(root).toContainText('Mara burns the north archive');
 
   await lab.getByRole('button', { name: '1', exact: true }).click();
   await expect(lab).toHaveAttribute('data-hidden-count', '4');
-  await expect(output.locator('[data-scrawlix-cover]')).toHaveCount(4);
+  await expect(covers).toHaveCount(4);
 
   await page.setViewportSize({ width: 390, height: 844 });
   const overflow = await page.evaluate(
