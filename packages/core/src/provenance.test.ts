@@ -7,10 +7,16 @@ const rules = [
 ] as const;
 
 describe('built-in provenance metadata', () => {
-  it('assigns deterministic scan-local ids after source-order sorting', () => {
+  it('keeps legacy find output unchanged while exposing deterministic scan-local ids', () => {
     const engine = createScrawlix({ rules });
+    const text = 'fuck then shit then fuck';
 
-    expect(engine.find('fuck then shit then fuck')).toEqual([
+    expect(engine.find(text).map(match => Object.hasOwn(match, 'matchId'))).toEqual([
+      false,
+      false,
+      false,
+    ]);
+    expect(engine.findWithIdentity(text)).toEqual([
       expect.objectContaining({
         matchId: 'm0',
         ruleId: 'fuck',
@@ -32,11 +38,17 @@ describe('built-in provenance metadata', () => {
     ]);
   });
 
-  it('locates every segment in exact UTF-16 source coordinates', () => {
+  it('keeps legacy segment output unchanged while exposing exact UTF-16 source coordinates', () => {
     const engine = createScrawlix({ rules: [rules[1]] });
     const text = '🔥fuck🔥';
-    const segments = engine.segment(text);
 
+    expect(engine.segment(text)).toEqual([
+      { text: '🔥', covered: false, ruleIds: [] },
+      { text: 'fuck', covered: true, ruleIds: ['fuck'] },
+      { text: '🔥', covered: false, ruleIds: [] },
+    ]);
+
+    const segments = engine.segmentWithOffsets(text);
     expect(segments).toEqual([
       {
         text: '🔥',
