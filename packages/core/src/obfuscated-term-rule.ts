@@ -1,3 +1,4 @@
+import { recordCoreObfuscatedShadowPass } from './core-instrumentation.js';
 import {
   graphemeRanges,
   type CensorMatcher,
@@ -34,6 +35,20 @@ type ObfuscatedShadow = {
   substitutionPrefix: readonly number[];
   ignoredPrefix: readonly number[];
 };
+
+const graphemeSegmenter =
+  typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    : null;
+
+function requireGraphemeSegmenter() {
+  if (!graphemeSegmenter) {
+    throw new Error(
+      'Scrawlix requires Intl.Segmenter for grapheme-safe matching and coverage.'
+    );
+  }
+  return graphemeSegmenter;
+}
 
 function normalize(value: string, normalization: UnicodeNormalization) {
   return normalization === 'none' ? value : value.normalize(normalization);
@@ -181,6 +196,7 @@ function obfuscatedShadow(
   normalization: UnicodeNormalization,
   config: CompiledObfuscation
 ): ObfuscatedShadow {
+  recordCoreObfuscatedShadowPass();
   let shadow = '';
   let ignoredSincePreviousUnit = 0;
   const units: ObfuscatedShadowUnit[] = [];
@@ -189,9 +205,11 @@ function obfuscatedShadow(
   const substitutionPrefix = [0];
   const ignoredPrefix = [0];
 
-  for (const range of graphemeRanges(value)) {
+  for (const part of requireGraphemeSegmenter().segment(value)) {
+    const sourceStart = part.index;
+    const sourceEnd = part.index + part.segment.length;
     const sourceGrapheme = normalize(
-      value.slice(range.start, range.end),
+      value.slice(sourceStart, sourceEnd),
       normalization
     );
     if (config.ignored.has(sourceGrapheme)) {
@@ -207,8 +225,8 @@ function obfuscatedShadow(
     units.push({
       shadowStart,
       shadowEnd: shadow.length,
-      sourceStart: range.start,
-      sourceEnd: range.end,
+      sourceStart,
+      sourceEnd,
       substitutionCost,
       ignoredBefore: ignoredSincePreviousUnit,
     });

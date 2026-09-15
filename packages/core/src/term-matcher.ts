@@ -1,3 +1,5 @@
+import { recordCoreTermShadowPass } from './core-instrumentation.js';
+
 type TermBoundaryStrategy =
   | 'word'
   | 'unicode-word'
@@ -51,10 +53,14 @@ function requireGraphemeSegmenter() {
 }
 
 function graphemeRanges(value: string) {
-  return [...requireGraphemeSegmenter().segment(value)].map(part => ({
-    start: part.index,
-    end: part.index + part.segment.length,
-  }));
+  const ranges: Array<{ start: number; end: number }> = [];
+  for (const part of requireGraphemeSegmenter().segment(value)) {
+    ranges.push({
+      start: part.index,
+      end: part.index + part.segment.length,
+    });
+  }
+  return ranges;
 }
 
 function normalizeGrapheme(
@@ -123,13 +129,16 @@ function sourceShadow(
   value: string,
   normalization: UnicodeNormalization
 ): SourceShadow {
+  recordCoreTermShadowPass();
   let shadow = '';
   const units: ShadowUnit[] = [];
 
-  for (const range of graphemeRanges(value)) {
+  for (const part of requireGraphemeSegmenter().segment(value)) {
+    const sourceStart = part.index;
+    const sourceEnd = part.index + part.segment.length;
     const shadowStart = shadow.length;
     const unitValue = normalizeGrapheme(
-      value.slice(range.start, range.end),
+      value.slice(sourceStart, sourceEnd),
       normalization
     );
     shadow += unitValue;
@@ -137,8 +146,8 @@ function sourceShadow(
       value: unitValue,
       shadowStart,
       shadowEnd: shadow.length,
-      sourceStart: range.start,
-      sourceEnd: range.end,
+      sourceStart,
+      sourceEnd,
     });
   }
 
@@ -245,9 +254,7 @@ function acceptsBoundary(
 ) {
   if (boundary === 'substring') return true;
   if (typeof boundary === 'object') {
-    return (
-      lexicalBoundaries!.has(start) && lexicalBoundaries!.has(end)
-    );
+    return lexicalBoundaries!.has(start) && lexicalBoundaries!.has(end);
   }
 
   return (
