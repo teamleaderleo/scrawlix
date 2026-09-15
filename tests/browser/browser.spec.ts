@@ -62,7 +62,7 @@ test('built extension persists top-document injection and page lifecycle behavio
       matches: ['http://*/*', 'https://*/*'],
       js: ['content.js'],
       css: [],
-      runAt: 'document_idle',
+      runAt: 'document_start',
       persistAcrossSessions: true,
       allFrames: false,
       matchOriginAsFallback: false,

@@ -120,7 +120,7 @@ test('built extension preserves popup and Options intent across browser restart'
       matches: ['http://*/*', 'https://*/*'],
       js: ['content.js'],
       css: [],
-      runAt: 'document_idle',
+      runAt: 'document_start',
       persistAcrossSessions: true,
       allFrames: false,
       matchOriginAsFallback: false,

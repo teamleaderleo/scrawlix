@@ -32,10 +32,10 @@ function registrationFor(
     matches,
     js: ['content.js'],
     css: [],
-    // #110 remains unresolved for arbitrary delayed hydration. Keep the store
-    // runtime at document_idle until a DOM-preserving pre-hydration path passes
-    // the real Chromium hydration gate.
-    runAt: 'document_idle',
+    // The extension renderer owns only page Ranges + a CSS Custom Highlight.
+    // It can start before framework hydration without changing the page's
+    // HostText/child tree; the delayed-hydration Chromium gate enforces that.
+    runAt: 'document_start',
     persistAcrossSessions: true,
     allFrames: false,
     matchOriginAsFallback: false,
@@ -73,7 +73,7 @@ function registrationConverged(
     sameStrings(existing.matches, matches) &&
     sameStrings(existing.js, ['content.js']) &&
     sameStrings(existing.css, []) &&
-    existing.runAt === 'document_idle' &&
+    existing.runAt === 'document_start' &&
     existing.persistAcrossSessions !== false &&
     existing.allFrames !== true &&
     existing.matchOriginAsFallback !== true
