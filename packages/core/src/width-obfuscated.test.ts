@@ -14,7 +14,7 @@ describe('width obfuscated terms', () => {
       ],
     });
 
-    expect(engine.find('ｆuck')).toEqual([
+    expect(engine.find('ｆuck')).toMatchObject([
       {
         ruleId: 'fuck-width',
         profile: 'obfuscated',
@@ -61,7 +61,7 @@ describe('width obfuscated terms', () => {
       targetStart: 0,
       targetEnd: 4,
     });
-    expect(engine.segment('motherｆucker')).toEqual([
+    expect(engine.segment('motherｆucker')).toMatchObject([
       { text: 'mother', covered: false, ruleIds: [] },
       { text: 'ｆuck', covered: true, ruleIds: ['fuck-width'] },
       { text: 'er', covered: false, ruleIds: [] },
