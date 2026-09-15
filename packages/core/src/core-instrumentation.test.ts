@@ -6,6 +6,7 @@ import {
   createScrawlix,
   type CoverageSelector,
 } from './index';
+import { censorRuleFromRepeatedObfuscatedTerms } from './repeated-obfuscated';
 
 const regexRule = { id: 'word', pattern: /abcdef/u } as const;
 
@@ -105,5 +106,24 @@ describe('core grapheme work instrumentation', () => {
     expect(work.termShadowPasses).toBe(0);
     expect(work.rangePasses).toBe(0);
     expect(work.materializedRanges).toBe(0);
+  });
+
+  it('materializes source grapheme ranges once across matcher-backed rules in one engine scan', () => {
+    const rules = Array.from({ length: 5 }, (_, index) =>
+      censorRuleFromRepeatedObfuscatedTerms(
+        `obfuscated-${index}`,
+        ['fuck', 'shit', 'cunt'],
+        { maxRepetitions: 1 }
+      )
+    );
+    const engine = createScrawlix({ rules });
+    const text = 'z'.repeat(1_024);
+
+    const { result, work } = measureCoreGraphemeWork(() => engine.find(text));
+
+    expect(result).toEqual([]);
+    expect(work.boundaryPasses).toBe(1);
+    expect(work.rangePasses).toBe(1);
+    expect(work.materializedRanges).toBe(1_024);
   });
 });
