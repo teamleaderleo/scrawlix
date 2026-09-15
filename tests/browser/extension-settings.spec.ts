@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+  extensionHighlightRanges,
   extensionWithPregrantedHosts,
   launchExtensionContext,
   loadedExtensionId,
@@ -17,7 +18,15 @@ test('built extension preserves popup and Options intent across browser restart'
   try {
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
-    await expect(page.locator('#initial [data-scrawlix-dom-root]')).toHaveCount(1);
+    const fixtureUrl = page.url();
+    await expect
+      .poll(async () =>
+        (await extensionHighlightRanges(context, fixtureUrl)).some(
+          range => range.parentId === 'initial'
+        )
+      )
+      .toBe(true);
+    await expect(page.locator('[data-scrawlix-dom-root]')).toHaveCount(0);
 
     const extensionId = await loadedExtensionId(context);
     const popup = await context.newPage();
@@ -45,18 +54,29 @@ test('built extension preserves popup and Options intent across browser restart'
     await expect(options.locator('#settings-status')).toHaveText('added 2');
     customLens = options.locator('.lens-card[data-lens-kind="terms"]').last();
     await expect(customLens.locator('.term-chip')).toHaveCount(2);
-    await expect(page.locator('#private [data-scrawlix-dom-root]')).toHaveCount(1);
+    await expect
+      .poll(async () =>
+        (await extensionHighlightRanges(context, fixtureUrl)).some(
+          range => range.parentId === 'private'
+        )
+      )
+      .toBe(true);
 
     await Promise.all([
       popup.locator('#appearance').selectOption('blur'),
       options.locator('#coverage').selectOption('full'),
     ]);
-    await expect(page.locator('#initial [data-scrawlix-dom-root]')).toHaveAttribute(
-      'data-scrawlix-appearance',
-      'blur'
-    );
-    await expect(page.locator('#initial [data-scrawlix-cover]')).toHaveText('fuck');
-    await expect(page.locator('#private [data-scrawlix-cover]')).toHaveText('Mothbit');
+    await expect
+      .poll(async () => {
+        const ranges = await extensionHighlightRanges(context, fixtureUrl);
+        return {
+          initial: ranges.find(range => range.parentId === 'initial')?.text ?? null,
+          private: ranges.find(range => range.parentId === 'private')?.text ?? null,
+        };
+      })
+      .toEqual({ initial: 'fuck', private: 'Mothbit' });
+    await expect(page.locator('#initial')).toHaveText('well, fuck this');
+    await expect(page.locator('#private')).toHaveText('Mothbit remains private');
 
     const worker = await serviceWorker(context);
     await worker.evaluate(async () => {
@@ -70,15 +90,20 @@ test('built extension preserves popup and Options intent across browser restart'
       options.locator('#active').uncheck(),
       popup.locator('#reveal').selectOption('never'),
     ]);
-    await expect(page.locator('#initial [data-scrawlix-dom-root]')).toHaveCount(0);
+    await expect.poll(() => extensionHighlightRanges(context, fixtureUrl)).toEqual([]);
     await expect(page.locator('#initial')).toHaveText('well, fuck this');
 
     await options.locator('#active').check();
-    const restoredRoot = page.locator('#initial [data-scrawlix-dom-root]');
-    await expect(restoredRoot).toHaveCount(1);
-    await expect(restoredRoot).toHaveAttribute('data-scrawlix-reveal', 'never');
-    await expect(restoredRoot).toHaveAttribute('data-scrawlix-appearance', 'blur');
-    await expect(restoredRoot.locator('[data-scrawlix-cover]')).toHaveText('fuck');
+    await expect
+      .poll(async () => {
+        const ranges = await extensionHighlightRanges(context, fixtureUrl);
+        return {
+          initial: ranges.find(range => range.parentId === 'initial')?.text ?? null,
+          private: ranges.find(range => range.parentId === 'private')?.text ?? null,
+        };
+      })
+      .toEqual({ initial: 'fuck', private: 'Mothbit' });
+    await expect(page.locator('[data-scrawlix-dom-root]')).toHaveCount(0);
 
     await options.getByRole('button', { name: 'use default' }).click();
     await expect(options.locator('#site-list .managed-row')).toHaveCount(0);
@@ -103,12 +128,17 @@ test('built extension preserves popup and Options intent across browser restart'
 
     const page = context.pages()[0] ?? (await context.newPage());
     await page.goto('http://127.0.0.1:4174/fixture.html');
-    const initialRoot = page.locator('#initial [data-scrawlix-dom-root]');
-    await expect(initialRoot).toHaveCount(1);
-    await expect(initialRoot).toHaveAttribute('data-scrawlix-appearance', 'blur');
-    await expect(initialRoot).toHaveAttribute('data-scrawlix-reveal', 'never');
-    await expect(initialRoot.locator('[data-scrawlix-cover]')).toHaveText('fuck');
-    await expect(page.locator('#private [data-scrawlix-cover]')).toHaveText('Mothbit');
+    const fixtureUrl = page.url();
+    await expect
+      .poll(async () => {
+        const ranges = await extensionHighlightRanges(context, fixtureUrl);
+        return {
+          initial: ranges.find(range => range.parentId === 'initial')?.text ?? null,
+          private: ranges.find(range => range.parentId === 'private')?.text ?? null,
+        };
+      })
+      .toEqual({ initial: 'fuck', private: 'Mothbit' });
+    await expect(page.locator('[data-scrawlix-dom-root]')).toHaveCount(0);
 
     const extensionId = await loadedExtensionId(context);
     const popup = await context.newPage();
