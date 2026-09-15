@@ -1,27 +1,33 @@
 import './popup.css';
 import {
-  ENGLISH_PROFANITY_LENS_ID,
+  ALL_HOST_PATTERNS,
+  activateTab,
+  hasAllHostsAccess,
+  hasPersistentAccess,
+  originPatternForUrl,
+  removeHostAccess,
+  requestHostAccess,
+  revealTabFor,
+} from './access';
+import { TEMPORARY_REVEAL_COMMAND } from './actions';
+import {
+  LOCAL_STATE_KEY,
+  SITE_OVERRIDES_KEY,
+  SYNC_SETTINGS_KEY,
   activeProfile,
   effectiveEnabled,
-  normalizeCustomWords,
-  setActiveProfile,
-  setSiteMode,
   siteModeFor,
-  updateActiveProfile,
   type ExtensionAppearance,
   type ExtensionCoverage,
-  type ExtensionLens,
-  type ExtensionLocalState,
-  type ExtensionProfile,
   type ExtensionReveal,
   type SiteMode,
-  type SyncSettings,
 } from './config';
 import {
-  loadExtensionState,
-  saveLocalState,
-  saveSettings,
-} from './storage';
+  commitExtensionMutation,
+  type ExtensionMutation,
+  type ExtensionState,
+} from './settings-mutations';
+import { loadExtensionState } from './storage';
 
 function required<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -29,369 +35,252 @@ function required<T extends HTMLElement>(id: string): T {
   return element as T;
 }
 
-const enabledInput = required<HTMLInputElement>('enabled');
+type ActivePage = { tabId: number; url: string; hostname: string; originPattern: string };
+
+const activeInput = required<HTMLInputElement>('active');
 const siteModeSelect = required<HTMLSelectElement>('site-mode');
 const appearanceSelect = required<HTMLSelectElement>('appearance');
 const coverageSelect = required<HTMLSelectElement>('coverage');
 const revealSelect = required<HTMLSelectElement>('reveal');
 const profileSelect = required<HTMLSelectElement>('profile');
-const profileNameInput = required<HTMLInputElement>('profile-name');
-const addProfileButton = required<HTMLButtonElement>('add-profile');
-const deleteProfileButton = required<HTMLButtonElement>('delete-profile');
-const lensList = required<HTMLDivElement>('lens-list');
-const addLensButton = required<HTMLButtonElement>('add-lens');
+const revealPageButton = required<HTMLButtonElement>('reveal-page');
+const revealShortcut = required<HTMLElement>('reveal-shortcut');
+const revealStatus = required<HTMLElement>('reveal-status');
 const siteHeading = required<HTMLHeadingElement>('site-heading');
 const effectiveStatus = required<HTMLParagraphElement>('effective-status');
-const localSaveStatus = required<HTMLSpanElement>('local-save-status');
+const accessStatus = required<HTMLParagraphElement>('access-status');
+const siteAccessButton = required<HTMLButtonElement>('site-access');
+const allSitesAccessButton = required<HTMLButtonElement>('all-sites-access');
+const saveStatus = required<HTMLElement>('save-status');
+const customCount = required<HTMLElement>('custom-count');
+const siteExceptionCount = required<HTMLElement>('site-exception-count');
+const openOptionsButton = required<HTMLButtonElement>('open-options');
+const version = required<HTMLElement>('version');
 
-let settings: SyncSettings;
-let localState: ExtensionLocalState;
-let hostname: string | null = null;
-let localSaveChain = Promise.resolve();
-let localSaveTimer: number | null = null;
+let state: ExtensionState;
+let page: ActivePage | null = null;
+let persistentAccess = false;
+let allHostsAccess = false;
+let saveGeneration = 0;
+let loadGeneration = 0;
 
-async function currentHostname() {
+async function currentPage(): Promise<ActivePage | null> {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  const url = tabs[0]?.url;
-  if (!url) return null;
-
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
-    return parsed.hostname.toLowerCase();
-  } catch {
-    return null;
-  }
+  const tab = tabs[0];
+  if (tab?.id === undefined || !tab.url) return null;
+  const originPattern = originPatternForUrl(tab.url);
+  if (!originPattern) return null;
+  const url = new URL(tab.url);
+  return { tabId: tab.id, url: tab.url, hostname: url.hostname.toLowerCase(), originPattern };
 }
 
-function makeId(prefix: 'lens' | 'profile') {
-  return `${prefix}:${crypto.randomUUID()}`;
-}
-
-function renderEffectiveStatus() {
-  if (!hostname) {
-    siteHeading.textContent = 'This page is unavailable';
-    effectiveStatus.textContent = 'Scrawlix runs on ordinary HTTP and HTTPS pages.';
-    siteModeSelect.disabled = true;
-    return;
-  }
-
-  siteHeading.textContent = hostname;
-  siteModeSelect.disabled = false;
-  siteModeSelect.value = siteModeFor(settings, hostname);
-  const enabledHere = effectiveEnabled(settings, hostname);
+function render() {
+  const { settings, localState } = state;
   const profile = activeProfile(localState);
-  effectiveStatus.textContent = `${enabledHere ? 'censoring is on here' : 'censoring is off here'} · ${profile.name || 'Untitled profile'}`;
-  effectiveStatus.dataset.enabled = enabledHere ? 'true' : 'false';
-}
+  activeInput.checked = !settings.paused;
 
-function renderProfiles() {
-  const profile = activeProfile(localState);
   profileSelect.replaceChildren();
-
   for (const candidate of localState.profiles) {
     const option = document.createElement('option');
     option.value = candidate.id;
-    option.textContent = candidate.name || 'Untitled profile';
+    option.textContent = candidate.name;
     profileSelect.append(option);
   }
-
   profileSelect.value = profile.id;
-  profileNameInput.value = profile.name;
-  deleteProfileButton.disabled = localState.profiles.length <= 1;
-}
-
-function replaceLens(
-  state: ExtensionLocalState,
-  lensId: string,
-  patch: Partial<Omit<ExtensionLens, 'id' | 'kind'>>
-): ExtensionLocalState {
-  return {
-    ...state,
-    lenses: state.lenses.map(lens =>
-      lens.id === lensId && lens.kind === 'terms' ? { ...lens, ...patch } : lens
-    ),
-  };
-}
-
-function removeLens(state: ExtensionLocalState, lensId: string): ExtensionLocalState {
-  return {
-    ...state,
-    lenses: state.lenses.filter(lens => lens.id !== lensId),
-    profiles: state.profiles.map(profile => ({
-      ...profile,
-      lensIds: profile.lensIds.filter(id => id !== lensId),
-    })),
-  };
-}
-
-function createLensToggle(lens: ExtensionLens, profile: ExtensionProfile) {
-  const label = document.createElement('label');
-  label.className = 'lens-toggle';
-
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.checked = profile.lensIds.includes(lens.id);
-  checkbox.setAttribute('aria-label', `Use ${lens.name} in ${profile.name}`);
-  checkbox.addEventListener('change', () => {
-    const nextIds = new Set(activeProfile(localState).lensIds);
-    if (checkbox.checked) nextIds.add(lens.id);
-    else nextIds.delete(lens.id);
-    void persistLocal(
-      updateActiveProfile(localState, { lensIds: Array.from(nextIds) })
-    );
-  });
-
-  const marker = document.createElement('span');
-  marker.textContent = checkbox.checked ? 'on' : 'off';
-
-  label.append(checkbox, marker);
-  return { checkbox, label };
-}
-
-function renderLenses() {
-  lensList.replaceChildren();
-  const profile = activeProfile(localState);
-
-  for (const lens of localState.lenses) {
-    const card = document.createElement('article');
-    card.className = 'lens-card';
-    card.dataset.lensKind = lens.kind;
-
-    const header = document.createElement('div');
-    header.className = 'lens-card-header';
-    const toggle = createLensToggle(lens, profile);
-    header.append(toggle.label);
-
-    if (lens.id === ENGLISH_PROFANITY_LENS_ID) {
-      const title = document.createElement('div');
-      title.className = 'lens-title';
-      const name = document.createElement('strong');
-      name.textContent = lens.name;
-      const detail = document.createElement('span');
-      detail.textContent = 'built-in English pack';
-      title.append(name, detail);
-      header.prepend(title);
-      card.append(header);
-    } else {
-      const nameInput = document.createElement('input');
-      nameInput.className = 'lens-name';
-      nameInput.value = lens.name;
-      nameInput.setAttribute('aria-label', 'Lens name');
-
-      const termsInput = document.createElement('textarea');
-      termsInput.rows = 3;
-      termsInput.value = lens.terms.join('\n');
-      termsInput.placeholder = 'Project Velvet\nClient Name\nspoiler phrase';
-      termsInput.spellcheck = false;
-      termsInput.setAttribute('aria-label', `${lens.name} terms`);
-
-      nameInput.addEventListener('input', () => {
-        const next = replaceLens(localState, lens.id, { name: nameInput.value });
-        toggle.checkbox.setAttribute(
-          'aria-label',
-          `Use ${nameInput.value || 'Untitled lens'} in ${activeProfile(next).name}`
-        );
-        termsInput.setAttribute(
-          'aria-label',
-          `${nameInput.value || 'Untitled lens'} terms`
-        );
-        scheduleLocal(next);
-      });
-      nameInput.addEventListener('change', () => void persistLocal(localState, false));
-
-      const deleteButton = document.createElement('button');
-      deleteButton.type = 'button';
-      deleteButton.className = 'danger-button';
-      deleteButton.textContent = 'remove';
-      deleteButton.addEventListener('click', () => {
-        void persistLocal(removeLens(localState, lens.id));
-      });
-
-      termsInput.addEventListener('input', () => {
-        scheduleLocal(
-          replaceLens(localState, lens.id, {
-            terms: normalizeCustomWords(termsInput.value.split('\n')),
-          })
-        );
-      });
-      termsInput.addEventListener('change', () => void persistLocal(localState, false));
-
-      header.prepend(nameInput);
-      header.append(deleteButton);
-      card.append(header, termsInput);
-    }
-
-    lensList.append(card);
-  }
-}
-
-function renderLocalState() {
-  const profile = activeProfile(localState);
-  renderProfiles();
   appearanceSelect.value = profile.appearance;
   coverageSelect.value = profile.coverage;
   revealSelect.value = profile.reveal;
-  renderLenses();
-  renderEffectiveStatus();
-}
 
-function renderSettings() {
-  enabledInput.checked = settings.enabled;
-  renderLocalState();
-}
+  customCount.textContent = String(
+    localState.lenses.reduce((count, lens) => count + (lens.kind === 'terms' ? lens.terms.length : 0), 0)
+  );
+  siteExceptionCount.textContent = String(Object.keys(settings.siteOverrides).length);
 
-async function persistSettings(next: SyncSettings) {
-  settings = next;
-  renderSettings();
-  await saveSettings(settings);
-}
-
-function enqueueLocalWrite(snapshot: ExtensionLocalState) {
-  localSaveStatus.textContent = 'saving…';
-  localSaveChain = localSaveChain
-    .then(() => saveLocalState(snapshot))
-    .then(() => {
-      if (localState === snapshot) localSaveStatus.textContent = 'saved';
-    })
-    .catch(() => {
-      localSaveStatus.textContent = 'save failed';
-    });
-  return localSaveChain;
-}
-
-function persistLocal(next: ExtensionLocalState, rerender = true) {
-  if (localSaveTimer !== null) {
-    window.clearTimeout(localSaveTimer);
-    localSaveTimer = null;
+  if (!page) {
+    siteHeading.textContent = 'This page is unavailable';
+    effectiveStatus.textContent = 'Scrawlix runs on ordinary HTTP and HTTPS pages.';
+    effectiveStatus.dataset.enabled = 'false';
+    siteModeSelect.disabled = true;
+  } else {
+    siteHeading.textContent = page.hostname;
+    siteModeSelect.disabled = false;
+    siteModeSelect.value = siteModeFor(settings, page.hostname);
+    const enabledHere = effectiveEnabled(settings, page.hostname);
+    effectiveStatus.textContent = settings.paused
+      ? 'paused everywhere'
+      : enabledHere && !persistentAccess
+        ? 'ready here · Chrome access needed'
+        : enabledHere
+          ? `on here · ${profile.name}`
+          : `off here · ${profile.name}`;
+    effectiveStatus.dataset.enabled = enabledHere && persistentAccess ? 'true' : 'false';
   }
-  localState = next;
-  if (rerender) renderLocalState();
-  return enqueueLocalWrite(next);
+
+  if (!page) {
+    accessStatus.textContent = 'Unavailable on this page.';
+    siteAccessButton.disabled = true;
+  } else if (allHostsAccess) {
+    accessStatus.textContent = 'Allowed on every HTTP and HTTPS website.';
+    siteAccessButton.disabled = true;
+  } else if (persistentAccess) {
+    accessStatus.textContent = 'Allowed on this site.';
+    siteAccessButton.disabled = false;
+  } else {
+    accessStatus.textContent = 'Chrome will ask only when you choose to allow it.';
+    siteAccessButton.disabled = false;
+  }
+
+  siteAccessButton.textContent = allHostsAccess
+    ? 'included in all websites'
+    : persistentAccess
+      ? 'remove this site'
+      : 'allow this site';
+  allSitesAccessButton.textContent = allHostsAccess ? 'remove all websites' : 'allow all websites';
+  revealPageButton.disabled = !page || !persistentAccess || !effectiveEnabled(settings, page.hostname);
 }
 
-function scheduleLocal(next: ExtensionLocalState) {
-  localState = next;
-  localSaveStatus.textContent = 'editing';
-  if (localSaveTimer !== null) window.clearTimeout(localSaveTimer);
-  localSaveTimer = window.setTimeout(() => {
-    localSaveTimer = null;
-    void enqueueLocalWrite(localState);
-  }, 250);
+async function refreshAccess() {
+  const checks = [hasAllHostsAccess()];
+  if (page) checks.push(hasPersistentAccess(page.url));
+  const [all, current = false] = await Promise.all(checks);
+  allHostsAccess = all;
+  persistentAccess = current;
+  render();
 }
 
-enabledInput.addEventListener('change', () => {
-  void persistSettings({ ...settings, enabled: enabledInput.checked });
+async function reloadState() {
+  const generation = ++loadGeneration;
+  const loaded = await loadExtensionState();
+  if (generation !== loadGeneration) return;
+  state = loaded;
+  render();
+}
+
+async function ensureRuntime() {
+  if (page && persistentAccess) await activateTab(page.tabId);
+}
+
+async function commit(mutation: ExtensionMutation) {
+  const generation = ++saveGeneration;
+  saveStatus.textContent = 'saving…';
+  try {
+    const committed = await commitExtensionMutation(mutation);
+    if (generation === saveGeneration) {
+      state = committed.state;
+      render();
+      saveStatus.textContent = 'saved';
+    }
+    await ensureRuntime();
+  } catch {
+    if (generation === saveGeneration) {
+      await reloadState();
+      saveStatus.textContent = 'save failed';
+    }
+  }
+}
+
+activeInput.addEventListener('change', () => {
+  void commit({ type: 'paused', value: !activeInput.checked });
 });
-
 siteModeSelect.addEventListener('change', () => {
-  if (!hostname) return;
-  void persistSettings(
-    setSiteMode(settings, hostname, siteModeSelect.value as SiteMode)
-  );
+  if (!page) return;
+  void commit({ type: 'site-mode', hostname: page.hostname, mode: siteModeSelect.value as SiteMode });
 });
-
 profileSelect.addEventListener('change', () => {
-  void persistLocal(setActiveProfile(localState, profileSelect.value));
+  void commit({ type: 'active-profile', profileId: profileSelect.value });
 });
-
-profileNameInput.addEventListener('input', () => {
-  const next = updateActiveProfile(localState, { name: profileNameInput.value });
-  const option = Array.from(profileSelect.options).find(
-    candidate => candidate.value === activeProfile(next).id
-  );
-  if (option) option.textContent = profileNameInput.value || 'Untitled profile';
-  localState = next;
-  renderEffectiveStatus();
-  scheduleLocal(next);
-});
-profileNameInput.addEventListener('change', () => void persistLocal(localState, false));
-
-addProfileButton.addEventListener('click', () => {
-  const source = activeProfile(localState);
-  const profile: ExtensionProfile = {
-    ...source,
-    id: makeId('profile'),
-    name: `Profile ${localState.profiles.length + 1}`,
-    lensIds: [...source.lensIds],
-  };
-  void persistLocal({
-    ...localState,
-    profiles: [...localState.profiles, profile],
-    activeProfileId: profile.id,
-  });
-});
-
-deleteProfileButton.addEventListener('click', () => {
-  if (localState.profiles.length <= 1) return;
-  const active = activeProfile(localState);
-  const profiles = localState.profiles.filter(profile => profile.id !== active.id);
-  void persistLocal({
-    ...localState,
-    profiles,
-    activeProfileId: profiles[0]!.id,
-  });
-});
-
 appearanceSelect.addEventListener('change', () => {
-  void persistLocal(
-    updateActiveProfile(localState, {
-      appearance: appearanceSelect.value as ExtensionAppearance,
-    }),
-    false
-  );
+  void commit({ type: 'profile-patch', profileId: activeProfile(state.localState).id, patch: { appearance: appearanceSelect.value as ExtensionAppearance } });
 });
-
 coverageSelect.addEventListener('change', () => {
-  void persistLocal(
-    updateActiveProfile(localState, {
-      coverage: coverageSelect.value as ExtensionCoverage,
-    }),
-    false
-  );
+  void commit({ type: 'profile-patch', profileId: activeProfile(state.localState).id, patch: { coverage: coverageSelect.value as ExtensionCoverage } });
 });
-
 revealSelect.addEventListener('change', () => {
-  void persistLocal(
-    updateActiveProfile(localState, {
-      reveal: revealSelect.value as ExtensionReveal,
-    }),
-    false
-  );
+  void commit({ type: 'profile-patch', profileId: activeProfile(state.localState).id, patch: { reveal: revealSelect.value as ExtensionReveal } });
 });
 
-addLensButton.addEventListener('click', () => {
-  const lens: ExtensionLens = {
-    id: makeId('lens'),
-    name: `Lens ${localState.lenses.filter(candidate => candidate.kind === 'terms').length + 1}`,
-    kind: 'terms',
-    terms: [],
-  };
-  const profile = activeProfile(localState);
-  const next = updateActiveProfile(
-    { ...localState, lenses: [...localState.lenses, lens] },
-    { lensIds: [...profile.lensIds, lens.id] }
-  );
-  void persistLocal(next);
+revealPageButton.addEventListener('click', () => {
+  if (!page || revealPageButton.disabled) return;
+  void (async () => {
+    revealStatus.textContent = 'revealing…';
+    try {
+      let delivered = await revealTabFor(page!.tabId);
+      if (!delivered) {
+        await activateTab(page!.tabId);
+        delivered = await revealTabFor(page!.tabId);
+      }
+      revealStatus.textContent = delivered ? 'visible for 10s' : 'page unavailable';
+    } catch {
+      revealStatus.textContent = 'reveal failed';
+    }
+  })();
 });
 
-window.addEventListener('pagehide', () => {
-  if (localSaveTimer === null) return;
-  window.clearTimeout(localSaveTimer);
-  localSaveTimer = null;
-  void enqueueLocalWrite(localState);
+siteAccessButton.addEventListener('click', () => {
+  if (!page || allHostsAccess) return;
+  void (async () => {
+    accessStatus.textContent = persistentAccess ? 'removing access…' : 'asking Chrome…';
+    try {
+      if (persistentAccess) await removeHostAccess([page!.originPattern]);
+      else {
+        const granted = await requestHostAccess([page!.originPattern]);
+        if (granted) await activateTab(page!.tabId);
+      }
+      await refreshAccess();
+    } catch {
+      accessStatus.textContent = 'Access change failed.';
+    }
+  })();
+});
+
+allSitesAccessButton.addEventListener('click', () => {
+  void (async () => {
+    accessStatus.textContent = allHostsAccess ? 'removing access…' : 'asking Chrome…';
+    try {
+      if (allHostsAccess) await removeHostAccess(ALL_HOST_PATTERNS);
+      else {
+        const granted = await requestHostAccess(ALL_HOST_PATTERNS);
+        if (granted && page) await activateTab(page.tabId);
+      }
+      await refreshAccess();
+    } catch {
+      accessStatus.textContent = 'Access change failed.';
+    }
+  })();
+});
+
+openOptionsButton.addEventListener('click', () => {
+  void chrome.runtime.openOptionsPage().then(() => window.close()).catch(() => {
+    saveStatus.textContent = 'could not open settings';
+  });
+});
+
+chrome.permissions.onAdded.addListener(() => void refreshAccess());
+chrome.permissions.onRemoved.addListener(() => void refreshAccess());
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  const relevant =
+    (areaName === 'sync' && Object.prototype.hasOwnProperty.call(changes, SYNC_SETTINGS_KEY)) ||
+    (areaName === 'local' && (
+      Object.prototype.hasOwnProperty.call(changes, LOCAL_STATE_KEY) ||
+      Object.prototype.hasOwnProperty.call(changes, SITE_OVERRIDES_KEY)
+    ));
+  if (relevant) void reloadState();
 });
 
 async function initialize() {
-  const [state, activeHostname] = await Promise.all([
+  version.textContent = `v${chrome.runtime.getManifest().version}`;
+  const [loaded, activePage, commands] = await Promise.all([
     loadExtensionState(),
-    currentHostname(),
+    currentPage(),
+    chrome.commands.getAll(),
   ]);
-
-  settings = state.settings;
-  localState = state.localState;
-  hostname = activeHostname;
-  renderSettings();
+  state = loaded;
+  page = activePage;
+  const command = commands.find(item => item.name === TEMPORARY_REVEAL_COMMAND);
+  revealShortcut.textContent = command?.shortcut?.trim() ?? '';
+  revealShortcut.hidden = !revealShortcut.textContent;
+  await refreshAccess();
+  await ensureRuntime();
 }
 
 void initialize();
