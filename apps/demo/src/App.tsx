@@ -12,15 +12,19 @@ import {
   CensoredText,
   type ScrawlixAppearance,
   type ScrawlixReveal,
+  type ScrawlixRevealScope,
 } from '@scrawlix/react';
 import { useMemo, useState } from 'react';
 import { PrivacyLab } from './PrivacyLab';
 import { SpoilerLab } from './SpoilerLab';
+import { XrayLab } from './XrayLab';
 
 const appearances: readonly ScrawlixAppearance[] = [
   'scrawl',
   'bar',
   'blur',
+  'whiteout',
+  'mosaic',
   'asterisk',
   'grawlix',
 ];
@@ -36,6 +40,7 @@ const coverages: readonly CoverageChoice[] = [
 ];
 
 const reveals: readonly ScrawlixReveal[] = ['hover', 'focus', 'click', 'never'];
+const revealScopes: readonly ScrawlixRevealScope[] = ['match', 'component'];
 
 const defaultText =
   'This fucking delightful little thing can censor shit without flattening every word into the same black rectangle.';
@@ -193,6 +198,7 @@ export function App() {
   const [appearance, setAppearance] = useState<ScrawlixAppearance>('scrawl');
   const [coverage, setCoverage] = useState<CoverageChoice>('middle');
   const [reveal, setReveal] = useState<ScrawlixReveal>('hover');
+  const [revealScope, setRevealScope] = useState<ScrawlixRevealScope>('match');
   const [text, setText] = useState(defaultText);
   const [poetryText, setPoetryText] = useState(defaultPoetryText);
   const [poetryTermsText, setPoetryTermsText] = useState(
@@ -203,6 +209,7 @@ export function App() {
     () => normalizeTerms(poetryTermsText),
     [poetryTermsText]
   );
+  const proofTarget = revealScope === 'match' ? 'a censored term' : 'the proof';
 
   const code = useMemo(() => {
     const coverageLine =
@@ -210,8 +217,8 @@ export function App() {
         ? '  coverage={englishVowelCoverage}'
         : `  coverage="${coverage}"`;
 
-    return `import { englishStrongProfanityRules${coverage === 'vowel' ? ', englishVowelCoverage' : ''} } from '@scrawlix/en';\nimport { CensoredText } from '@scrawlix/react';\n\n<CensoredText\n  text={copy}\n  rules={englishStrongProfanityRules}\n${coverageLine}\n  appearance="${appearance}"\n  reveal="${reveal}"\n/>`;
-  }, [appearance, coverage, reveal]);
+    return `import { englishStrongProfanityRules${coverage === 'vowel' ? ', englishVowelCoverage' : ''} } from '@scrawlix/en';\nimport { CensoredText } from '@scrawlix/react';\n\n<CensoredText\n  text={copy}\n  rules={englishStrongProfanityRules}\n${coverageLine}\n  appearance="${appearance}"\n  reveal="${reveal}"\n  revealScope="${revealScope}"\n/>`;
+  }, [appearance, coverage, reveal, revealScope]);
 
   return (
     <main>
@@ -251,14 +258,18 @@ export function App() {
               appearance={appearance}
               coverage={coverageSelector}
               reveal={reveal}
+              revealScope={revealScope}
               rules={englishStrongProfanityRules}
               text={text}
             />
           </div>
           <p className="proof-hint">
-            {reveal === 'hover' && 'hover the proof to reveal'}
-            {reveal === 'focus' && 'tab into the proof to reveal'}
-            {reveal === 'click' && 'click or press enter to toggle reveal'}
+            {reveal === 'hover' && `hover ${proofTarget} to reveal`}
+            {reveal === 'focus' && `tab to ${proofTarget} to reveal`}
+            {reveal === 'click' &&
+              (revealScope === 'match'
+                ? 'click a censored term or use its keyboard control to toggle reveal'
+                : 'click the proof or press enter to toggle reveal')}
             {reveal === 'never' && 'this proof stays censored'}
           </p>
         </div>
@@ -284,6 +295,12 @@ export function App() {
             value={reveal}
             values={reveals}
           />
+          <SegmentControl
+            label="reveal scope"
+            onChange={setRevealScope}
+            value={revealScope}
+            values={revealScopes}
+          />
         </div>
 
         <label className="text-editor">
@@ -300,7 +317,7 @@ export function App() {
       <section className="specimen-section" aria-labelledby="specimen-title">
         <div className="section-heading">
           <p className="eyebrow">02 / specimen sheet</p>
-          <h2 id="specimen-title">Five ways to lose your fucking vowels.</h2>
+          <h2 id="specimen-title">Seven ways to damage the same word.</h2>
           <p>
             Same matcher. Same coverage rule. Different presentation. Swap the visual
             treatment without teaching your text parser anything new.
@@ -321,6 +338,7 @@ export function App() {
                       appearance={style}
                       coverage={coverageSelector}
                       reveal="hover"
+                      revealScope="match"
                       rules={englishStrongProfanityRules}
                       text={sample}
                     />
@@ -331,6 +349,14 @@ export function App() {
           ))}
         </div>
       </section>
+
+      <XrayLab
+        appearance={appearance}
+        coverage={coverageSelector}
+        coverageLabel={coverage}
+        reveal={reveal}
+        revealScope={revealScope}
+      />
 
       <section className="semantic-section" aria-labelledby="semantic-title">
         <div className="section-heading compact">
