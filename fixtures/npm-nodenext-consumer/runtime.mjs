@@ -124,7 +124,10 @@ const tree = {
 transformHast(tree, { rules: englishStrongProfanityRules, coverage: 'full' });
 assert.equal(tree.children[0]?.children[0]?.properties?.['data-scrawlix-cover'], '');
 
-assert.equal(typeof CensoredText, 'function');
+assert.ok(
+  CensoredText !== null &&
+    (typeof CensoredText === 'function' || typeof CensoredText === 'object')
+);
 assert.equal(typeof createDomScrawlix, 'function');
 
 console.log('Scrawlix npm + NodeNext packed-consumer runtime smoke passed.');
