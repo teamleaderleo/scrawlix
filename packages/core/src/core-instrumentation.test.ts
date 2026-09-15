@@ -85,7 +85,7 @@ describe('core grapheme work instrumentation', () => {
     expect(work.materializedRanges).toBe(0);
   });
 
-  it('builds legacy obfuscated shadows directly from Segmenter iteration', () => {
+  it('reuses obfuscated shadow units for prepared matching', () => {
     const engine = createScrawlix({
       rules: [
         censorRuleFromObfuscatedTerms('obfuscated', ['fuck'], {
@@ -102,6 +102,7 @@ describe('core grapheme work instrumentation', () => {
     expect(result).toHaveLength(1);
     expect(work.boundaryPasses).toBe(1);
     expect(work.obfuscatedShadowPasses).toBe(1);
+    expect(work.termShadowPasses).toBe(0);
     expect(work.rangePasses).toBe(0);
     expect(work.materializedRanges).toBe(0);
   });
