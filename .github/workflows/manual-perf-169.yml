@@ -28,9 +28,9 @@ jobs:
 
       - name: Prepare comparison worktrees
         run: |
-          git fetch origin main perf/dom-pending-root-coalescing-v2
+          git fetch origin main
           git worktree add --detach /tmp/scrawlix-baseline 9835417c291a6b78eb77920c53b6188a3a92231b
-          git worktree add --detach /tmp/scrawlix-after e5cd54d091f78d63aca34fd0a3d02e56efbad9ad
+          git worktree add --detach /tmp/scrawlix-after origin/main
 
       - name: Install and build baseline
         working-directory: /tmp/scrawlix-baseline
@@ -46,10 +46,12 @@ jobs:
 
       - name: Benchmark baseline audit snapshot
         run: |
+          set -o pipefail
           node --no-experimental-global-navigator --expose-gc scripts/bench-169-compare.mjs /tmp/scrawlix-baseline baseline | tee /tmp/bench-169-baseline.jsonl
 
       - name: Benchmark optimized stack
         run: |
+          set -o pipefail
           node --no-experimental-global-navigator --expose-gc scripts/bench-169-compare.mjs /tmp/scrawlix-after after | tee /tmp/bench-169-after.jsonl
 
       - name: Print comparison files
