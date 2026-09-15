@@ -1,3 +1,10 @@
+import {
+  recordCoreBoundaryPass,
+  recordCoreObfuscatedShadowPass,
+  recordCoreRangePass,
+  recordCoreTermShadowPass,
+} from './core-instrumentation.js';
+
 export type CoveragePreset = 'full' | 'tail' | 'middle' | 'inner';
 
 export type RelativeRange = {
@@ -231,17 +238,23 @@ function requireGraphemeSegmenter() {
 export function graphemeRanges(value: string): RelativeRange[] {
   if (!value) return [];
 
-  return [...requireGraphemeSegmenter().segment(value)].map(part => ({
-    start: part.index,
-    end: part.index + part.segment.length,
-  }));
+  const ranges: RelativeRange[] = [];
+  for (const part of requireGraphemeSegmenter().segment(value)) {
+    ranges.push({
+      start: part.index,
+      end: part.index + part.segment.length,
+    });
+  }
+  recordCoreRangePass(ranges.length);
+  return ranges;
 }
 
 function graphemeBoundarySet(value: string) {
+  recordCoreBoundaryPass();
   const boundaries = new Set<number>([0, value.length]);
-  for (const range of graphemeRanges(value)) {
-    boundaries.add(range.start);
-    boundaries.add(range.end);
+  for (const part of requireGraphemeSegmenter().segment(value)) {
+    boundaries.add(part.index);
+    boundaries.add(part.index + part.segment.length);
   }
   return boundaries;
 }
@@ -250,27 +263,12 @@ function fullRange(value: string): RelativeRange[] {
   return value.length > 0 ? [{ start: 0, end: value.length }] : [];
 }
 
-function middleCoverage(value: string): RelativeRange[] {
-  const graphemes = graphemeRanges(value);
-  if (graphemes.length === 0) return [];
-  if (graphemes.length === 1) return fullRange(value);
-
-  const coverCount = Math.max(1, Math.ceil(graphemes.length / 2));
-  const startIndex = Math.floor((graphemes.length - coverCount) / 2);
-  const endIndex = startIndex + coverCount - 1;
-
-  return [
-    {
-      start: graphemes[startIndex]!.start,
-      end: graphemes[endIndex]!.end,
-    },
-  ];
-}
-
 function coverageForPreset(
   preset: CoveragePreset,
   value: string
 ): RelativeRange[] {
+  if (preset === 'full') return fullRange(value);
+
   const graphemes = graphemeRanges(value);
   if (graphemes.length === 0) return [];
 
@@ -296,17 +294,26 @@ function coverageForPreset(
         },
       ];
 
-    case 'middle':
-      return middleCoverage(value);
+    case 'middle': {
+      if (graphemes.length === 1) return fullRange(value);
+      const coverCount = Math.max(1, Math.ceil(graphemes.length / 2));
+      const startIndex = Math.floor((graphemes.length - coverCount) / 2);
+      const endIndex = startIndex + coverCount - 1;
+      return [
+        {
+          start: graphemes[startIndex]!.start,
+          end: graphemes[endIndex]!.end,
+        },
+      ];
+    }
   }
 }
 
 function alignCoverageRange(
-  value: string,
+  graphemes: readonly RelativeRange[],
   start: number,
   end: number
 ): RelativeRange | null {
-  const graphemes = graphemeRanges(value);
   const first = graphemes.find(range => range.end > start);
   if (!first) return null;
 
@@ -324,6 +331,9 @@ function sanitizeRanges(
   ranges: readonly RelativeRange[],
   targetText: string
 ): RelativeRange[] {
+  if (ranges.length === 0) return [];
+  const graphemes = graphemeRanges(targetText);
+
   return ranges
     .map(range => {
       if (!Number.isFinite(range.start) || !Number.isFinite(range.end)) {
@@ -339,7 +349,7 @@ function sanitizeRanges(
         Math.min(targetText.length, Math.trunc(range.end))
       );
       if (end <= start) return null;
-      return alignCoverageRange(targetText, start, end);
+      return alignCoverageRange(graphemes, start, end);
     })
     .filter((range): range is RelativeRange => range !== null)
     .sort((left, right) => left.start - right.start || left.end - right.end);
@@ -593,12 +603,10 @@ function collectCoveredRanges(
       targetEnd: match.targetEnd,
     };
     const selector = rule.coverage ?? defaultCoverage;
-    const relativeRanges = sanitizeRanges(
+    const relativeRanges =
       typeof selector === 'function'
-        ? selector(context)
-        : coverageForPreset(selector, match.targetText),
-      match.targetText
-    );
+        ? sanitizeRanges(selector(context), match.targetText)
+        : coverageForPreset(selector, match.targetText);
 
     for (const relative of relativeRanges) {
       ranges.push({
@@ -678,14 +686,17 @@ function sourceShadow(
   value: string,
   normalization: UnicodeNormalization
 ): NormalizedShadow {
+  recordCoreTermShadowPass();
   let shadow = '';
   const sourceOffsets = new Map<number, number>([[0, 0]]);
 
-  for (const range of graphemeRanges(value)) {
+  for (const part of requireGraphemeSegmenter().segment(value)) {
+    const start = part.index;
+    const end = part.index + part.segment.length;
     const shadowStart = shadow.length;
-    sourceOffsets.set(shadowStart, range.start);
-    shadow += normalizeGrapheme(value.slice(range.start, range.end), normalization);
-    sourceOffsets.set(shadow.length, range.end);
+    sourceOffsets.set(shadowStart, start);
+    shadow += normalizeGrapheme(value.slice(start, end), normalization);
+    sourceOffsets.set(shadow.length, end);
   }
 
   return { value: shadow, sourceOffsets };
@@ -895,15 +906,18 @@ function obfuscatedShadow(
   normalization: UnicodeNormalization,
   config: CompiledObfuscation
 ): ObfuscatedShadow {
+  recordCoreObfuscatedShadowPass();
   let shadow = '';
   let ignoredSincePreviousUnit = 0;
   const units: ObfuscatedShadowUnit[] = [];
   const startUnitByOffset = new Map<number, number>();
   const endUnitByOffset = new Map<number, number>();
 
-  for (const range of graphemeRanges(value)) {
+  for (const part of requireGraphemeSegmenter().segment(value)) {
+    const start = part.index;
+    const end = part.index + part.segment.length;
     const sourceGrapheme = normalizeGrapheme(
-      value.slice(range.start, range.end),
+      value.slice(start, end),
       normalization
     );
     if (config.ignored.has(sourceGrapheme)) {
@@ -918,8 +932,8 @@ function obfuscatedShadow(
     units.push({
       shadowStart,
       shadowEnd: shadow.length,
-      sourceStart: range.start,
-      sourceEnd: range.end,
+      sourceStart: start,
+      sourceEnd: end,
       substitutionCost: replacement === undefined ? 0 : 1,
       ignoredBefore: ignoredSincePreviousUnit,
     });
