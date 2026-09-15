@@ -5,10 +5,8 @@ import { censorRuleFromRepeatedObfuscatedTerms } from '../packages/core/dist/rep
 import { censorRuleFromTargetedObfuscatedTerms } from '../packages/core/dist/targeted-obfuscated.js';
 import { censorRuleFromWidthObfuscatedTerms } from '../packages/core/dist/width-obfuscated.js';
 import { createDomScrawlix } from '../packages/dom/dist/index.js';
-import {
-  englishObfuscatedStrongProfanityRules,
-  englishStrongProfanityRules,
-} from '../packages/en/dist/index.js';
+import { englishStrongProfanityRules } from '../packages/en/dist/index.js';
+import { englishObfuscatedStrongProfanityRules } from '../packages/en/dist/obfuscated.js';
 import {
   englishObfuscatedProfanityCorpus,
   englishProfanityCorpus,

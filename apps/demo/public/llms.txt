@@ -6,7 +6,7 @@ Source: https://github.com/teamleaderleo/scrawlix
 
 Packages:
 - @scrawlix/core — language-neutral matching and segmentation
-- @scrawlix/en — English strong-profanity rules, English vowel coverage, regression corpus
+- @scrawlix/en — canonical English strong-profanity rules and English vowel coverage; opt-in evasions live at @scrawlix/en/obfuscated, regression data at @scrawlix/en/corpus
 - @scrawlix/react — React renderer and visual/reveal presets
 - @scrawlix/rehype — HAST/rehype transformer for Markdown-rendered prose
 - @scrawlix/dom — arbitrary-page DOM transformation, restoration, and mutation observation
@@ -68,6 +68,17 @@ import { englishStrongProfanityRules } from '@scrawlix/en';
 
 const engine = createScrawlix({
   rules: englishStrongProfanityRules,
+});
+```
+
+Opt-in English evasion matching uses the explicit subpath so canonical imports stay lightweight:
+
+```ts
+import { createScrawlix } from '@scrawlix/core';
+import { englishObfuscatedStrongProfanityRules } from '@scrawlix/en/obfuscated';
+
+const aggressiveEngine = createScrawlix({
+  rules: englishObfuscatedStrongProfanityRules,
 });
 ```
 

@@ -137,6 +137,30 @@ function verifyPackedSourceMaps(tarball, packageDirectory) {
   );
 }
 
+function verifyCanonicalEnglishEntryBoundary(tarball) {
+  const entry = tarEntries(tarball).get('package/dist/index.js')?.toString('utf8');
+  if (!entry) {
+    throw new Error('@scrawlix/en packed no canonical dist/index.js entry to verify.');
+  }
+
+  const forbiddenRuntimeImports = [
+    '@scrawlix/core/targeted-obfuscated',
+    '@scrawlix/core/repeated-obfuscated',
+    '@scrawlix/core/width-obfuscated',
+    '@scrawlix/core/confusable-obfuscated',
+    './obfuscated.js',
+  ];
+  const leaked = forbiddenRuntimeImports.filter(specifier => entry.includes(specifier));
+
+  if (leaked.length > 0) {
+    throw new Error(
+      `@scrawlix/en canonical entry leaked aggressive runtime imports: ${leaked.join(', ')}`
+    );
+  }
+
+  console.log('@scrawlix/en canonical-entry boundary verification passed.');
+}
+
 function packPackage(packageDirectory) {
   const before = new Set(
     existsSync(packDirectory)
@@ -286,6 +310,7 @@ try {
     dom: packPackage('packages/dom'),
   };
 
+  verifyCanonicalEnglishEntryBoundary(tarballs.english);
   smokeConsumer({ label: 'react-18', reactMajor: '18', tarballs });
   smokeConsumer({ label: 'react-19', reactMajor: '19', tarballs });
   smokeNextConsumer(tarballs);

@@ -19,7 +19,7 @@ const scrawlix = createScrawlix({
 });
 ```
 
-The canonical package export also includes `englishStrongProfanityPack` for pack composition and `englishVowelCoverage` for an English-specific coverage policy.
+The canonical root export also includes `englishStrongProfanityPack` for pack composition and `englishVowelCoverage` for an English-specific coverage policy.
 
 ```ts
 import { createScrawlix, rulesFromPacks } from '@scrawlix/core';
@@ -34,11 +34,11 @@ const scrawlix = createScrawlix({
 });
 ```
 
-Canonical English rules expose `profile: 'canonical'` in match metadata.
+Canonical English rules expose `profile: 'canonical'` in match metadata. Importing `@scrawlix/en` stays on this canonical path and does not construct the aggressive matcher tables.
 
 ## Opt-in obfuscated strong-profanity pack
 
-The package also exports a separate aggressive pack:
+The explicit `@scrawlix/en/obfuscated` subpath exports the aggressive pack:
 
 - `englishObfuscatedStrongProfanityRules`
 - `englishObfuscatedStrongProfanityPack`
@@ -47,10 +47,8 @@ It catches a small reviewed set of one-change evasions across the same inflectio
 
 ```ts
 import { createScrawlix, rulesFromPacks } from '@scrawlix/core';
-import {
-  englishObfuscatedStrongProfanityPack,
-  englishStrongProfanityPack,
-} from '@scrawlix/en';
+import { englishStrongProfanityPack } from '@scrawlix/en';
+import { englishObfuscatedStrongProfanityPack } from '@scrawlix/en/obfuscated';
 
 const scrawlix = createScrawlix({
   rules: rulesFromPacks(
@@ -83,7 +81,7 @@ The one-change ceiling applies across every aggressive class. Two confusables, o
 
 Matches from this pack expose `profile: 'obfuscated'` and `packId: 'en-strong-profanity-obfuscated'` when composed through `rulesFromPacks()`.
 
-The reviewed tables and form families live in ordinary package code, and positive plus false-positive/over-budget cases live in JSON corpora. Width and confusable cases live in separate corpus files so reviewers can inspect those behaviors independently.
+The reviewed tables and form families live in the opt-in obfuscated module, and positive plus false-positive/over-budget cases live in JSON corpora. Width and confusable cases live in separate corpus files so reviewers can inspect those behaviors independently.
 
 ## Regression data and shared runner
 
@@ -104,10 +102,8 @@ import {
 ```ts
 import { createScrawlix } from '@scrawlix/core';
 import { createCorpusRunner } from '@scrawlix/core/corpus';
-import {
-  englishObfuscatedStrongProfanityRules,
-  englishStrongProfanityRules,
-} from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
+import { englishObfuscatedStrongProfanityRules } from '@scrawlix/en/obfuscated';
 import { englishCorpus } from '@scrawlix/en/corpus';
 
 const runCorpusCase = createCorpusRunner({

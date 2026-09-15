@@ -24,6 +24,7 @@ Scrawlix is in pre-release development. Until the first package version is chose
 ### English pack
 
 - Added `@scrawlix/en` with explicit English strong-profanity rules exported as `englishStrongProfanityRules` and `englishStrongProfanityPack`.
+- Moved opt-in aggressive English matching to the explicit `@scrawlix/en/obfuscated` subpath so canonical root imports avoid evaluating advanced matcher tables.
 - Added English-specific vowel coverage outside the neutral core.
 - Added positive and clean regression corpora, including false-positive traps.
 - Hardened English word edges around combining marks, connector punctuation, ZWNJ, and ZWJ.

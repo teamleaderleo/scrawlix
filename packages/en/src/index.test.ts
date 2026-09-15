@@ -6,13 +6,16 @@ import {
 import { createCorpusRunner } from '@scrawlix/core/corpus';
 import { describe, expect, it } from 'vitest';
 import { englishCorpus } from './corpus';
+import * as englishRoot from './index';
 import {
-  englishObfuscatedStrongProfanityPack,
-  englishObfuscatedStrongProfanityRules,
   englishStrongProfanityPack,
   englishStrongProfanityRules,
   englishVowelCoverage,
 } from './index';
+import {
+  englishObfuscatedStrongProfanityPack,
+  englishObfuscatedStrongProfanityRules,
+} from './obfuscated';
 
 function marked(segments: readonly ScrawlixSegment[]) {
   return segments
@@ -36,6 +39,11 @@ describe('@scrawlix/en', () => {
 
   it.each(englishCorpus)('$id', corpusCase => {
     runCorpusCase(corpusCase);
+  });
+
+  it('keeps aggressive English exports off the canonical root entry', () => {
+    expect('englishObfuscatedStrongProfanityRules' in englishRoot).toBe(false);
+    expect('englishObfuscatedStrongProfanityPack' in englishRoot).toBe(false);
   });
 
   it('covers only the semantic root inside obfuscated inflections and compounds', () => {

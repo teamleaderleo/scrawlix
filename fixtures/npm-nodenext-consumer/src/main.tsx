@@ -5,10 +5,8 @@ import { censorRuleFromRepeatedObfuscatedTerms } from '@scrawlix/core/repeated-o
 import { censorRuleFromTargetedObfuscatedTerms } from '@scrawlix/core/targeted-obfuscated';
 import { censorRuleFromWidthObfuscatedTerms } from '@scrawlix/core/width-obfuscated';
 import { createDomScrawlix } from '@scrawlix/dom';
-import {
-  englishObfuscatedStrongProfanityRules,
-  englishStrongProfanityRules,
-} from '@scrawlix/en';
+import { englishStrongProfanityRules } from '@scrawlix/en';
+import { englishObfuscatedStrongProfanityRules } from '@scrawlix/en/obfuscated';
 import { englishCorpus } from '@scrawlix/en/corpus';
 import { transformHast } from '@scrawlix/rehype';
 import { CensoredText } from '@scrawlix/react';
