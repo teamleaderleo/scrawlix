@@ -25,6 +25,10 @@ export default defineConfig({
         replacement: workspaceFile('../../packages/core/src/pack-authoring.ts'),
       },
       {
+        find: '@scrawlix/core/sanitize',
+        replacement: workspaceFile('../../packages/core/src/sanitize.ts'),
+      },
+      {
         find: '@scrawlix/core/confusable-obfuscated',
         replacement: workspaceFile(
           '../../packages/core/src/confusable-obfuscated.ts'
