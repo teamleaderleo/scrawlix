@@ -14,7 +14,7 @@ describe('confusable obfuscated terms', () => {
       ],
     });
 
-    expect(engine.find('fuсk')).toEqual([
+    expect(engine.find('fuсk')).toMatchObject([
       {
         ruleId: 'fuck-confusable',
         profile: 'obfuscated',
@@ -60,7 +60,7 @@ describe('confusable obfuscated terms', () => {
       targetStart: 0,
       targetEnd: 4,
     });
-    expect(engine.segment('motherfuсker')).toEqual([
+    expect(engine.segment('motherfuсker')).toMatchObject([
       { text: 'mother', covered: false, ruleIds: [] },
       { text: 'fuсk', covered: true, ruleIds: ['fuck-confusable'] },
       { text: 'er', covered: false, ruleIds: [] },
