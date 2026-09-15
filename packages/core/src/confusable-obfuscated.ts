@@ -5,6 +5,7 @@ import {
   type ObfuscatedTermSubstitutions,
   type UnicodeNormalization,
 } from './index.js';
+import { recordObfuscatedGraphemePass } from './obfuscated-instrumentation.js';
 import {
   censorRuleFromRepeatedObfuscatedTerms,
   type RepeatedObfuscatedTermOptions,
@@ -265,6 +266,8 @@ function candidateMappedClassCost(
   normalization: UnicodeNormalization,
   config: CompiledMappedClasses
 ) {
+  recordObfuscatedGraphemePass();
+
   let confusables = 0;
   let widthVariants = 0;
   let substitutions = 0;
