@@ -40,6 +40,29 @@ describe('overlap-complete obfuscated term matching', () => {
     expect(source(engine.segment(text))).toBe(text);
   });
 
+  it('reports crossing phrases through a shared ignored grapheme', () => {
+    const text = 'alpha be.ta gamma';
+    const engine = createScrawlix({
+      rules: [
+        censorRuleFromObfuscatedTerms(
+          'private',
+          ['alpha beta', 'beta gamma'],
+          {
+            ignored: ['.'],
+            maxIgnored: 1,
+          }
+        ),
+      ],
+    });
+
+    expect(
+      engine.find(text).map(match => [match.text, match.start, match.end])
+    ).toEqual([
+      ['alpha be.ta', 0, 11],
+      ['be.ta gamma', 6, text.length],
+    ]);
+  });
+
   it('reports nested and same-start rivals longest-first', () => {
     const engine = createScrawlix({
       rules: [
