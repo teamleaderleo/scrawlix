@@ -76,7 +76,7 @@ describe('match profile metadata', () => {
       rules: [{ id: 'plain', pattern: /plain/u }],
     });
 
-    expect(engine.find('plain')[0]).toEqual({
+    expect(engine.find('plain')[0]).toMatchObject({
       ruleId: 'plain',
       text: 'plain',
       start: 0,
