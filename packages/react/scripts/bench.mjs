@@ -18,40 +18,20 @@ function formatNumber(value, digits = 2) {
   return Number.isFinite(value) ? value.toFixed(digits) : '∞';
 }
 
-function installDom() {
-  const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>');
-  const previous = {
-    window: globalThis.window,
-    document: globalThis.document,
-    Node: globalThis.Node,
-    HTMLElement: globalThis.HTMLElement,
-    MutationObserver: globalThis.MutationObserver,
-  };
+const dom = new JSDOM('<!doctype html><html><body></body></html>');
+globalThis.window = dom.window;
+globalThis.document = dom.window.document;
+globalThis.Node = dom.window.Node;
+globalThis.HTMLElement = dom.window.HTMLElement;
+globalThis.MutationObserver = dom.window.MutationObserver;
 
-  globalThis.window = dom.window;
-  globalThis.document = dom.window.document;
-  globalThis.Node = dom.window.Node;
-  globalThis.HTMLElement = dom.window.HTMLElement;
-  globalThis.MutationObserver = dom.window.MutationObserver;
+const { createRoot } = await import('react-dom/client');
+const { flushSync } = await import('react-dom');
 
-  return {
-    dom,
-    container: dom.window.document.getElementById('root'),
-    restore() {
-      for (const [key, value] of Object.entries(previous)) {
-        if (value === undefined) delete globalThis[key];
-        else globalThis[key] = value;
-      }
-      dom.window.close();
-    },
-  };
-}
-
-async function measureCase(instanceCount, mode) {
-  const environment = installDom();
-  const { createRoot } = await import('react-dom/client');
-  const { flushSync } = await import('react-dom');
-  const root = createRoot(environment.container);
+function measureCase(instanceCount, mode) {
+  const container = dom.window.document.createElement('div');
+  dom.window.document.body.append(container);
+  const root = createRoot(container);
   let semanticScans = 0;
 
   const rule = {
@@ -99,7 +79,7 @@ async function measureCase(instanceCount, mode) {
   }
 
   flushSync(() => root.unmount());
-  environment.restore();
+  container.remove();
 
   return {
     durationMs: median(durations),
@@ -114,7 +94,7 @@ console.log('instances\trules\trerender ms\tsemantic scans');
 
 for (const instanceCount of instanceCounts) {
   for (const mode of ['stable', 'fresh']) {
-    const measurement = await measureCase(instanceCount, mode);
+    const measurement = measureCase(instanceCount, mode);
     console.log(
       [
         instanceCount,
@@ -125,3 +105,6 @@ for (const instanceCount of instanceCounts) {
     );
   }
 }
+
+await new Promise(resolve => setImmediate(resolve));
+dom.window.close();
