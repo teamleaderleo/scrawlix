@@ -4,6 +4,7 @@ import {
   type CoverageSelector,
   type ScrawlixSegment,
 } from '@scrawlix/core';
+import { compactPendingRoots } from './pending-roots.js';
 
 const SHOW_TEXT = 4;
 const ELEMENT_NODE = 1;
@@ -419,20 +420,12 @@ export function createDomScrawlix(
 
     const queue = (node: Node) => {
       if (hasOwnedAncestor(node, globallyOwnedRoots)) return;
-
-      for (const existing of pending) {
-        if (existing === node || existing.contains(node)) return;
-        if (node.contains(existing)) pending.delete(existing);
-      }
-
       pending.add(node);
     };
 
     const flush = () => {
       scheduled = false;
-      const queued = [...pending].filter(
-        node => node === root || root.contains(node)
-      );
+      const queued = compactPendingRoots(pending, root);
       pending.clear();
 
       return queued.reduce(
