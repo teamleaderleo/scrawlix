@@ -60,6 +60,8 @@ export type DomObservation = {
   initialResult: DomApplyResult;
   /** Process mutation roots already delivered by MutationObserver. */
   flush(): DomApplyResult;
+  /** True only for generated roots currently owned by this live observation. */
+  ownsGeneratedRoot(node: Node): boolean;
   disconnect(): void;
   /** Disconnect observation, clear pending work, then restore owned text in one call. */
   restore(): number;
@@ -129,13 +131,9 @@ function contentEditableState(node: Text): boolean {
   return false;
 }
 
-function isEligibleText(
-  node: Text,
-  options: PreparedOptions,
-  ownedRoots: WeakSet<Element>
-) {
+function isEligibleText(node: Text, options: PreparedOptions) {
   if (!node.data) return false;
-  if (hasOwnedAncestor(node, ownedRoots)) return false;
+  if (hasOwnedAncestor(node, globallyOwnedRoots)) return false;
   if (options.shouldSkipText?.(node) === true) return false;
 
   const parent = node.parentElement;
@@ -182,7 +180,9 @@ export function createDomScrawlix(
     ignoreAttribute: options.ignoreAttribute ?? 'data-scrawlix-ignore',
     shouldSkipText: options.shouldSkipText,
   };
-  const ownershipToken = `dom-${++controllerSequence}`;
+  const ownershipToken = `dom-${++controllerSequence}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
   knownOwnershipTokens.add(ownershipToken);
 
   const ownedRoots = new WeakSet<Element>();
@@ -260,7 +260,7 @@ export function createDomScrawlix(
     knownEligible = false
   ): DomApplyResult {
     if (ownedSources.has(node)) return emptyResult();
-    if (!knownEligible && !isEligibleText(node, prepared, ownedRoots)) {
+    if (!knownEligible && !isEligibleText(node, prepared)) {
       return emptyResult();
     }
 
@@ -331,7 +331,7 @@ export function createDomScrawlix(
 
     if (
       normalizedRoot.nodeType === ELEMENT_NODE &&
-      ownedRoots.has(normalizedRoot as Element)
+      globallyOwnedRoots.has(normalizedRoot as Element)
     ) {
       return emptyResult();
     }
@@ -346,7 +346,7 @@ export function createDomScrawlix(
     while (current) {
       if (
         current.nodeType === TEXT_NODE &&
-        isEligibleText(current as Text, prepared, ownedRoots)
+        isEligibleText(current as Text, prepared)
       ) {
         candidates.push(current as Text);
       }
@@ -418,7 +418,7 @@ export function createDomScrawlix(
     let scheduled = false;
 
     const queue = (node: Node) => {
-      if (hasOwnedAncestor(node, ownedRoots)) return;
+      if (hasOwnedAncestor(node, globallyOwnedRoots)) return;
 
       for (const existing of pending) {
         if (existing === node || existing.contains(node)) return;
@@ -505,7 +505,11 @@ export function createDomScrawlix(
 
       const releaseOwnedSource = (source: Text, wrapper: Element) => {
         if (releasedSources.has(source)) return;
-        const value = pageWrites.get(source) ?? sourceText.get(source) ?? wrapper.textContent ?? '';
+        const value =
+          pageWrites.get(source) ??
+          sourceText.get(source) ??
+          wrapper.textContent ??
+          '';
         forgetOwnedSource(source, wrapper);
         wrapper.remove();
         source.data = value;
@@ -581,6 +585,9 @@ export function createDomScrawlix(
     return {
       initialResult,
       flush,
+      ownsGeneratedRoot(node) {
+        return node.nodeType === ELEMENT_NODE && ownedRoots.has(node as Element);
+      },
       disconnect() {
         processRecords(observer.takeRecords());
         stop();
