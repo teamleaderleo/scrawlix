@@ -11,10 +11,11 @@
         <div>
           <p class="wordmark">scrawlix<span aria-hidden="true">*</span></p>
           <p class="tagline">programmable censorship</p>
+          <span id="save-status" class="save-status" aria-live="polite"></span>
         </div>
-        <label class="switch-row compact">
-          <span>global</span>
-          <input id="enabled" type="checkbox" />
+        <label class="switch-row">
+          <span>active</span>
+          <input id="active" type="checkbox" />
         </label>
       </header>
 
@@ -25,91 +26,53 @@
           <p id="effective-status" class="status-line"></p>
         </div>
         <label>
-          <span class="sr-only">Site mode</span>
+          <span class="sr-only">Site policy</span>
           <select id="site-mode">
-            <option value="inherit">follow global</option>
+            <option value="inherit">use default</option>
             <option value="on">always on</option>
             <option value="off">always off</option>
           </select>
         </label>
       </section>
 
-      <section class="profiles" aria-labelledby="profiles-heading">
-        <div class="section-label">
+      <section class="access-card" aria-label="Website access">
+        <div>
+          <p class="eyebrow">website access</p>
+          <p id="access-status" class="compact-copy">Checking Chrome access…</p>
+        </div>
+        <div class="button-row">
+          <button id="site-access" type="button">allow this site</button>
+          <button id="all-sites-access" type="button" class="quiet">allow all websites</button>
+        </div>
+      </section>
+
+      <section class="reveal-card" aria-label="Temporary reveal">
+        <button id="reveal-page" type="button">reveal page · 10s</button>
+        <p class="reveal-meta"><kbd id="reveal-shortcut"></kbd><span id="reveal-status" aria-live="polite"></span></p>
+      </section>
+
+      <section class="profile-card" aria-labelledby="profile-heading">
+        <div class="section-heading">
           <div>
-            <p class="eyebrow">active setup</p>
-            <h2 id="profiles-heading">Profiles</h2>
+            <p class="eyebrow">active profile</p>
+            <h2 id="profile-heading">Treatment</h2>
           </div>
-          <span id="local-save-status" aria-live="polite"></span>
+          <select id="profile" aria-label="Active profile"></select>
         </div>
-
-        <div class="profile-picker">
-          <label>
-            <span class="sr-only">Active profile</span>
-            <select id="profile"></select>
-          </label>
-          <button id="add-profile" type="button">new</button>
-          <button id="delete-profile" type="button">delete</button>
+        <div class="settings-grid">
+          <label><span>style</span><select id="appearance"><option value="scrawl">scrawl</option><option value="bar">bar</option><option value="blur">blur</option><option value="asterisk">asterisk</option><option value="grawlix">grawlix</option></select></label>
+          <label><span>coverage</span><select id="coverage"><option value="middle">middle</option><option value="vowel">vowels</option><option value="inner">inner</option><option value="tail">tail</option><option value="full">full</option></select></label>
+          <label><span>reveal</span><select id="reveal"><option value="hover">hover</option><option value="click">click</option><option value="never">hidden</option></select></label>
         </div>
-
-        <label class="stacked-field">
-          <span>profile name</span>
-          <input id="profile-name" autocomplete="off" spellcheck="false" />
-        </label>
       </section>
 
-      <section class="settings-grid" aria-label="Active profile treatment">
-        <label>
-          <span>appearance</span>
-          <select id="appearance">
-            <option value="scrawl">scrawl</option>
-            <option value="bar">bar</option>
-            <option value="blur">blur</option>
-            <option value="asterisk">asterisk</option>
-            <option value="grawlix">grawlix</option>
-          </select>
-        </label>
-
-        <label>
-          <span>coverage</span>
-          <select id="coverage">
-            <option value="middle">middle</option>
-            <option value="vowel">vowel</option>
-            <option value="inner">inner</option>
-            <option value="tail">tail</option>
-            <option value="full">full</option>
-          </select>
-        </label>
-
-        <label>
-          <span>reveal</span>
-          <select id="reveal">
-            <option value="hover">hover</option>
-            <option value="focus">focus</option>
-            <option value="click">click</option>
-            <option value="never">never</option>
-          </select>
-        </label>
+      <section class="manage-card" aria-label="Manage Scrawlix">
+        <p><strong id="custom-count">0</strong> custom terms · <strong id="site-exception-count">0</strong> site exceptions</p>
+        <button id="open-options" type="button">full settings…</button>
       </section>
 
-      <section class="lenses" aria-labelledby="lenses-heading">
-        <div class="section-label">
-          <div>
-            <p class="eyebrow">what gets caught</p>
-            <h2 id="lenses-heading">Lenses</h2>
-          </div>
-          <button id="add-lens" type="button">+ lens</button>
-        </div>
-        <div id="lens-list" class="lens-list"></div>
-        <p class="hint">Tick the lenses this profile should use. Custom lens terms stay local to this browser.</p>
-      </section>
-
-      <footer>
-        <span>Scrawlix dev build</span>
-        <a href="https://github.com/teamleaderleo/scrawlix" target="_blank" rel="noreferrer">source ↗</a>
-      </footer>
+      <footer><span id="version"></span><a href="https://github.com/teamleaderleo/scrawlix" target="_blank" rel="noreferrer">source ↗</a></footer>
     </main>
-
     <script type="module" src="/src/popup.ts"></script>
   </body>
 </html>
