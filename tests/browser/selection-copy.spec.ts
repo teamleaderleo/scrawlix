@@ -9,6 +9,8 @@ function occurrences(value: string, needle: string) {
   return value.split(needle).length - 1;
 }
 
+const primaryModifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+
 test('built extension keeps selection and clipboard source literal exactly once', async ({}, testInfo) => {
   const extensionPath = await extensionWithPregrantedHosts(
     testInfo.outputPath('copy-extension-under-test')
@@ -36,13 +38,13 @@ test('built extension keeps selection and clipboard source literal exactly once'
       .toBe(true);
     await expect(page.locator('[data-scrawlix-dom-root]')).toHaveCount(0);
 
-    // The hostile-page audit explicitly calls out Ctrl+A → Copy. The page's
+    // The hostile-page audit explicitly calls out Select All → Copy. The page's
     // known source paragraph must appear exactly once in the native selection
     // and exactly once on the clipboard while Highlight coverage is active.
-    await page.keyboard.press('Control+A');
+    await page.keyboard.press(`${primaryModifier}+A`);
     const selectedAll = await page.evaluate(() => getSelection()?.toString() ?? '');
     expect(occurrences(selectedAll, 'well, fuck this')).toBe(1);
-    await page.keyboard.press('Control+C');
+    await page.keyboard.press(`${primaryModifier}+C`);
     const copiedAll = await page.evaluate(() => navigator.clipboard.readText());
     expect(occurrences(copiedAll, 'well, fuck this')).toBe(1);
 
@@ -62,7 +64,7 @@ test('built extension keeps selection and clipboard source literal exactly once'
       })
     ).toBe('well, fuck this');
 
-    await page.keyboard.press('Control+C');
+    await page.keyboard.press(`${primaryModifier}+C`);
     await expect
       .poll(() => page.evaluate(() => navigator.clipboard.readText()))
       .toBe('well, fuck this');
@@ -107,7 +109,7 @@ test('built extension keeps selection and clipboard source literal exactly once'
       })
     ).toBe('copy prefix fuck latest');
 
-    await page.keyboard.press('Control+C');
+    await page.keyboard.press(`${primaryModifier}+C`);
     await expect
       .poll(() => page.evaluate(() => navigator.clipboard.readText()))
       .toBe('copy prefix fuck latest');
