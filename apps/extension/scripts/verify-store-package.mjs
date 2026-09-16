@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  APPROVED_ICON_SHA256,
+  ICON_FILES,
+  ICON_SIZES,
+} from './icon-contract.mjs';
 import {
   createStoreArchive,
   readStoredEntries,
@@ -34,6 +40,7 @@ for (const required of [
   'content.js',
   'popup.html',
   'options.html',
+  ...Object.values(ICON_FILES),
 ]) {
   assert.ok(entries.has(required), `store archive is missing ${required}`);
 }
@@ -69,6 +76,24 @@ assert.deepEqual(packagedManifest.optional_host_permissions, [
 assert.equal(packagedManifest.content_scripts, undefined);
 assert.equal(packagedManifest.options_ui?.page, 'options.html');
 assert.equal(packagedManifest.options_ui?.open_in_tab, true);
+
+const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+for (const size of ICON_SIZES) {
+  const key = String(size);
+  const file = ICON_FILES[key];
+  assert.equal(packagedManifest.icons?.[key], file);
+  assert.equal(packagedManifest.action?.default_icon?.[key], file);
+
+  const data = entries.get(file);
+  assert.ok(data.subarray(0, 8).equals(pngSignature), `${file} must be PNG`);
+  assert.equal(data.readUInt32BE(16), size, `${file} width must match its slot`);
+  assert.equal(data.readUInt32BE(20), size, `${file} height must match its slot`);
+  assert.equal(
+    createHash('sha256').update(data).digest('hex'),
+    APPROVED_ICON_SHA256[file],
+    `${file} must match the approved first-store artwork`
+  );
+}
 
 const sourceManifestAfter = JSON.parse(await readFile(sourceManifestPath, 'utf8'));
 assert.equal(
