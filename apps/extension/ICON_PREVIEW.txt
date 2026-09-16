@@ -1,7 +1,0 @@
-Approved first-store mark: G4 compact slash
-- warm cream rounded tile
-- black censor bar
-- compact red diagonal slash
-- production sizes: 16, 32, 48, 128
-
-The build generates the exact PNG bytes; see ICON.md and scripts/icon-contract.mjs.
