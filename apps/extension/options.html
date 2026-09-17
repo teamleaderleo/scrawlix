@@ -8,12 +8,12 @@
   <body>
     <main class="options-shell">
       <header class="options-header">
-        <div><p class="wordmark">scrawlix<span aria-hidden="true">*</span></p><p class="tagline">browser settings</p></div>
+        <p class="wordmark">scrawlix<span aria-hidden="true">*</span></p>
         <div class="header-meta"><span id="version"></span><a href="https://github.com/teamleaderleo/scrawlix" target="_blank" rel="noreferrer">source ↗</a></div>
       </header>
 
       <section class="panel" aria-labelledby="general-heading">
-        <div class="section-heading"><div><p class="eyebrow">general</p><h1 id="general-heading">How Scrawlix behaves</h1></div><span id="settings-status" class="save-status" aria-live="polite"></span></div>
+        <div class="section-heading"><div><h1 id="general-heading">General</h1></div><span id="settings-status" class="save-status" aria-live="polite"></span></div>
         <div class="general-grid">
           <label class="toggle-card"><span><strong>Active</strong><small>Master pause across every site</small></span><input id="active" type="checkbox" /></label>
           <label><span>Default sites</span><select id="default-enabled"><option value="on">on</option><option value="off">off</option></select></label>
@@ -21,7 +21,7 @@
       </section>
 
       <section class="panel" aria-labelledby="profiles-heading">
-        <div class="section-heading"><div><p class="eyebrow">profiles</p><h2 id="profiles-heading">What to catch and how to cover it</h2></div><div class="button-row"><button id="add-profile" type="button">new profile</button><button id="delete-profile" type="button" class="quiet danger">remove profile</button></div></div>
+        <div class="section-heading"><div><h2 id="profiles-heading">Profiles</h2></div><div class="button-row"><button id="add-profile" type="button">new profile</button><button id="delete-profile" type="button" class="quiet danger">remove profile</button></div></div>
         <div class="profile-grid">
           <label><span>Active profile</span><select id="profile"></select></label>
           <label><span>Profile name</span><input id="profile-name" autocomplete="off" /></label>
@@ -29,25 +29,24 @@
           <label><span>Coverage</span><select id="coverage"><option value="middle">middle</option><option value="vowel">vowels</option><option value="inner">inner letters</option><option value="tail">after first letter</option><option value="full">whole word</option></select></label>
           <label><span>Reveal</span><select id="reveal"><option value="hover">hover</option><option value="click">click</option><option value="never">hidden</option></select></label>
         </div>
-        <div class="subheading"><div><h3>Lenses</h3><p>Choose the lists this profile uses. Custom lens terms stay in this Chrome profile.</p></div><button id="add-lens" type="button">+ custom lens</button></div>
+        <div class="subheading"><div><h3>Lenses</h3><p>Custom terms stay in this Chrome profile.</p></div><button id="add-lens" type="button">+ custom lens</button></div>
         <div id="lens-list" class="lens-list"></div>
         <p id="term-budget" class="budget-line"></p>
       </section>
 
       <section class="panel" aria-labelledby="sites-heading">
-        <div class="section-heading"><div><p class="eyebrow">site policy</p><h2 id="sites-heading">Site exceptions</h2></div><span id="site-count" class="count-label"></span></div>
-        <p class="section-copy">These hostnames override your default site behavior. Removing one sends it back to the default.</p>
-        <ul id="site-list" class="managed-list"></ul><p id="site-empty" class="empty-state">No site exceptions yet.</p>
+        <div class="section-heading"><div><h2 id="sites-heading">Site exceptions</h2></div><span id="site-count" class="count-label"></span></div>
+                <ul id="site-list" class="managed-list"></ul><p id="site-empty" class="empty-state">No site exceptions yet.</p>
       </section>
 
       <section class="panel" aria-labelledby="access-heading">
-        <div class="section-heading"><div><p class="eyebrow">Chrome access</p><h2 id="access-heading">Granted websites</h2></div><div class="button-row"><span id="access-count" class="count-label"></span><button id="grant-all-access" type="button">allow all websites</button></div></div>
-        <p class="section-copy">Website access and Scrawlix site policy are separate. Chrome access lets Scrawlix run; site policy decides whether it should censor there.</p>
+        <div class="section-heading"><div><h2 id="access-heading">Granted websites</h2></div><div class="button-row"><span id="access-count" class="count-label"></span><button id="grant-all-access" type="button">allow all websites</button></div></div>
+        <p class="section-copy">Chrome access lets Scrawlix run. Site policy decides whether it censors there.</p>
         <ul id="access-list" class="managed-list"></ul><p id="access-empty" class="empty-state">Scrawlix has no persistent website access yet.</p><p id="access-status" class="save-status" aria-live="polite"></p>
       </section>
 
       <section class="panel privacy-panel" aria-labelledby="privacy-heading">
-        <p class="eyebrow">privacy + about</p><h2 id="privacy-heading">Local page processing</h2>
+        <h2 id="privacy-heading">Privacy</h2>
         <p>Scrawlix matches page text in your browser. Custom terms and hostname exceptions stay in this Chrome profile. Compact preferences may sync through Chrome Sync.</p>
         <p id="compatibility" class="about-line"></p>
         <a href="https://github.com/teamleaderleo/scrawlix/blob/main/docs/extension-privacy.md" target="_blank" rel="noreferrer">privacy statement ↗</a>
