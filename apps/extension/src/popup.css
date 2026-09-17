@@ -41,25 +41,24 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
   border: 0; border-radius: 0; background: none; box-shadow: none; padding: 13px 0;
 }
 .site-card, .access-card, .reveal-card, .profile-card, .manage-card { border-top: 1px solid var(--hairline); }
-.masthead { padding-top: 2px; padding-bottom: 14px; }
+.masthead { padding-top: 2px; padding-bottom: 12px; align-items: center; }
 .manage-card { padding-bottom: 6px; }
 
 .masthead, .site-card, .section-heading, .manage-card, footer {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
-.masthead { align-items: flex-start; }
 
-.wordmark { margin: 0; font-family: Georgia, serif; font-weight: 800; font-size: 1.45rem; letter-spacing: -.035em; line-height: 1.05; }
+.wordmark { margin: 0; flex: 1 1 auto; font-family: Georgia, serif; font-weight: 800; font-size: 1.5rem; letter-spacing: -.04em; line-height: 1; }
 .wordmark span { color: var(--accent); }
-.tagline, .eyebrow, .compact-copy, .status-line, .manage-card p, .reveal-meta { margin: 0; }
-.tagline, .compact-copy, .status-line, .manage-card p, .reveal-meta { color: var(--muted); font-size: .76rem; line-height: 1.4; }
-.tagline { margin-top: 2px; }
+.compact-copy, .status-line, .manage-card p, .reveal-meta { margin: 0; color: var(--muted); font-size: .76rem; line-height: 1.4; }
 
-/* Orientation labels, not decoration: quiet enough to scan past. */
-.eyebrow { text-transform: uppercase; letter-spacing: .1em; font-size: .61rem; font-weight: 700; color: var(--muted); opacity: .8; }
-h1, h2 { margin: .1rem 0 0; font-family: Georgia, serif; font-size: 1.05rem; letter-spacing: -.01em; }
+/* Hierarchy comes from size and weight, not from a kicker label above every
+   section. The hostname is the popup's anchor, so it is the largest thing. */
+h1, h2 { margin: 0; font-family: Georgia, serif; letter-spacing: -.02em; }
+#site-heading { font-size: 1.32rem; line-height: 1.12; overflow-wrap: anywhere; }
+.status-line { margin-top: 3px; }
 
-.switch-row { display: flex; align-items: center; gap: 7px; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.switch-row { display: flex; align-items: center; gap: 7px; font-size: .78rem; font-weight: 600; color: var(--muted); }
 .switch-row input { width: 17px; height: 17px; accent-color: var(--ink); }
 .save-status { display: inline-block; min-height: 1em; color: var(--accent-deep); font-size: .67rem; }
 .status-line[data-enabled="true"] { color: #276148; }
@@ -75,7 +74,8 @@ h1, h2 { margin: .1rem 0 0; font-family: Georgia, serif; font-size: 1.05rem; let
 kbd { padding: 2px 6px; border: 1px solid var(--edge); border-radius: 5px; background: #fff; color: var(--muted); font-size: .66rem; }
 
 .profile-card { display: grid; gap: 11px; }
-.section-heading select { max-width: 168px; }
+.profile-select { display: grid; gap: 4px; color: var(--muted); font-size: .64rem; font-weight: 650; }
+.profile-select select { width: 100%; font-size: .8rem; }
 .settings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .settings-grid label { display: grid; gap: 4px; color: var(--muted); font-size: .64rem; font-weight: 650; text-transform: lowercase; }
 .settings-grid select { width: 100%; min-width: 0; padding-inline: .55rem 1.15rem; font-size: .74rem; }

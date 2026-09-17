@@ -8,11 +8,8 @@
   <body>
     <main class="popup-shell">
       <header class="masthead">
-        <div>
-          <p class="wordmark">scrawlix<span aria-hidden="true">*</span></p>
-          <p class="tagline">programmable censorship</p>
-          <span id="save-status" class="save-status" aria-live="polite"></span>
-        </div>
+        <p class="wordmark">scrawlix<span aria-hidden="true">*</span></p>
+        <span id="save-status" class="save-status" aria-live="polite"></span>
         <label class="switch-row">
           <span>active</span>
           <input id="active" type="checkbox" />
@@ -21,7 +18,6 @@
 
       <section class="site-card" aria-labelledby="site-heading">
         <div>
-          <p class="eyebrow">this site</p>
           <h1 id="site-heading">Loading…</h1>
           <p id="effective-status" class="status-line"></p>
         </div>
@@ -37,7 +33,6 @@
 
       <section class="access-card" aria-label="Website access">
         <div>
-          <p class="eyebrow">website access</p>
           <p id="access-status" class="compact-copy">Checking Chrome access…</p>
         </div>
         <div class="button-row">
@@ -52,13 +47,8 @@
       </section>
 
       <section class="profile-card" aria-labelledby="profile-heading">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">active profile</p>
-            <h2 id="profile-heading">Treatment</h2>
-          </div>
-          <select id="profile" aria-label="Active profile"></select>
-        </div>
+        <h2 id="profile-heading" class="sr-only">Treatment</h2>
+        <label class="profile-select"><span>profile</span><select id="profile" aria-label="Active profile"></select></label>
         <div class="settings-grid">
           <label><span>style</span><select id="appearance"><option value="scrawl">scrawl</option><option value="bar">bar</option><option value="blur">blur</option></select></label>
           <label><span>coverage</span><select id="coverage"><option value="middle">middle</option><option value="vowel">vowels</option><option value="inner">inner</option><option value="tail">tail</option><option value="full">full</option></select></label>
@@ -67,8 +57,8 @@
       </section>
 
       <section class="manage-card" aria-label="Manage Scrawlix">
-        <p><strong id="custom-count">0</strong> custom terms · <strong id="site-exception-count">0</strong> site exceptions</p>
-        <button id="open-options" type="button">full settings…</button>
+        <p><strong id="custom-count">0</strong> terms · <strong id="site-exception-count">0</strong> exceptions</p>
+        <button id="open-options" type="button">settings…</button>
       </section>
 
       <footer><span id="version"></span><a href="https://github.com/teamleaderleo/scrawlix" target="_blank" rel="noreferrer">source ↗</a></footer>
